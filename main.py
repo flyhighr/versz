@@ -14,25 +14,29 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
+import schedule  # Import the schedule module
 
 # Load environment variables
-MONGODB_URL = os.getenv("MONGODB_URL")
-API_URL = os.getenv("API_URL")
-PING_INTERVAL = int(os.getenv("PING_INTERVAL", "300"))  
+MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+PING_INTERVAL = int(os.getenv("PING_INTERVAL", "300"))  # Default: 300 seconds (5 minutes)
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://stmy.me").split(",")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 RATE_LIMIT = os.getenv("RATE_LIMIT", "5/minute")
 
+# Configure logging
 logging.basicConfig(
     level=logging.INFO if ENVIRONMENT == "production" else logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
+# Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
 app.state.limiter = limiter
 
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -41,38 +45,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# MongoDB connection
 client = AsyncIOMotorClient(MONGODB_URL)
 db = client.gunsdb
 files_collection = db.files
 
+# Generate a unique URL
 async def generate_unique_url():
     while True:
+        # Generate a random 5-character URL
         url = ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
+        
+        # Check if the URL already exists in the database
         existing = await files_collection.find_one({"url": url})
         if not existing:
             return url
 
+# Health check endpoint
 @app.get("/health")
 async def health_check(request: Request):
     return {"status": "healthy"}
 
+# Upload endpoint
 @app.post("/upload")
 async def upload_file(request: Request, file: UploadFile, custom_url: str = None):
+    # Validate file size (20MB limit)
     content = await file.read()
-    if len(content) > 20 * 1024 * 1024: 
+    if len(content) > 20 * 1024 * 1024:  # 20MB in bytes
         raise HTTPException(status_code=400, detail="File too large")
-
+    
+    # Validate file type
     if not file.filename.endswith('.html'):
         raise HTTPException(status_code=400, detail="Only HTML files are allowed")
     
+    # Generate or use custom URL
     if custom_url:
+        # Check if custom URL is available
         existing = await files_collection.find_one({"url": custom_url})
         if existing:
             raise HTTPException(status_code=400, detail="URL already taken")
         url = custom_url
     else:
+        # Generate a unique URL
         url = await generate_unique_url()
     
+    # Store in MongoDB
     document = {
         "url": url,
         "content": Binary(content),
@@ -84,6 +101,7 @@ async def upload_file(request: Request, file: UploadFile, custom_url: str = None
     logger.info(f"File uploaded successfully: {file.filename} with URL: {url}")
     return {"url": url}
 
+# Fetch file endpoint
 @app.get("/file/{url}")
 async def get_file(request: Request, url: str):
     file = await files_collection.find_one({"url": url})
@@ -97,6 +115,7 @@ async def get_file(request: Request, url: str):
         "filename": file["filename"]
     }
 
+# Keep alive mechanism
 async def ping_self():
     async with httpx.AsyncClient() as client:
         try:
@@ -114,9 +133,11 @@ def start_ping_scheduler():
         schedule.run_pending()
         time.sleep(1)
 
+# Start the ping scheduler in a separate thread
 ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
 ping_thread.start()
 
+# Exception handler for rate limiting
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     logger.warning(f"Rate limit exceeded for {request.client.host}")
@@ -124,6 +145,8 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={"detail": "Too many requests"},
     )
+
+# Run the application
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
