@@ -17,10 +17,10 @@ from fastapi.responses import JSONResponse
 import schedule  # Import the schedule module
 
 # Load environment variables
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+MONGODB_URL = os.getenv("MONGODB_URL")
+API_URL = os.getenv("API_URL")
 PING_INTERVAL = int(os.getenv("PING_INTERVAL", "300"))  # Default: 300 seconds (5 minutes)
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://stmy.me").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 RATE_LIMIT = os.getenv("RATE_LIMIT", "5/minute")
 
