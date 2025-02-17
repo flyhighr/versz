@@ -203,7 +203,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    const url = `https://versz.fun/${data.url}`;
+                    const url = `https://me.versz.fun/${data.url}`;
                     success.textContent = `File uploaded successfully! URL: ${url}`;
                     success.innerHTML += `<br><a href="${url}" target="_blank" style="color: #4ecdc4;">View your page</a>`;
                 } else {
