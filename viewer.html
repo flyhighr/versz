@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <style>
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f0f0f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4ecdc4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f0f0f;
+            color: #fff;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .error-container h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #ff6b6b;
+        }
+
+        .error-container p {
+            color: #a0a0a0;
+            margin-bottom: 2rem;
+        }
+
+        .back-btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: #fff;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="error" class="error-container">
+        <h1>404</h1>
+        <p>Page not found</p>
+        <a href="/" class="back-btn">Go Back</a>
+    </div>
+
+    <div id="content"></div>
+
+    <script>
+        async function loadContent() {
+            const url = window.location.pathname.substring(1);
+            if (!url) {
+                showError();
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://versz-vs1b.onrender.com/file/${url}`);
+                if (!response.ok) {
+                    showError();
+                    return;
+                }
+
+                const data = await response.json();
+                const content = data.content;
+                const temp = document.createElement('div');
+                temp.innerHTML = content;
+                const titleTag = temp.querySelector('title');
+                if (titleTag) {
+                    document.title = titleTag.textContent;
+                }
+                document.documentElement.innerHTML = content;
+            } catch (err) {
+                showError();
+            }
+        }
+
+        function showError() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'flex';
+        }
+
+        loadContent();
+    </script>
+</body>
+</html>
