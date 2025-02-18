@@ -127,15 +127,21 @@ async def update_file(request: Request, url: str, file: UploadFile, edit_code: s
     return {"message": "File updated successfully"}
 
 @app.put("/edit-code/{url}")
-async def update_edit_code(request: Request, url: str, old_edit_code: str, new_edit_code: str):
-    if not new_edit_code:
-        raise HTTPException(status_code=400, detail="New edit code cannot be empty")
+async def update_edit_code(
+    request: Request,
+    url: str,
+    edit_codes: dict
+):
+    old_edit_code = edit_codes.get("old_edit_code")
+    new_edit_code = edit_codes.get("new_edit_code")
+    
+    if not old_edit_code or not new_edit_code:
+        raise HTTPException(status_code=400, detail="Both old and new edit codes are required")
     
     existing_file = await files_collection.find_one({"url": url})
     if not existing_file:
         raise HTTPException(status_code=404, detail="File not found")
     
-    # Verify old edit code is 5 alphanumeric characters
     if not (len(old_edit_code) == 5 and old_edit_code.isalnum()):
         raise HTTPException(status_code=400, detail="Invalid old edit code format")
     
