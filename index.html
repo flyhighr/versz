@@ -413,8 +413,11 @@
         
             if (!url || !oldEditCode || !newEditCode) {
                 editError.textContent = 'Please fill in all fields';
+                editSuccess.textContent = '';
                 return;
             }
+            editError.textContent = '';
+            editSuccess.textContent = '';
         
             try {
                 const response = await fetch(`https://versz-vs1b.onrender.com/edit-code/${url}`, {
@@ -432,17 +435,14 @@
         
                 if (response.ok) {
                     editSuccess.textContent = 'Edit code updated successfully!';
-                    editError.textContent = '';
                     document.getElementById('editCodeInput').value = newEditCode;
                     document.getElementById('newEditCode').value = '';
                 } else {
-                    editError.textContent = data.detail || 'Update failed';
-                    editSuccess.textContent = '';
+                    editError.textContent = data.detail || 'Failed to update edit code. Please try again.';
                 }
             } catch (err) {
-                editError.textContent = 'Update failed. Please try again.';
-                editSuccess.textContent = '';
                 console.error('Edit code update error:', err);
+                editError.textContent = 'Network error occurred. Please check your connection and try again.';
             }
         }
     </script>
