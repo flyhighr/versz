@@ -45,6 +45,7 @@ client = AsyncIOMotorClient(MONGODB_URL)
 db = client.gunsdb
 files_collection = db.files
 views_collection = db.views
+
 async def generate_unique_url():
     while True:
         url = ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
@@ -52,30 +53,6 @@ async def generate_unique_url():
         existing = await files_collection.find_one({"url": url})
         if not existing:
             return url
-
-async def increment_view_count(url: str) -> int:
-    """Increment and return the view count for a given URL."""
-    result = await views_collection.find_one_and_update(
-        {"url": url},
-        {"$inc": {"views": 1}},
-        upsert=True,
-        return_document=True
-    )
-    return result["views"]
-
-async def migrate_existing_files():
-    """Add view counts for existing files that don't have them."""
-    async for file in files_collection.find({}):
-        await views_collection.update_one(
-            {"url": file["url"]},
-            {"$setOnInsert": {"views": 0}},
-            upsert=True
-        )
-
-@app.on_event("startup")
-async def startup_event():
-    """Run migrations when the application starts."""
-    await migrate_existing_files()
 
 @app.get("/health")
 async def health_check(request: Request):
@@ -106,7 +83,10 @@ async def upload_file(request: Request, file: UploadFile, custom_url: str = None
     }
     
     await files_collection.insert_one(document)
-    await views_collection.insert_one({"url": url, "views": 0})
+    await views_collection.insert_one({
+        "url": url,
+        "views": 0
+    })
     
     logger.info(f"File uploaded successfully: {file.filename} with URL: {url}")
     return {"url": url}
@@ -118,9 +98,16 @@ async def get_file(request: Request, url: str):
         logger.warning(f"File not found for URL: {url}")
         raise HTTPException(status_code=404, detail="File not found")
     
-    views = await increment_view_count(url)
+    result = await views_collection.find_one_and_update(
+        {"url": url},
+        {"$inc": {"views": 1}},
+        upsert=True,
+        return_document=True
+    )
     
-    logger.info(f"File retrieved successfully: {file['filename']} (Views: {views})")
+    views = result["views"] if result else 0
+    
+    logger.info(f"File retrieved successfully: {file['filename']}")
     return {
         "content": file["content"].decode(),
         "filename": file["filename"],
@@ -128,12 +115,11 @@ async def get_file(request: Request, url: str):
     }
 
 @app.get("/views/{url}")
-async def get_views(request: Request, url: str):
-    """Get the current view count for a URL."""
-    view_data = await views_collection.find_one({"url": url})
-    if not view_data:
-        raise HTTPException(status_code=404, detail="URL not found")
-    return {"views": view_data["views"]}
+async def get_views(url: str):
+    views_doc = await views_collection.find_one({"url": url})
+    if not views_doc:
+        return {"views": 0}
+    return {"views": views_doc["views"]}
 
 async def ping_self():
     async with httpx.AsyncClient() as client:
