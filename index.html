@@ -324,6 +324,12 @@
             gap: 0.5rem;
             align-items: center;
         }
+        .file-action.view-btn {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -1051,8 +1057,7 @@ function handleFileInputChange(e, type) {
                         const fileItem = document.createElement('div');
                         fileItem.className = 'file-item';
                         const createdDate = new Date(file.created_at * 1000).toLocaleString();
-                        const updatedDate = file.updated_at ? 
-                            new Date(file.updated_at * 1000).toLocaleString() : 'N/A';
+                        const updatedDate = file.updated_at ? new Date(file.updated_at * 1000).toLocaleString() : 'N/A';
                         
                         fileItem.innerHTML = `
                             <div class="file-info">
@@ -1065,11 +1070,10 @@ function handleFileInputChange(e, type) {
                                 </div>
                             </div>
                             <div class="file-actions">
-                                <button class="file-action view-btn" data-url="${file.url}">
+                                <a href="${FRONTEND_URL}/${file.url}" target="_blank" class="file-action view-btn">
                                     <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="file-action edit-btn" data-url="${file.url}" 
-                                    data-filename="${file.filename}">
+                                </a>
+                                <button class="file-action edit-btn" data-url="${file.url}" data-filename="${file.filename}">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button class="file-action delete-btn" data-url="${file.url}">
@@ -1080,7 +1084,7 @@ function handleFileInputChange(e, type) {
                         
                         document.getElementById('fileList').appendChild(fileItem);
                     });
-                                        
+    
                     document.querySelectorAll('.edit-btn').forEach(btn => {
                         btn.addEventListener('click', function() {
                             const url = this.getAttribute('data-url');
@@ -1111,6 +1115,7 @@ function handleFileInputChange(e, type) {
         
         document.getElementById('myFilesLoading').classList.remove('active');
     }
+
 
     async function deleteFile(url) {
         try {
