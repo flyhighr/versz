@@ -1,9 +1,11 @@
 fastapi==0.109.0
 uvicorn==0.27.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+pydantic[email]==2.5.3
 motor==3.3.2
-pymongo==4.6.0
-slowapi==0.1.7
+python-multipart==0.0.6
 httpx==0.26.0
-python-dotenv==1.0.0
-schedule==1.2.0
-python-multipart
+slowapi==0.1.8
+schedule==1.2.1
+email-validator==2.1.0
