@@ -45,7 +45,7 @@
             line-height: 1.6;
         }
 
-        .upload-container, .edit-container {
+        .upload-container, .edit-container, .auth-container {
             background: rgba(255, 255, 255, 0.1);
             padding: 2rem;
             border-radius: 20px;
@@ -74,7 +74,7 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
-        .url-input, .edit-code-input {
+        .url-input, .edit-code-input, .auth-input {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 0.8rem 1rem;
@@ -84,11 +84,11 @@
             margin-bottom: 1rem;
         }
 
-        .url-input::placeholder, .edit-code-input::placeholder {
+        .url-input::placeholder, .edit-code-input::placeholder, .auth-input::placeholder {
             color: #666;
         }
 
-        .submit-btn, .edit-btn, .delete-btn {
+        .submit-btn, .edit-btn, .delete-btn, .auth-btn {
             background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
             color: #fff;
             padding: 0.8rem 2rem;
@@ -104,11 +104,11 @@
             background: linear-gradient(45deg, #ff6b6b, #ff4949);
         }
 
-        .submit-btn:hover, .edit-btn:hover, .delete-btn:hover {
+        .submit-btn:hover, .edit-btn:hover, .delete-btn:hover, .auth-btn:hover {
             opacity: 0.9;
         }
 
-        .submit-btn:disabled {
+        .submit-btn:disabled, .auth-btn:disabled {
             background: #2d2d2d;
             cursor: not-allowed;
         }
@@ -147,14 +147,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        .edit-code-display {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 1rem;
-            border-radius: 12px;
-            margin-top: 1rem;
-            display: none;
-        }
-
         .tabs {
             display: flex;
             margin-bottom: 1rem;
@@ -173,21 +165,105 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
-        #editContainer {
+        #uploadContainer, #editContainer, #loginContainer, #registerContainer, 
+        #verifyContainer, #forgotPasswordContainer, #resetPasswordContainer {
             display: none;
         }
 
-        .copy-btn {
+        .link-text {
+            color: #4ecdc4;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .link-text:hover {
+            color: #ff6b6b;
+        }
+
+        .file-list {
+            text-align: left;
+            margin-top: 2rem;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-meta {
+            font-size: 0.8rem;
+            color: #a0a0a0;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
             background: rgba(255, 255, 255, 0.1);
             border: none;
             color: #fff;
             padding: 0.3rem 0.6rem;
             border-radius: 4px;
             cursor: pointer;
-            margin-left: 0.5rem;
         }
 
-        .copy-btn:hover {
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .verification-container {
+            text-align: center;
+        }
+
+        .verification-code {
+            letter-spacing: 0.5em;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .user-email {
+            font-weight: bold;
+        }
+
+        .user-stats {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #a0a0a0;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
             background: rgba(255, 255, 255, 0.2);
         }
     </style>
@@ -195,256 +271,807 @@
 <body>
     <div class="container">
         <h1>Versz</h1>
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('upload')">Upload</div>
-            <div class="tab" onclick="switchTab('edit')">Edit</div>
-        </div>
         
-        <div id="uploadContainer">
-            <p>Upload your HTML file and share it with the world. Max file size: 20MB</p>
+        <!-- Auth Container -->
+        <div id="authContainer">
+            <div class="tabs">
+                <div class="tab active" onclick="switchAuthTab('login')">Login</div>
+                <div class="tab" onclick="switchAuthTab('register')">Register</div>
+            </div>
             
-            <div class="upload-container">
-                <input type="file" id="fileInput" class="file-input" accept=".html">
-                <label for="fileInput" class="upload-btn">Choose HTML File</label>
-                <input type="text" id="customUrl" class="url-input" placeholder="Custom URL (optional)">
-                <button id="submitBtn" class="submit-btn" disabled>Upload</button>
-                
-                <div class="loading" id="loading">
+            <!-- Login Form -->
+            <div id="loginContainer" class="auth-container">
+                <input type="email" id="loginEmail" class="auth-input" placeholder="Email">
+                <input type="password" id="loginPassword" class="auth-input" placeholder="Password">
+                <button id="loginBtn" class="auth-btn">Login</button>
+                <div id="loginError" class="error"></div>
+                <div id="loginLoading" class="loading">
                     <div class="spinner"></div>
                 </div>
-                
-                <div id="error" class="error"></div>
-                <div id="success" class="success"></div>
-                <div id="editCodeDisplay" class="edit-code-display">
-                    Edit Code: <span id="editCode"></span>
-                    <button onclick="copyEditCode()" class="copy-btn">
-                        <i class="fas fa-copy"></i>
-                    </button>
+                <p>Forgot your password? <span class="link-text" onclick="showForgotPassword()">Reset it here</span></p>
+            </div>
+            
+            <!-- Register Form -->
+            <div id="registerContainer" class="auth-container">
+                <input type="email" id="registerEmail" class="auth-input" placeholder="Email">
+                <input type="password" id="registerPassword" class="auth-input" placeholder="Password">
+                <input type="password" id="confirmPassword" class="auth-input" placeholder="Confirm Password">
+                <button id="registerBtn" class="auth-btn">Register</button>
+                <div id="registerError" class="error"></div>
+                <div id="registerLoading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <!-- Verify Email Form -->
+            <div id="verifyContainer" class="auth-container">
+                <h2>Verify Your Email</h2>
+                <p>Please enter the verification code sent to your email.</p>
+                <input type="text" id="verificationCode" class="auth-input" placeholder="Verification Code">
+                <button id="verifyBtn" class="auth-btn">Verify</button>
+                <div id="verifyError" class="error"></div>
+                <div id="verifySuccess" class="success"></div>
+                <div id="verifyLoading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+                <p>Didn't receive a code? <span class="link-text" id="resendVerificationLink">Resend it</span></p>
+            </div>
+            
+            <!-- Forgot Password Form -->
+            <div id="forgotPasswordContainer" class="auth-container">
+                <h2>Reset Password</h2>
+                <p>Enter your email address and we'll send you a code to reset your password.</p>
+                <input type="email" id="forgotPasswordEmail" class="auth-input" placeholder="Email">
+                <button id="forgotPasswordBtn" class="auth-btn">Send Reset Code</button>
+                <div id="forgotPasswordError" class="error"></div>
+                <div id="forgotPasswordSuccess" class="success"></div>
+                <div id="forgotPasswordLoading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+                <p><span class="link-text" onclick="switchAuthTab('login')">Back to Login</span></p>
+            </div>
+            
+            <!-- Reset Password Form -->
+            <div id="resetPasswordContainer" class="auth-container">
+                <h2>Reset Your Password</h2>
+                <p>Enter the code sent to your email and your new password.</p>
+                <input type="email" id="resetPasswordEmail" class="auth-input" placeholder="Email" disabled>
+                <input type="text" id="resetCode" class="auth-input" placeholder="Reset Code">
+                <input type="password" id="newPassword" class="auth-input" placeholder="New Password">
+                <input type="password" id="confirmNewPassword" class="auth-input" placeholder="Confirm New Password">
+                <button id="resetPasswordBtn" class="auth-btn">Reset Password</button>
+                <div id="resetPasswordError" class="error"></div>
+                <div id="resetPasswordSuccess" class="success"></div>
+                <div id="resetPasswordLoading" class="loading">
+                    <div class="spinner"></div>
                 </div>
             </div>
         </div>
-
-        <div id="editContainer" class="edit-container">
-            <p>Edit or delete your existing page</p>
-            <input type="text" id="editUrl" class="url-input" placeholder="Page URL">
-            <input type="text" id="editCodeInput" class="edit-code-input" placeholder="Edit Code">
-            <input type="file" id="newFileInput" class="file-input" accept=".html">
-            <label for="newFileInput" class="upload-btn">Choose New HTML File</label>
-            <button onclick="updateFile()" class="edit-btn">Update File</button>
-            <button onclick="deleteFile()" class="delete-btn">Delete File</button>
-            <input type="text" id="newEditCode" class="edit-code-input" placeholder="New Edit Code (optional)">
-            <button onclick="updateEditCode()" class="edit-btn">Update Edit Code</button>
-            <div id="editError" class="error"></div>
-            <div id="editSuccess" class="success"></div>
+        
+        <!-- Main App Container (shown after login) -->
+        <div id="appContainer" style="display: none;">
+            <div class="user-info">
+                <span class="user-email" id="userEmail"></span>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+                <div class="user-stats" id="userStats"></div>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('upload')">Upload</div>
+                <div class="tab" onclick="switchTab('myFiles')">My Files</div>
+            </div>
+            
+            <!-- Upload Container -->
+            <div id="uploadContainer" class="upload-container">
+                <label for="fileInput" class="upload-btn">
+                    <i class="fas fa-cloud-upload-alt"></i> Choose HTML File
+                </label>
+                <input type="file" id="fileInput" class="file-input" accept=".html">
+                <div id="selectedFile"></div>
+                <input type="text" id="customUrl" class="url-input" placeholder="Custom URL (optional)">
+                <button id="uploadBtn" class="submit-btn" disabled>Upload</button>
+                <div id="uploadError" class="error"></div>
+                <div id="uploadSuccess" class="success"></div>
+                <div id="uploadLoading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <!-- My Files Container -->
+            <div id="myFilesContainer" style="display: none;">
+                <h2>My Files</h2>
+                <div id="fileList" class="file-list">
+                    <!-- File items will be added here dynamically -->
+                </div>
+                <div id="myFilesLoading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+                <div id="myFilesError" class="error"></div>
+            </div>
+            
+            <!-- Edit Container -->
+            <div id="editContainer" class="edit-container">
+                <h2>Edit File</h2>
+                <div id="editFileInfo"></div>
+                <label for="editFileInput" class="upload-btn">
+                    <i class="fas fa-edit"></i> Choose Updated HTML File
+                </label>
+                <input type="file" id="editFileInput" class="file-input" accept=".html">
+                <div id="editSelectedFile"></div>
+                <button id="updateBtn" class="edit-btn" disabled>Update</button>
+                <button id="cancelEditBtn" class="submit-btn">Cancel</button>
+                <div id="editError" class="error"></div>
+                <div id="editSuccess" class="success"></div>
+                <div id="editLoading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const fileInput = document.getElementById('fileInput');
-        const newFileInput = document.getElementById('newFileInput');
-        const customUrl = document.getElementById('customUrl');
-        const submitBtn = document.getElementById('submitBtn');
-        const loading = document.getElementById('loading');
-        const error = document.getElementById('error');
-        const success = document.getElementById('success');
-        const editError = document.getElementById('editError');
-        const editSuccess = document.getElementById('editSuccess');
-        const editCodeDisplay = document.getElementById('editCodeDisplay');
-        const editCodeSpan = document.getElementById('editCode');
+        // Global variables
+        let token = localStorage.getItem('token');
+        let userId = localStorage.getItem('userId');
+        let userEmail = localStorage.getItem('userEmail');
+        let isVerified = localStorage.getItem('isVerified') === 'true';
+        let currentUrl = null;
 
-        function switchTab(tab) {
-            const uploadContainer = document.getElementById('uploadContainer');
-            const editContainer = document.getElementById('editContainer');
-            const uploadTab = document.querySelector('.tab:nth-child(1)');
-            const editTab = document.querySelector('.tab:nth-child(2)');
-
-            if (tab === 'upload') {
-                uploadContainer.style.display = 'block';
-                editContainer.style.display = 'none';
-                uploadTab.classList.add('active');
-                editTab.classList.remove('active');
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', function() {
+            if (token) {
+                showApp();
+                fetchUserInfo();
+                if (isVerified) {
+                    showUploadTab();
+                    fetchUserFiles();
+                } else {
+                    showVerifyEmail();
+                }
             } else {
-                uploadContainer.style.display = 'none';
-                editContainer.style.display = 'block';
-                uploadTab.classList.remove('active');
-                editTab.classList.add('active');
+                showAuth();
+                switchAuthTab('login');
             }
-        }
 
-        function copyEditCode() {
-            const editCode = editCodeSpan.textContent;
-            navigator.clipboard.writeText(editCode);
-            const copyBtn = document.querySelector('.copy-btn');
-            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => {
-                copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            }, 2000);
-        }
-
-        fileInput.addEventListener('change', () => {
-            submitBtn.disabled = !fileInput.files.length;
-            error.textContent = '';
-            success.textContent = '';
-            editCodeDisplay.style.display = 'none';
+            // Setup event listeners
+            setupAuthEventListeners();
+            setupAppEventListeners();
         });
 
-        submitBtn.addEventListener('click', async () => {
-            const file = fileInput.files[0];
-            if (!file) return;
+        // Authentication functions
+        function showAuth() {
+            document.getElementById('authContainer').style.display = 'block';
+            document.getElementById('appContainer').style.display = 'none';
+        }
 
-            if (file.size > 20 * 1024 * 1024) {
-                error.textContent = 'File size must be less than 20MB';
-                return;
+        function showApp() {
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('userEmail').textContent = userEmail;
+        }
+
+        function switchAuthTab(tab) {
+            document.querySelectorAll('#authContainer .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#authContainer > div:not(.tabs)').forEach(d => d.style.display = 'none');
+            
+            if (tab === 'login') {
+                document.querySelector('#authContainer .tab:nth-child(1)').classList.add('active');
+                document.getElementById('loginContainer').style.display = 'block';
+            } else if (tab === 'register') {
+                document.querySelector('#authContainer .tab:nth-child(2)').classList.add('active');
+                document.getElementById('registerContainer').style.display = 'block';
             }
+        }
 
-            loading.classList.add('active');
-            error.textContent = '';
-            success.textContent = '';
-            editCodeDisplay.style.display = 'none';
+        function showVerifyEmail() {
+            document.querySelectorAll('#authContainer > div:not(.tabs)').forEach(d => d.style.display = 'none');
+            document.getElementById('verifyContainer').style.display = 'block';
+        }
 
-            const formData = new FormData();
-            formData.append('file', file);
+        function showForgotPassword() {
+            document.querySelectorAll('#authContainer > div:not(.tabs)').forEach(d => d.style.display = 'none');
+            document.getElementById('forgotPasswordContainer').style.display = 'block';
+        }
+
+        function showResetPassword(email) {
+            document.querySelectorAll('#authContainer > div:not(.tabs)').forEach(d => d.style.display = 'none');
+            document.getElementById('resetPasswordContainer').style.display = 'block';
+            document.getElementById('resetPasswordEmail').value = email;
+        }
+
+        function setupAuthEventListeners() {
+            // Login
+            document.getElementById('loginBtn').addEventListener('click', async function() {
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                
+                if (!email || !password) {
+                    document.getElementById('loginError').textContent = 'Please fill all fields';
+                    return;
+                }
+                
+                document.getElementById('loginLoading').classList.add('active');
+                document.getElementById('loginError').textContent = '';
+                
+                try {
+                    const response = await fetch('/token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        localStorage.setItem('token', data.access_token);
+                        localStorage.setItem('userId', data.id);
+                        localStorage.setItem('userEmail', data.email);
+                        localStorage.setItem('isVerified', data.is_verified);
+                        
+                        token = data.access_token;
+                        userId = data.id;
+                        userEmail = data.email;
+                        isVerified = data.is_verified;
+                        
+                        showApp();
+                        
+                        if (isVerified) {
+                            showUploadTab();
+                            fetchUserFiles();
+                        } else {
+                            showVerifyEmail();
+                        }
+                    } else {
+                        document.getElementById('loginError').textContent = data.detail || 'Login failed';
+                    }
+                } catch (error) {
+                    document.getElementById('loginError').textContent = 'An error occurred. Please try again.';
+                }
+                
+                document.getElementById('loginLoading').classList.remove('active');
+            });
+            
+            // Register
+            document.getElementById('registerBtn').addEventListener('click', async function() {
+                const email = document.getElementById('registerEmail').value;
+                const password = document.getElementById('registerPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (!email || !password || !confirmPassword) {
+                    document.getElementById('registerError').textContent = 'Please fill all fields';
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    document.getElementById('registerError').textContent = 'Passwords do not match';
+                    return;
+                }
+                
+                document.getElementById('registerLoading').classList.add('active');
+                document.getElementById('registerError').textContent = '';
+                
+                try {
+                    const response = await fetch('/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        showVerifyEmail();
+                        localStorage.setItem('userId', data.id);
+                        localStorage.setItem('userEmail', data.email);
+                        userEmail = data.email;
+                    } else {
+                        document.getElementById('registerError').textContent = data.detail || 'Registration failed';
+                    }
+                } catch (error) {
+                    document.getElementById('registerError').textContent = 'An error occurred. Please try again.';
+                }
+                
+                document.getElementById('registerLoading').classList.remove('active');
+            });
+            
+            // Verify Email
+            document.getElementById('verifyBtn').addEventListener('click', async function() {
+                const code = document.getElementById('verificationCode').value;
+                
+                if (!code) {
+                    document.getElementById('verifyError').textContent = 'Please enter verification code';
+                    return;
+                }
+                
+                document.getElementById('verifyLoading').classList.add('active');
+                document.getElementById('verifyError').textContent = '';
+                document.getElementById('verifySuccess').textContent = '';
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('email', userEmail);
+                    formData.append('code', code);
+                    
+                    const response = await fetch('/verify-email', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('verifySuccess').textContent = 'Email verified successfully!';
+                        localStorage.setItem('isVerified', 'true');
+                        isVerified = true;
+                        
+                        setTimeout(() => {
+                            showApp();
+                            showUploadTab();
+                            fetchUserFiles();
+                        }, 1500);
+                    } else {
+                        document.getElementById('verifyError').textContent = data.detail || 'Verification failed';
+                    }
+                } catch (error) {
+                    document.getElementById('verifyError').textContent = 'An error occurred. Please try again.';
+                }
+                
+                document.getElementById('verifyLoading').classList.remove('active');
+            });
+            
+            // Resend Verification
+            document.getElementById('resendVerificationLink').addEventListener('click', async function() {
+                document.getElementById('verifyLoading').classList.add('active');
+                document.getElementById('verifyError').textContent = '';
+                document.getElementById('verifySuccess').textContent = '';
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('email', userEmail);
+                    
+                    const response = await fetch('/resend-verification', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('verifySuccess').textContent = 'Verification email sent!';
+                    } else {
+                        document.getElementById('verifyError').textContent = data.detail || 'Failed to resend verification';
+                    }
+                } catch (error) {
+                    document.getElementById('verifyError').textContent = 'An error occurred. Please try again.';
+                }
+                
+                document.getElementById('verifyLoading').classList.remove('active');
+            });
+            
+            // Forgot Password
+            document.getElementById('forgotPasswordBtn').addEventListener('click', async function() {
+                const email = document.getElementById('forgotPasswordEmail').value;
+                
+                if (!email) {
+                    document.getElementById('forgotPasswordError').textContent = 'Please enter your email';
+                    return;
+                }
+                
+                document.getElementById('forgotPasswordLoading').classList.add('active');
+                document.getElementById('forgotPasswordError').textContent = '';
+                document.getElementById('forgotPasswordSuccess').textContent = '';
+                
+                try {
+                    const response = await fetch('/request-password-reset', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: email
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('forgotPasswordSuccess').textContent = 'Password reset email sent!';
+                        setTimeout(() => {
+                            showResetPassword(email);
+                        }, 1500);
+                    } else {
+                        document.getElementById('forgotPasswordError').textContent = data.detail || 'Failed to send reset email';
+                    }
+                } catch (error) {
+                    document.getElementById('forgotPasswordError').textContent = 'An error occurred. Please try again.';
+                }
+                
+                document.getElementById('forgotPasswordLoading').classList.remove('active');
+            });
+            
+            // Reset Password
+            document.getElementById('resetPasswordBtn').addEventListener('click', async function() {
+                const email = document.getElementById('resetPasswordEmail').value;
+                const resetCode = document.getElementById('resetCode').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+                
+                if (!email || !resetCode || !newPassword || !confirmNewPassword) {
+                    document.getElementById('resetPasswordError').textContent = 'Please fill all fields';
+                    return;
+                }
+                
+                if (newPassword !== confirmNewPassword) {
+                    document.getElementById('resetPasswordError').textContent = 'Passwords do not match';
+                    return;
+                }
+                
+                document.getElementById('resetPasswordLoading').classList.add('active');
+                document.getElementById('resetPasswordError').textContent = '';
+                document.getElementById('resetPasswordSuccess').textContent = '';
+                
+                try {
+                    const response = await fetch('/reset-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            reset_code: resetCode,
+                            new_password: newPassword
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('resetPasswordSuccess').textContent = 'Password reset successfully!';
+                        setTimeout(() => {
+                            switchAuthTab('login');
+                        }, 1500);
+                    } else {
+                        document.getElementById('resetPasswordError').textContent = data.detail || 'Failed to reset password';
+                    }
+                } catch (error) {
+                    document.getElementById('resetPasswordError').textContent = 'An error occurred. Please try again.';
+                }
+                
+                document.getElementById('resetPasswordLoading').classList.remove('active');
+            });
+            
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('isVerified');
+                token = null;
+                userId = null;
+                userEmail = null;
+                isVerified = false;
+                showAuth();
+                switchAuthTab('login');
+            });
+        }
+
+        // App functions
+        function switchTab(tab) {
+            document.querySelectorAll('#appContainer .tab').forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'upload') {
+                document.querySelector('#appContainer .tab:nth-child(1)').classList.add('active');
+                document.getElementById('uploadContainer').style.display = 'block';
+                document.getElementById('myFilesContainer').style.display = 'none';
+                document.getElementById('editContainer').style.display = 'none';
+            } else if (tab === 'myFiles') {
+                document.querySelector('#appContainer .tab:nth-child(2)').classList.add('active');
+                document.getElementById('uploadContainer').style.display = 'none';
+                document.getElementById('myFilesContainer').style.display = 'block';
+                document.getElementById('editContainer').style.display = 'none';
+                fetchUserFiles();
+            }
+        }
+
+        function showUploadTab() {
+            switchTab('upload');
+        }
+
+        function showEditForm(url, filename) {
+            currentUrl = url;
+            document.getElementById('uploadContainer').style.display = 'none';
+            document.getElementById('myFilesContainer').style.display = 'none';
+            document.getElementById('editContainer').style.display = 'block';
+            document.getElementById('editFileInfo').textContent = `Editing: ${filename} (URL: ${url})`;
+            document.getElementById('editSelectedFile').textContent = '';
+            document.getElementById('updateBtn').disabled = true;
+        }
+
+        function setupAppEventListeners() {
+            // File input change
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    if (!file.name.endsWith('.html')) {
+                        document.getElementById('uploadError').textContent = 'Only HTML files are allowed';
+                        document.getElementById('uploadBtn').disabled = true;
+                        document.getElementById('selectedFile').textContent = '';
+                        return;
+                    }
+                    document.getElementById('selectedFile').textContent = `Selected: ${file.name}`;
+                    document.getElementById('uploadBtn').disabled = false;
+                    document.getElementById('uploadError').textContent = '';
+                } else {
+                    document.getElementById('selectedFile').textContent = '';
+                    document.getElementById('uploadBtn').disabled = true;
+                }
+            });
+            
+            // Edit file input change
+            document.getElementById('editFileInput').addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    if (!file.name.endsWith('.html')) {
+                        document.getElementById('editError').textContent = 'Only HTML files are allowed';
+                        document.getElementById('updateBtn').disabled = true;
+                        document.getElementById('editSelectedFile').textContent = '';
+                        return;
+                    }
+                    document.getElementById('editSelectedFile').textContent = `Selected: ${file.name}`;
+                    document.getElementById('updateBtn').disabled = false;
+                    document.getElementById('editError').textContent = '';
+                } else {
+                    document.getElementById('editSelectedFile').textContent = '';
+                    document.getElementById('updateBtn').disabled = true;
+                }
+            });
+            
+            // Upload button
+            document.getElementById('uploadBtn').addEventListener('click', async function() {
+                const fileInput = document.getElementById('fileInput');
+                const customUrl = document.getElementById('customUrl').value;
+                
+                if (!fileInput.files.length) {
+                    document.getElementById('uploadError').textContent = 'Please select a file';
+                    return;
+                }
+                
+                document.getElementById('uploadLoading').classList.add('active');
+                document.getElementById('uploadError').textContent = '';
+                document.getElementById('uploadSuccess').textContent = '';
+                
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                if (customUrl) {
+                    formData.append('custom_url', customUrl);
+                }
+                
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('uploadSuccess').textContent = `File uploaded successfully. URL: ${data.url}`;
+                        document.getElementById('selectedFile').textContent = '';
+                        document.getElementById('customUrl').value = '';
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('uploadBtn').disabled = true;
+                        fetchUserInfo();
+                    } else {
+                        document.getElementById('uploadError').textContent = data.detail || 'Upload failed';
+                    }
+                } catch (error) {
+                    document.getElementById('uploadError').textContent = 'An error occurred. Please try again.';
+                }
+                
+                document.getElementById('uploadLoading').classList.remove('active');
+            });
+            document.getElementById('updateBtn').addEventListener('click', async function() {
+                if (!currentUrl) {
+                    document.getElementById('editError').textContent = 'No file selected for update';
+                    return;
+                }
+                
+                const fileInput = document.getElementById('editFileInput');
+                if (!fileInput.files.length) {
+                    document.getElementById('editError').textContent = 'Please select a file';
+                    return;
+                }
+                
+                document.getElementById('editLoading').classList.add('active');
+                document.getElementById('editError').textContent = '';
+                document.getElementById('editSuccess').textContent = '';
+                
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                
+                try {
+                    const response = await fetch(`/update/${currentUrl}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('editSuccess').textContent = 'File updated successfully!';
+                        document.getElementById('editSelectedFile').textContent = '';
+                        document.getElementById('editFileInput').value = '';
+                        document.getElementById('updateBtn').disabled = true;
+                        
+                        setTimeout(() => {
+                            switchTab('myFiles');
+                        }, 1500);
+                    } else {
+                        document.getElementById('editError').textContent = data.detail || 'Update failed';
+                    }
+                } catch (error) {
+                    document.getElementById('editError').textContent = 'An error occurred. Please try again.';
+                }
+                
+                document.getElementById('editLoading').classList.remove('active');
+            });
+            
+            document.getElementById('cancelEditBtn').addEventListener('click', function() {
+                switchTab('myFiles');
+            });
+        }
+        
+        async function fetchUserInfo() {
+            try {
+                const response = await fetch('/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('userStats').textContent = `URLs: ${data.url_count}/10`;
+                } else {
+                    if (response.status === 401) {
+                        logout();
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch user info:', error);
+            }
+        }
+        async function fetchUserFiles() {
+            document.getElementById('myFilesLoading').classList.add('active');
+            document.getElementById('myFilesError').textContent = '';
+            document.getElementById('fileList').innerHTML = '';
             
             try {
-                const response = await fetch(`https://versz-vs1b.onrender.com/upload${customUrl.value ? '?custom_url=' + customUrl.value : ''}`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    const url = `https://versz.fun/${data.url}`;
-                    success.innerHTML = `File uploaded successfully! URL: <a href="${url}" target="_blank" style="color: #4ecdc4;">${url}</a>`;
-                    editCodeSpan.textContent = data.edit_code;
-                    editCodeDisplay.style.display = 'block';
-                } else {
-                    error.textContent = data.detail || 'Upload failed';
-                }
-            } catch (err) {
-                error.textContent = 'Upload failed. Please try again.';
-            } finally {
-                loading.classList.remove('active');
-            }
-        });
-
-        async function updateFile() {
-            const url = document.getElementById('editUrl').value;
-            const editCode = document.getElementById('editCodeInput').value;
-            const file = document.getElementById('newFileInput').files[0];
-            const editError = document.getElementById('editError');
-            const editSuccess = document.getElementById('editSuccess');
-        
-            if (!url || !editCode || !file) {
-                editError.textContent = 'Please fill in all fields and select a file';
-                return;
-            }
-        
-            if (file.size > 20 * 1024 * 1024) {
-                editError.textContent = 'File size must be less than 20MB';
-                return;
-            }
-        
-            const formData = new FormData();
-            formData.append('file', file);
-        
-            try {
-                const response = await fetch(`https://versz-vs1b.onrender.com/update/${url}?edit_code=${editCode}`, {
-                    method: 'PUT',
-                    body: formData
-                });
-        
-                const data = await response.json();
-        
-                if (response.ok) {
-                    editSuccess.textContent = 'File updated successfully!';
-                    editError.textContent = '';
-                    document.getElementById('newFileInput').value = '';
-                } else {
-                    editError.textContent = data.detail || 'Update failed';
-                    editSuccess.textContent = '';
-                }
-            } catch (err) {
-                editError.textContent = 'Update failed. Please try again.';
-                editSuccess.textContent = '';
-                console.error('Update error:', err);
-            }
-        }
-
-        async function deleteFile() {
-            const url = document.getElementById('editUrl').value;
-            const editCode = document.getElementById('editCodeInput').value;
-
-            if (!url || !editCode) {
-                editError.textContent = 'Please fill in URL and edit code';
-                return;
-            }
-
-            if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`https://versz-vs1b.onrender.com/file/${url}?edit_code=${editCode}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    editSuccess.textContent = 'File deleted successfully!';
-                    editError.textContent = '';
-                } else {
-                    editError.textContent = data.detail || 'Deletion failed';
-                    editSuccess.textContent = '';
-                }
-            } catch (err) {
-                editError.textContent = 'Deletion failed. Please try again.';
-                editSuccess.textContent = '';
-            }
-        }
-
-        async function updateEditCode() {
-            const url = document.getElementById('editUrl').value;
-            const oldEditCode = document.getElementById('editCodeInput').value;
-            const newEditCode = document.getElementById('newEditCode').value;
-            const editError = document.getElementById('editError');
-            const editSuccess = document.getElementById('editSuccess');
-        
-            if (!url || !oldEditCode || !newEditCode) {
-                editError.textContent = 'Please fill in all fields';
-                editSuccess.textContent = '';
-                return;
-            }
-        
-            editError.textContent = '';
-            editSuccess.textContent = '';
-        
-            try {
-                const response = await fetch(`https://versz-vs1b.onrender.com/edit-code/${url}`, {
-                    method: 'PUT',
+                const response = await fetch('/my-files', {
                     headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        old_edit_code: oldEditCode,
-                        new_edit_code: newEditCode
-                    })
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
-        
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Failed to update edit code');
+                
+                if (response.ok) {
+                    const files = await response.json();
+                    
+                    if (files.length === 0) {
+                        document.getElementById('fileList').innerHTML = '<p class="no-files">No files uploaded yet</p>';
+                    } else {
+                        files.forEach(file => {
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'file-item';                
+                            const createdDate = new Date(file.created_at * 1000).toLocaleString();
+                            const updatedDate = file.updated_at ? new Date(file.updated_at * 1000).toLocaleString() : 'N/A';
+                            
+                            fileItem.innerHTML = `
+                                <div class="file-info">
+                                    <div class="file-name">${file.filename}</div>
+                                    <div class="file-url">URL: ${file.url}</div>
+                                    <div class="file-stats">Views: ${file.views}</div>
+                                    <div class="file-dates">
+                                        Created: ${createdDate}<br>
+                                        Last updated: ${updatedDate}
+                                    </div>
+                                </div>
+                                <div class="file-actions">
+                                    <button class="file-action view-btn" data-url="${file.url}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="file-action edit-btn" data-url="${file.url}" data-filename="${file.filename}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="file-action delete-btn" data-url="${file.url}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            `;
+                            
+                            document.getElementById('fileList').appendChild(fileItem);
+                        });
+                        document.querySelectorAll('.view-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const url = this.getAttribute('data-url');
+                                window.open(`/${url}`, '_blank');
+                            });
+                        });
+                        
+                        document.querySelectorAll('.edit-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const url = this.getAttribute('data-url');
+                                const filename = this.getAttribute('data-filename');
+                                showEditForm(url, filename);
+                            });
+                        });
+                        
+                        document.querySelectorAll('.delete-btn').forEach(btn => {
+                            btn.addEventListener('click', async function() {
+                                if (confirm('Are you sure you want to delete this file?')) {
+                                    const url = this.getAttribute('data-url');
+                                    await deleteFile(url);
+                                }
+                            });
+                        });
+                    }
+                } else {
+                    if (response.status === 401) {
+                        logout();
+                    } else {
+                        document.getElementById('myFilesError').textContent = 'Failed to load files';
+                    }
                 }
-        
-                const data = await response.json();
-                editSuccess.textContent = 'Edit code updated successfully!';
-                document.getElementById('editCodeInput').value = newEditCode;
-                document.getElementById('newEditCode').value = '';
-            } catch (err) {
-                editError.textContent = err.message || 'Network error occurred. Please check your connection and try again.';
-                console.error('Edit code update error:', err);
+            } catch (error) {
+                document.getElementById('myFilesError').textContent = 'An error occurred. Please try again.';
             }
+            
+            document.getElementById('myFilesLoading').classList.remove('active');
+        }
+        
+        async function deleteFile(url) {
+            try {
+                const response = await fetch(`/file/${url}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    fetchUserFiles();
+                    fetchUserInfo();
+                } else {
+                    alert('Failed to delete file');
+                }
+            } catch (error) {
+                alert('An error occurred. Please try again.');
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('isVerified');
+            token = null;
+            userId = null;
+            userEmail = null;
+            isVerified = false;
+            showAuth();
+            switchAuthTab('login');
         }
     </script>
 </body>
