@@ -128,12 +128,16 @@ async def update_file(request: Request, url: str, file: UploadFile, edit_code: s
 
 @app.put("/edit-code/{url}")
 async def update_edit_code(request: Request, url: str, old_edit_code: str, new_edit_code: str):
-    if not new_edit_code or len(new_edit_code) != 5 or not new_edit_code.isalnum():
-        raise HTTPException(status_code=400, detail="Invalid new edit code format")
+    if not new_edit_code:
+        raise HTTPException(status_code=400, detail="New edit code cannot be empty")
     
     existing_file = await files_collection.find_one({"url": url})
     if not existing_file:
         raise HTTPException(status_code=404, detail="File not found")
+    
+    # Verify old edit code is 5 alphanumeric characters
+    if not (len(old_edit_code) == 5 and old_edit_code.isalnum()):
+        raise HTTPException(status_code=400, detail="Invalid old edit code format")
     
     if existing_file["edit_code"] != old_edit_code:
         raise HTTPException(status_code=403, detail="Invalid edit code")
@@ -216,7 +220,7 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     logger.warning(f"Rate limit exceeded for {request.client.host}")
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        content={"detail": "Too many requests"},
+        content={"detail": "Rate limit exceeded. Please try again later."},
     )
 
 if __name__ == "__main__":
