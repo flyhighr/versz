@@ -216,10 +216,12 @@ async def health_check():
 
 
 @app.post("/register", response_model=UserResponse)
-async def register_user(user: UserCreate = Body(...)):  # Changed this line
+async def register_user(email: str = Body(...), password: str = Body(...)):
     try:
-        logger.info(f"Starting registration process for email: {user.email}")
-            
+        logger.info(f"Starting registration process for email: {email}")
+        
+        user = UserCreate(email=email, password=password)
+        
         existing_user = await users_collection.find_one({"email": user.email})
         if existing_user:
             logger.warning(f"Registration attempted with existing email: {user.email}")
