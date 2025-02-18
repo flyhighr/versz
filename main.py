@@ -12,7 +12,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from typing import Optional, List
-import bcrypt
 
 from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,7 +28,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import schedule
 
-# Environment variables with defaults
+# Environment variables
 MONGODB_URL = os.getenv("MONGODB_URL")
 API_URL = os.getenv("API_URL")
 PING_INTERVAL = int(os.getenv("PING_INTERVAL", "300"))
@@ -39,31 +38,24 @@ RATE_LIMIT = os.getenv("RATE_LIMIT", "5/minute")
 SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 ALGORITHM = "HS256"
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
 EMAIL_USERNAME = os.getenv("EMAIL_USERNAME")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_FROM = EMAIL_USERNAME
 
-# Enhanced logging setup
 logging.basicConfig(
     level=logging.INFO if ENVIRONMENT == "production" else logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("app.log")
-    ]
+    format="%(asctime)s - %(levelname)s - [%(name)s] - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
 )
 logger = logging.getLogger(__name__)
 
-# Updated password context with bcrypt configuration
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
-    bcrypt__rounds=12,
-    bcrypt__dont_handle_bytes=True
+    bcrypt__rounds=12 
 )
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 class Token(BaseModel):
@@ -199,37 +191,38 @@ async def get_user_file_count(user_id):
     return await files_collection.count_documents({"user_id": user_id})
 
 async def send_email(to_email: str, subject: str, html_content: str) -> bool:
-    if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_PASSWORD]):
-        logger.error("Email configuration missing")
-        return False
-        
-    message = MIMEMultipart("alternative")
-    message["Subject"] = subject
-    message["From"] = EMAIL_FROM
-    message["To"] = to_email
-    
-    text_content = html_content.replace('<br>', '\n').replace('<h2>', '').replace('</h2>', '\n\n')
-    text_content = text_content.replace('<h3>', '').replace('</h3>', '\n').replace('<p>', '').replace('</p>', '\n')
-    
-    text_part = MIMEText(text_content, "plain")
-    html_part = MIMEText(html_content, "html")
-    
-    message.attach(text_part)
-    message.attach(html_part)
-    
     try:
+        if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_PASSWORD]):
+            logger.error("Email configuration is incomplete")
+            return False
+
+        message = MIMEMultipart("alternative")
+        message["Subject"] = subject
+        message["From"] = EMAIL_FROM
+        message["To"] = to_email
+        
+        text_part = MIMEText(html_content.replace('<br>', '\n'), "plain")
+        html_part = MIMEText(html_content, "html")
+        
+        message.attach(text_part)
+        message.attach(html_part)
+        
         with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT, timeout=10) as server:
             server.starttls()
             server.login(EMAIL_USERNAME, EMAIL_PASSWORD)
             server.sendmail(EMAIL_FROM, to_email, message.as_string())
+            
         logger.info(f"Email sent successfully to {to_email}")
         return True
-    except smtplib.SMTPAuthenticationError:
-        logger.error("SMTP Authentication failed - check email credentials")
+        
+    except smtplib.SMTPException as e:
+        logger.error(f"SMTP error while sending email to {to_email}: {str(e)}")
         return False
     except Exception as e:
-        logger.error(f"Failed to send email: {str(e)}")
+        logger.error(f"Unexpected error while sending email to {to_email}: {str(e)}")
         return False
+
+
 
 @app.get("/health")
 async def health_check():
@@ -242,87 +235,94 @@ async def register_user(email: str = Body(...), password: str = Body(...)):
         logger.info(f"Starting registration process for email: {email}")
         
         # Input validation
-        if not email or not password:
-            raise HTTPException(status_code=400, detail="Email and password are required")
-            
         if len(password) < 6:
-            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+            raise HTTPException(
+                status_code=400,
+                detail="Password must be at least 6 characters long"
+            )
+            
+        user = UserCreate(email=email, password=password)
         
-        existing_user = await users_collection.find_one({"email": email})
+        # Check for existing user
+        existing_user = await users_collection.find_one({"email": user.email})
         if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
+            logger.warning(f"Registration attempted with existing email: {user.email}")
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered"
+            )
         
-        # Generate verification code
-        verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        user_id = str(secrets.token_hex(16))
-        
-        # Hash password using bcrypt directly
-        salt = bcrypt.gensalt()
-        hashed_password = bcrypt.hashpw(password.encode(), salt)
-        
-        # Create user document
-        user_data = {
-            "id": user_id,
-            "email": email,
-            "hashed_password": hashed_password,
-            "is_active": True,
-            "is_verified": False,
-            "created_at": datetime.utcnow()
-        }
-        
-        # Start transaction
-        async with await client.start_session() as session:
-            async with session.start_transaction():
-                # Insert user
-                await users_collection.insert_one(user_data, session=session)
-                
-                # Create verification record
-                await verification_collection.insert_one({
-                    "user_id": user_id,
-                    "email": email,
-                    "code": verification_code,
-                    "expires_at": datetime.utcnow() + timedelta(hours=1)
-                }, session=session)
-                
-                # Send verification email
-                verification_email = f"""
-                <html>
-                <body>
-                <h2>Welcome to Our Service!</h2>
-                <p>Thank you for registering. Please use this code to verify your email:</p>
-                <h3>{verification_code}</h3>
-                <p>This code will expire in 1 hour.</p>
-                <p>If you didn't register for this service, please ignore this email.</p>
-                </body>
-                </html>
-                """
-                
-                email_sent = await send_email(email, "Welcome - Verify Your Email", verification_email)
-                if not email_sent:
-                    # Rollback transaction if email fails
-                    await session.abort_transaction()
-                    raise HTTPException(
-                        status_code=500,
-                        detail="Failed to send verification email. Please try again."
-                    )
-        
-        logger.info(f"User registered successfully: {user_id}")
-        return {
-            "id": user_id,
-            "email": email,
-            "is_verified": False,
-            "url_count": 0
-        }
-        
+        try:
+            # Generate user data
+            hashed_password = get_password_hash(user.password)
+            verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            user_id = str(random.getrandbits(128))
+            
+            user_data = {
+                "id": user_id,
+                "email": user.email,
+                "hashed_password": hashed_password,
+                "is_active": True,
+                "is_verified": False,
+                "created_at": time.time()
+            }
+            
+            # Create verification email content
+            verification_email = f"""
+            <html>
+            <body>
+            <h2>Verify Your Email</h2>
+            <p>Thank you for registering! Please use the following code to verify your email:</p>
+            <h3>{verification_code}</h3>
+            <p>This code will expire in 1 hour.</p>
+            </body>
+            </html>
+            """
+            
+            # Send verification email first
+            email_sent = await send_email(user.email, "Verify Your Email", verification_email)
+            if not email_sent:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to send verification email. Please try again."
+                )
+            
+            # If email sent successfully, create user and verification records
+            await users_collection.insert_one(user_data)
+            logger.info(f"User created successfully with ID: {user_id}")
+            
+            await verification_collection.insert_one({
+                "user_id": user_id,
+                "email": user.email,
+                "code": verification_code,
+                "expires_at": time.time() + 3600 
+            })
+            logger.info(f"Verification record created for user: {user_id}")
+            
+            return {
+                "id": user_id,
+                "email": user.email,
+                "is_verified": False,
+                "url_count": 0
+            }
+            
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            logger.error(f"Error during user creation: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to create user account. Please try again."
+            )
+            
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Registration error: {str(e)}")
+        logger.error(f"Unexpected error during registration: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail="An error occurred during registration. Please try again."
+            detail="An unexpected error occurred during registration"
         )
-
 
 @app.post("/verify-email")
 async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
