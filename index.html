@@ -416,6 +416,7 @@
                 editSuccess.textContent = '';
                 return;
             }
+        
             editError.textContent = '';
             editSuccess.textContent = '';
         
@@ -431,18 +432,18 @@
                     })
                 });
         
-                const data = await response.json();
-        
-                if (response.ok) {
-                    editSuccess.textContent = 'Edit code updated successfully!';
-                    document.getElementById('editCodeInput').value = newEditCode;
-                    document.getElementById('newEditCode').value = '';
-                } else {
-                    editError.textContent = data.detail || 'Failed to update edit code. Please try again.';
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to update edit code');
                 }
+        
+                const data = await response.json();
+                editSuccess.textContent = 'Edit code updated successfully!';
+                document.getElementById('editCodeInput').value = newEditCode;
+                document.getElementById('newEditCode').value = '';
             } catch (err) {
+                editError.textContent = err.message || 'Network error occurred. Please check your connection and try again.';
                 console.error('Edit code update error:', err);
-                editError.textContent = 'Network error occurred. Please check your connection and try again.';
             }
         }
     </script>
