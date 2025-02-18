@@ -49,10 +49,12 @@ views_collection = db.views
 async def generate_unique_url():
     while True:
         url = ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
-        
         existing = await files_collection.find_one({"url": url})
         if not existing:
             return url
+
+async def generate_edit_code():
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
 
 @app.get("/health")
 async def health_check(request: Request):
@@ -75,11 +77,14 @@ async def upload_file(request: Request, file: UploadFile, custom_url: str = None
     else:
         url = await generate_unique_url()
     
+    edit_code = await generate_edit_code()
+    
     document = {
         "url": url,
         "content": Binary(content),
         "filename": file.filename,
-        "created_at": time.time()
+        "created_at": time.time(),
+        "edit_code": edit_code
     }
     
     await files_collection.insert_one(document)
@@ -89,7 +94,72 @@ async def upload_file(request: Request, file: UploadFile, custom_url: str = None
     })
     
     logger.info(f"File uploaded successfully: {file.filename} with URL: {url}")
-    return {"url": url}
+    return {"url": url, "edit_code": edit_code}
+
+@app.put("/update/{url}")
+async def update_file(request: Request, url: str, file: UploadFile, edit_code: str):
+    existing_file = await files_collection.find_one({"url": url})
+    if not existing_file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if existing_file["edit_code"] != edit_code:
+        raise HTTPException(status_code=403, detail="Invalid edit code")
+    
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large")
+    
+    if not file.filename.endswith('.html'):
+        raise HTTPException(status_code=400, detail="Only HTML files are allowed")
+    
+    await files_collection.update_one(
+        {"url": url},
+        {
+            "$set": {
+                "content": Binary(content),
+                "filename": file.filename,
+                "updated_at": time.time()
+            }
+        }
+    )
+    
+    logger.info(f"File updated successfully: {file.filename} with URL: {url}")
+    return {"message": "File updated successfully"}
+
+@app.put("/edit-code/{url}")
+async def update_edit_code(request: Request, url: str, old_edit_code: str, new_edit_code: str):
+    if not new_edit_code or len(new_edit_code) != 5 or not new_edit_code.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid new edit code format")
+    
+    existing_file = await files_collection.find_one({"url": url})
+    if not existing_file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if existing_file["edit_code"] != old_edit_code:
+        raise HTTPException(status_code=403, detail="Invalid edit code")
+    
+    await files_collection.update_one(
+        {"url": url},
+        {"$set": {"edit_code": new_edit_code}}
+    )
+    
+    logger.info(f"Edit code updated successfully for URL: {url}")
+    return {"message": "Edit code updated successfully"}
+
+@app.delete("/file/{url}")
+async def delete_file(request: Request, url: str, edit_code: str):
+    existing_file = await files_collection.find_one({"url": url})
+    if not existing_file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if existing_file["edit_code"] != edit_code:
+        raise HTTPException(status_code=403, detail="Invalid edit code")
+    
+    await files_collection.delete_one({"url": url})
+    await views_collection.delete_one({"url": url})
+    
+    logger.info(f"File deleted successfully: {url}")
+    return {"message": "File deleted successfully"}
 
 @app.get("/file/{url}")
 async def get_file(request: Request, url: str):
