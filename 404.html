@@ -98,6 +98,11 @@
             margin-right: 2px;
             opacity: 0.8;
         }
+        .rate-limit-error {
+            color: #ff6b6b;
+            font-size: 1.2rem;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -105,8 +110,11 @@
         <div class="spinner"></div>
     </div>
     <div id="error" class="error-container">
-        <h1>404</h1>
-        <p>Page not found</p>
+        <h1 id="errorCode">404</h1>
+        <p id="errorMessage">Page not found</p>
+        <div id="rateLimitMessage" class="rate-limit-error" style="display: none">
+            Rate limit exceeded. Please try again in a few minutes.
+        </div>
         <a href="/" class="back-btn">Go Back</a>
     </div>
     <div id="appContent"></div>
@@ -139,7 +147,7 @@
         async function loadContent() {
             const url = window.location.pathname.substring(1);
             if (!url) {
-                showError();
+                showError(404, 'Page not found');
                 return;
             }
 
@@ -156,6 +164,10 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 429) {
+                        showError(429, 'Rate limit exceeded');
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -166,7 +178,7 @@
 
             } catch (err) {
                 console.error('Loading error:', err);
-                showError();
+                showError(404, 'Page not found');
             }
         }
 
@@ -223,10 +235,19 @@
             }
         }
 
-        function showError() {
+        function showError(code, message) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'flex';
+            document.getElementById('errorCode').textContent = code;
+            document.getElementById('errorMessage').textContent = message;
+            const rateLimitMessage = document.getElementById('rateLimitMessage');
+            if (code === 429) {
+                rateLimitMessage.style.display = 'block';
+            } else {
+                rateLimitMessage.style.display = 'none';
+            }
         }
+        
         loadContent();
     </script>
 </body>
