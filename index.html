@@ -538,19 +538,25 @@
                 const email = document.getElementById('registerEmail').value;
                 const password = document.getElementById('registerPassword').value;
                 const confirmPassword = document.getElementById('confirmPassword').value;
+                const errorElement = document.getElementById('registerError');
                 
+                errorElement.textContent = '';
                 if (!email || !password || !confirmPassword) {
-                    document.getElementById('registerError').textContent = 'Please fill all fields';
+                    errorElement.textContent = 'Please fill all fields';
+                    return;
+                }
+                
+                if (password.length < 6) {
+                    errorElement.textContent = 'Password must be at least 6 characters long';
                     return;
                 }
                 
                 if (password !== confirmPassword) {
-                    document.getElementById('registerError').textContent = 'Passwords do not match';
+                    errorElement.textContent = 'Passwords do not match';
                     return;
                 }
-                
                 document.getElementById('registerLoading').classList.add('active');
-                document.getElementById('registerError').textContent = '';
+                document.getElementById('registerBtn').disabled = true;
                 
                 try {
                     const response = await fetch('/register', {
@@ -571,14 +577,20 @@
                         localStorage.setItem('userId', data.id);
                         localStorage.setItem('userEmail', data.email);
                         userEmail = data.email;
+                        
+                        document.getElementById('registerEmail').value = '';
+                        document.getElementById('registerPassword').value = '';
+                        document.getElementById('confirmPassword').value = '';
                     } else {
-                        document.getElementById('registerError').textContent = data.detail || 'Registration failed';
+                        errorElement.textContent = data.detail || 'Registration failed. Please try again.';
                     }
                 } catch (error) {
-                    document.getElementById('registerError').textContent = 'An error occurred. Please try again.';
+                    console.error('Registration error:', error);
+                    errorElement.textContent = 'A network error occurred. Please check your connection and try again.';
+                } finally {
+                    document.getElementById('registerLoading').classList.remove('active');
+                    document.getElementById('registerBtn').disabled = false;
                 }
-                
-                document.getElementById('registerLoading').classList.remove('active');
             });
             
             // Verify Email
