@@ -64,8 +64,12 @@ class TokenData(BaseModel):
 class UserBase(BaseModel):
     email: EmailStr
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    email: EmailStr
     password: str
+
+    class Config:
+        min_length_password = 6
 
 class UserLogin(UserBase):
     password: str
@@ -207,51 +211,86 @@ async def send_email(to_email, subject, html_content):
 async def health_check():
     return {"status": "healthy"}
 
+
 @app.post("/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
-    existing_user = await users_collection.find_one({"email": user.email})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create new user
-    hashed_password = get_password_hash(user.password)
-    verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    
-    user_id = str(random.getrandbits(128))
-    user_data = {
-        "id": user_id,
-        "email": user.email,
-        "hashed_password": hashed_password,
-        "is_active": True,
-        "is_verified": False,
-        "created_at": time.time()
-    }
-    
-    await users_collection.insert_one(user_data)
-    await verification_collection.insert_one({
-        "user_id": user_id,
-        "email": user.email,
-        "code": verification_code,
-        "expires_at": time.time() + 3600 
-    })
-    verification_email = f"""
-    <html>
-    <body>
-    <h2>Verify Your Email</h2>
-    <p>Thank you for registering with Versz! Please use the following code to verify your email:</p>
-    <h3>{verification_code}</h3>
-    <p>This code will expire in 1 hour.</p>
-    </body>
-    </html>
-    """
-    await send_email(user.email, "Verify Your Email - Versz", verification_email)
-    
-    return {
-        "id": user_id,
-        "email": user.email,
-        "is_verified": False,
-        "url_count": 0
-    }
+    try:
+        logger.info(f"Starting registration process for email: {user.email}")
+        if len(user.password) < 6:
+            raise HTTPException(
+                status_code=400,
+                detail="Password must be at least 6 characters long"
+            )
+            
+        existing_user = await users_collection.find_one({"email": user.email})
+        if existing_user:
+            logger.warning(f"Registration attempted with existing email: {user.email}")
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered"
+            )
+        
+        try:
+            hashed_password = get_password_hash(user.password)
+            verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            
+            user_id = str(random.getrandbits(128))
+            user_data = {
+                "id": user_id,
+                "email": user.email,
+                "hashed_password": hashed_password,
+                "is_active": True,
+                "is_verified": False,
+                "created_at": time.time()
+            }
+            
+            await users_collection.insert_one(user_data)
+            logger.info(f"User created successfully with ID: {user_id}")
+            await verification_collection.insert_one({
+                "user_id": user_id,
+                "email": user.email,
+                "code": verification_code,
+                "expires_at": time.time() + 3600 
+            })
+            logger.info(f"Verification record created for user: {user_id}")
+            
+            verification_email = f"""
+            <html>
+            <body>
+            <h2>Verify Your Email</h2>
+            <p>Thank you for registering with Versz! Please use the following code to verify your email:</p>
+            <h3>{verification_code}</h3>
+            <p>This code will expire in 1 hour.</p>
+            </body>
+            </html>
+            """
+            
+            email_sent = await send_email(user.email, "Verify Your Email - Versz", verification_email)
+            if not email_sent:
+                logger.error(f"Failed to send verification email to: {user.email}")
+                
+            return {
+                "id": user_id,
+                "email": user.email,
+                "is_verified": False,
+                "url_count": 0
+            }
+            
+        except Exception as e:
+            logger.error(f"Error during user creation: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to create user account"
+            )
+            
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Unexpected error during registration: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred during registration"
+        )
 
 @app.post("/verify-email")
 async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
