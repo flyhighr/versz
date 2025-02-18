@@ -416,11 +416,6 @@
                 return;
             }
         
-            if (newEditCode.length !== 5 || !/^[a-zA-Z0-9]+$/.test(newEditCode)) {
-                editError.textContent = 'New edit code must be 5 alphanumeric characters';
-                return;
-            }
-        
             try {
                 const response = await fetch(`https://versz-vs1b.onrender.com/edit-code/${url}`, {
                     method: 'PUT',
