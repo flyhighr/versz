@@ -17,7 +17,7 @@ from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -64,12 +64,6 @@ class TokenData(BaseModel):
 class UserBase(BaseModel):
     email: EmailStr
 
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
-
-    class Config:
-        min_length_password = 6
 
 class UserLogin(UserBase):
     password: str
@@ -95,6 +89,15 @@ class UserPasswordChange(BaseModel):
     email: EmailStr
     reset_code: str
     new_password: str
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+
+    @validator('password')
+    def password_length(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters long')
+        return v
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
@@ -213,14 +216,9 @@ async def health_check():
 
 
 @app.post("/register", response_model=UserResponse)
-async def register_user(user: UserCreate):
+async def register_user(user: UserCreate = Body(...)):  # Changed this line
     try:
         logger.info(f"Starting registration process for email: {user.email}")
-        if len(user.password) < 6:
-            raise HTTPException(
-                status_code=400,
-                detail="Password must be at least 6 characters long"
-            )
             
         existing_user = await users_collection.find_one({"email": user.email})
         if existing_user:
@@ -246,6 +244,7 @@ async def register_user(user: UserCreate):
             
             await users_collection.insert_one(user_data)
             logger.info(f"User created successfully with ID: {user_id}")
+            
             await verification_collection.insert_one({
                 "user_id": user_id,
                 "email": user.email,
@@ -258,14 +257,14 @@ async def register_user(user: UserCreate):
             <html>
             <body>
             <h2>Verify Your Email</h2>
-            <p>Thank you for registering with Versz! Please use the following code to verify your email:</p>
+            <p>Thank you for registering! Please use the following code to verify your email:</p>
             <h3>{verification_code}</h3>
             <p>This code will expire in 1 hour.</p>
             </body>
             </html>
             """
             
-            email_sent = await send_email(user.email, "Verify Your Email - Versz", verification_email)
+            email_sent = await send_email(user.email, "Verify Your Email", verification_email)
             if not email_sent:
                 logger.error(f"Failed to send verification email to: {user.email}")
                 
@@ -291,6 +290,7 @@ async def register_user(user: UserCreate):
             status_code=500,
             detail="An unexpected error occurred during registration"
         )
+
 
 @app.post("/verify-email")
 async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
