@@ -30,6 +30,7 @@
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
         }
 
         .sidebar {
@@ -243,6 +244,46 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 0.8rem;
+        }
+
+        .tag-icon {
+            margin-right: 4px;
+        }
+
+        .file-stats {
+            margin-top: 4px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .file-url {
+            word-break: break-all;
+            margin: 4px 0;
+        }
+
+        .no-files {
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .link-text {
+            color: var(--accent-color);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .link-text:hover {
+            opacity: 0.8;
+        }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -279,7 +320,6 @@
             <span>Versz</span>
         </a>
         
-        <!-- Changed div IDs to nav-sections for clarity -->
         <nav id="auth-nav">
             <div class="nav-item active" onclick="handleNavClick('login')">
                 <i class="fas fa-sign-in-alt"></i>
@@ -312,9 +352,7 @@
     </div>
 
     <div class="main-content">
-        <!-- Auth Container -->
         <div id="authContainer">
-            <!-- Login Form -->
             <div id="loginContainer" class="card">
                 <h2>Login to Versz</h2>
                 <input type="email" id="loginEmail" class="input" placeholder="Email">
@@ -327,7 +365,6 @@
                 <p style="margin-top: 15px;">Forgot your password? <span class="link-text" onclick="showForgotPassword()">Reset it here</span></p>
             </div>
             
-            <!-- Register Form -->
             <div id="registerContainer" class="card" style="display: none;">
                 <h2>Create Account</h2>
                 <input type="email" id="registerEmail" class="input" placeholder="Email">
@@ -340,7 +377,6 @@
                 </div>
             </div>
             
-            <!-- Verify Email Form -->
             <div id="verifyContainer" class="card" style="display: none;">
                 <h2>Verify Your Email</h2>
                 <p>Please enter the verification code sent to your email.</p>
@@ -355,9 +391,7 @@
             </div>
         </div>
 
-        <!-- Main App Container -->
         <div id="appContainer" style="display: none;">
-            <!-- Home Container -->
             <div id="homeContainer" class="card">
                 <div class="home-content">
                     <h1>What is Versz?</h1>
@@ -367,7 +401,6 @@
                 </div>
             </div>
 
-            <!-- Upload Container -->
             <div id="uploadContainer" class="card" style="display: none;">
                 <h2>Upload File</h2>
                 <label for="fileInput" class="btn" style="margin-bottom: 15px;">
@@ -384,7 +417,6 @@
                 </div>
             </div>
 
-            <!-- My Files Container -->
             <div id="myFilesContainer" style="display: none;">
                 <h2 style="margin-bottom: 20px;">My Files</h2>
                 <div id="fileList" class="file-list"></div>
@@ -394,7 +426,6 @@
                 <div id="myFilesError" class="error"></div>
             </div>
 
-            <!-- Edit Container -->
             <div id="editContainer" class="card" style="display: none;">
                 <h2>Edit File</h2>
                 <div id="editFileInfo" style="margin-bottom: 15px; color: var(--text-secondary);"></div>
@@ -415,7 +446,6 @@
     </div>
 
     <script>
-        // Global variables
         const BASE_URL = 'https://versz-vs1b.onrender.com';
         const FRONTEND_URL = 'https://versz.fun';
         let token = localStorage.getItem('token');
@@ -423,7 +453,72 @@
         let userEmail = localStorage.getItem('userEmail');
         let isVerified = localStorage.getItem('isVerified') === 'true';
         let currentUrl = null;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            if (token && isVerified) {
+                showApp();
+                fetchUserInfo();
+                fetchUserFiles();
+            } else if (token && !isVerified) {
+                showVerifyEmail();
+            } else {
+                showAuth();
+                switchAuthTab('login');
+            }
+            setupAuthEventListeners();
+            setupAppEventListeners();
+        });
         
+        function switchTab(tab) {
+            const containers = ['homeContainer', 'uploadContainer', 'myFilesContainer', 'editContainer'];
+            containers.forEach(container => {
+                document.getElementById(container).style.display = 'none';
+            });
+
+            switch(tab) {
+                case 'home':
+                    document.getElementById('homeContainer').style.display = 'block';
+                    break;
+                case 'upload':
+                    document.getElementById('uploadContainer').style.display = 'block';
+                    break;
+                case 'myFiles':
+                    document.getElementById('myFilesContainer').style.display = 'block';
+                    fetchUserFiles(); // Refresh files list when switching to myFiles
+                    break;
+                case 'edit':
+                    document.getElementById('editContainer').style.display = 'block';
+                    break;
+            }
+
+            // Update navigation active states
+            document.querySelectorAll('#app-nav .nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeNavItem = document.querySelector(`#app-nav .nav-item[onclick="handleNavClick('${tab}')"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('active');
+            }
+        }
+
+        function showHomeTab() {
+            switchTab('home');
+        }
+
+        function showEditForm(url, filename) {
+            currentUrl = url;
+            document.getElementById('editFileInfo').textContent = `Editing: ${filename}`;
+            document.getElementById('editFileInput').value = '';
+            document.getElementById('editSelectedFile').textContent = '';
+            document.getElementById('updateBtn').disabled = true;
+            document.getElementById('editError').textContent = '';
+            document.getElementById('editSuccess').textContent = '';
+            switchTab('edit');
+        }
+
+        
+
         function handleNavClick(tab) {
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('active');
@@ -439,60 +534,30 @@
                     switchAuthTab('register');
                     break;
                 case 'home':
-                    switchTab('home');
-                    break;
                 case 'upload':
-                    switchTab('upload');
-                    break;
                 case 'myFiles':
-                    switchTab('myFiles');
+                    switchTab(tab);
                     break;
             }
         }
+
         function handleLogout() {
             logout();
         }
 
-        // Initial setup
-        document.addEventListener('DOMContentLoaded', function() {
-            if (token && isVerified) {
-                showApp();
-                fetchUserInfo();
-                fetchUserFiles();
-            } else if (token && !isVerified) {
-                showVerifyEmail();
-            } else {
-                showAuth();
-                switchAuthTab('login');
-            }
-        });
-
-        // Authentication functions
         function showAuth() {
             document.getElementById('authContainer').style.display = 'block';
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('auth-nav').style.display = 'block';
             document.getElementById('app-nav').style.display = 'none';
         }
-        const style = document.createElement('style');
-        style.textContent = `
-            .link-text {
-                color: var(--accent-color);
-                cursor: pointer;
-                text-decoration: underline;
-            }
-            .link-text:hover {
-                opacity: 0.8;
-            }
-        `;
-        document.head.appendChild(style);
 
         function showApp() {
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             document.getElementById('auth-nav').style.display = 'none';
             document.getElementById('app-nav').style.display = 'block';
-            showHomeTab(); // Show home tab by default
+            showHomeTab();
         }
 
         function switchAuthTab(tab) {
@@ -508,7 +573,9 @@
         }
 
         function showVerifyEmail() {
-            document.querySelectorAll('#authContainer > div:not(.tabs)').forEach(d => d.style.display = 'none');
+            document.querySelectorAll('#authContainer > div').forEach(div => {
+                div.style.display = 'none';
+            });
             document.getElementById('verifyContainer').style.display = 'block';
         }
 
@@ -539,15 +606,15 @@
             
             document.getElementById('forgotPasswordContainer').style.display = 'block';
         }
-
-        function showResetPassword(email) {
-            document.querySelectorAll('#authContainer > div:not(.tabs)').forEach(d => d.style.display = 'none');
-            document.getElementById('resetPasswordContainer').style.display = 'block';
-            document.getElementById('resetPasswordEmail').value = email;
+        function checkAuth() {
+            if (!token || !isVerified) {
+                logout();
+                return false;
+            }
+            return true;
         }
 
         function setupAuthEventListeners() {
-            // Login
             document.getElementById('loginBtn').addEventListener('click', async function() {
                 const email = document.getElementById('loginEmail').value;
                 const password = document.getElementById('loginPassword').value;
@@ -589,8 +656,6 @@
                         }
                     } else {
                         document.getElementById('loginError').textContent = data.detail || 'Login failed';
-
-                    
                     }
                 } catch (error) {
                     document.getElementById('loginError').textContent = 'An error occurred. Please try again.';
@@ -599,7 +664,7 @@
                 document.getElementById('loginLoading').classList.remove('active');
             });
             
-            // Register
+            
             document.getElementById('registerBtn').addEventListener('click', async function() {
                 const email = document.getElementById('registerEmail').value;
                 const password = document.getElementById('registerPassword').value;
@@ -664,7 +729,7 @@
                 }
             });
             
-            // Verify Email
+            
             document.getElementById('verifyBtn').addEventListener('click', async function() {
                 const code = document.getElementById('verificationCode').value;
                 
@@ -709,7 +774,6 @@
                 document.getElementById('verifyLoading').classList.remove('active');
             });
             
-            // Resend Verification
             document.getElementById('resendVerificationLink').addEventListener('click', async function() {
                 document.getElementById('verifyLoading').classList.add('active');
                 document.getElementById('verifyError').textContent = '';
@@ -738,7 +802,6 @@
                 document.getElementById('verifyLoading').classList.remove('active');
             });
             
-            // Forgot Password
             document.getElementById('forgotPasswordBtn').addEventListener('click', async function() {
                 const email = document.getElementById('forgotPasswordEmail').value;
                 
@@ -778,112 +841,41 @@
                 
                 document.getElementById('forgotPasswordLoading').classList.remove('active');
             });
-            
-            // Reset Password
-            document.getElementById('resetPasswordBtn').addEventListener('click', async function() {
-                const email = document.getElementById('resetPasswordEmail').value;
-                const resetCode = document.getElementById('resetCode').value;
-                const newPassword = document.getElementById('newPassword').value;
-                const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-                
-                if (!email || !resetCode || !newPassword || !confirmNewPassword) {
-                    document.getElementById('resetPasswordError').textContent = 'Please fill all fields';
-                    return;
-                }
-                
-                if (newPassword !== confirmNewPassword) {
-                    document.getElementById('resetPasswordError').textContent = 'Passwords do not match';
-                    return;
-                }
-                
-                document.getElementById('resetPasswordLoading').classList.add('active');
-                document.getElementById('resetPasswordError').textContent = '';
-                document.getElementById('resetPasswordSuccess').textContent = '';
-                
-                try {
-                    const response = await fetch(`${BASE_URL}/reset-password`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            email: email,
-                            reset_code: resetCode,
-                            new_password: newPassword
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        document.getElementById('resetPasswordSuccess').textContent = 'Password reset successfully!';
-                        setTimeout(() => {
-                            switchAuthTab('login');
-                        }, 1500);
-                    } else {
-                        document.getElementById('resetPasswordError').textContent = data.detail || 'Failed to reset password';
-                    }
-                } catch (error) {
-                    document.getElementById('resetPasswordError').textContent = 'An error occurred. Please try again.';
-                }
-                
-                document.getElementById('resetPasswordLoading').classList.remove('active');
-            });
-            
-            // Logout
-            document.getElementById('logoutBtn').addEventListener('click', function() {
-                logout();
-            });
         }
-        document.getElementById('customUrl').addEventListener('input', function(e) {
-            const customUrl = e.target.value.trim();
-            const uploadError = document.getElementById('uploadError');
-            const uploadBtn = document.getElementById('uploadBtn');
-            
-            if (customUrl) {
-                if (!/^[a-zA-Z0-9-_]+$/.test(customUrl)) {
-                    uploadError.textContent = 'Custom URL can only contain letters, numbers, hyphens, and underscores';
-                    uploadBtn.disabled = true;
-                    return;
-                } else {
-                    uploadError.textContent = '';
-                    uploadBtn.disabled = !document.getElementById('fileInput').files.length;
-                }
-            } else {
-                uploadError.textContent = '';
-                uploadBtn.disabled = !document.getElementById('fileInput').files.length;
+        
+        async function handlePasswordReset() {
+            const email = document.getElementById('forgotPasswordEmail').value;
+            if (!email) {
+                document.getElementById('forgotPasswordError').textContent = 'Please enter your email';
+                return;
             }
-        });
-        // App functions
-        function switchTab(tab) {
-            document.querySelectorAll('#appContainer > div').forEach(div => {
-                div.style.display = 'none';
-            });
-            if (tab === 'home') {
-                document.getElementById('homeContainer').style.display = 'block';
-            } else if (tab === 'upload') {
-                document.getElementById('uploadContainer').style.display = 'block';
-            } else if (tab === 'myFiles') {
-                document.getElementById('myFilesContainer').style.display = 'block';
-                fetchUserFiles();
-            }
-        }
-        function showHomeTab() {
-            switchTab('home');
-        }
 
-        function showEditForm(url, filename) {
-            currentUrl = url;
-            document.getElementById('uploadContainer').style.display = 'none';
-            document.getElementById('myFilesContainer').style.display = 'none';
-            document.getElementById('editContainer').style.display = 'block';
-            document.getElementById('editFileInfo').textContent = `Editing: ${filename} (URL: ${url})`;
-            document.getElementById('editSelectedFile').textContent = '';
-            document.getElementById('updateBtn').disabled = true;
+            document.getElementById('forgotPasswordLoading').classList.add('active');
+            document.getElementById('forgotPasswordError').textContent = '';
+
+            try {
+                const response = await fetch(`${BASE_URL}/request-password-reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                if (response.ok) {
+                    document.getElementById('forgotPasswordSuccess').textContent = 'Password reset email sent!';
+                } else {
+                    const errorData = await response.json();
+                    document.getElementById('forgotPasswordError').textContent = errorData.detail || 'Failed to send reset email';
+                }
+            } catch (error) {
+                document.getElementById('forgotPasswordError').textContent = 'An error occurred. Please try again.';
+            }
+
+            document.getElementById('forgotPasswordLoading').classList.remove('active');
         }
 
         function setupAppEventListeners() {
-            // File input change handlers
             document.getElementById('fileInput').addEventListener('change', function(e) {
                 handleFileInputChange(e, 'upload');
             });
@@ -892,77 +884,41 @@
                 handleFileInputChange(e, 'edit');
             });
             
-            // Upload button
             document.getElementById('uploadBtn').addEventListener('click', async function() {
                 await handleFileUpload();
             });
             
-            // Update button
             document.getElementById('updateBtn').addEventListener('click', async function() {
                 await handleFileUpdate();
             });
             
-            // Cancel edit button
             document.getElementById('cancelEditBtn').addEventListener('click', function() {
                 switchTab('myFiles');
             });
-            document.getElementById('savePreferences').addEventListener('click', async function() {
-                        await updatePreferences();
-            });
         }
 
-                async function updatePreferences() {
-                    const preferences = {
-                        show_views: document.getElementById('showViews').checked,
-                        show_uuid: document.getElementById('showUuid').checked,
-                        show_tags: document.getElementById('showTags').checked
-                    };
-
-                    try {
-                        const response = await fetch(`${BASE_URL}/preferences`, {
-                            method: 'PUT',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(preferences)
-                        });
-
-                        if (response.ok) {
-                            document.getElementById('uploadSuccess').textContent = 'Preferences updated successfully!';
-                            await fetchUserInfo();
-                        } else {
-                            document.getElementById('uploadError').textContent = 'Failed to update preferences';
-                        }
-                    } catch (error) {
-                        console.error('Error updating preferences:', error);
-                        document.getElementById('uploadError').textContent = 'An error occurred while updating preferences';
-                    }
-                }
-
         function handleFileInputChange(e, type) {
-                const isUpload = type === 'upload';
-                const file = e.target.files[0];
-                const errorElement = document.getElementById(isUpload ? 'uploadError' : 'editError');
-                const selectedFileElement = document.getElementById(isUpload ? 'selectedFile' : 'editSelectedFile');
-                const actionButton = document.getElementById(isUpload ? 'uploadBtn' : 'updateBtn');
-                
-                if (file) {
-                    if (!file.name.endsWith('.html')) {
-                        errorElement.textContent = 'Only HTML files are allowed';
-                        actionButton.disabled = true;
-                        selectedFileElement.textContent = '';
-                        return;
-                    }
-                    selectedFileElement.textContent = `Selected: ${file.name}`;
-                    actionButton.disabled = false;
-                    errorElement.textContent = '';
-                } else {
-                    selectedFileElement.textContent = '';
+            const isUpload = type === 'upload';
+            const file = e.target.files[0];
+            const errorElement = document.getElementById(isUpload ? 'uploadError' : 'editError');
+            const selectedFileElement = document.getElementById(isUpload ? 'selectedFile' : 'editSelectedFile');
+            const actionButton = document.getElementById(isUpload ? 'uploadBtn' : 'updateBtn');
+            
+            if (file) {
+                if (!file.name.endsWith('.html')) {
+                    errorElement.textContent = 'Only HTML files are allowed';
                     actionButton.disabled = true;
+                    selectedFileElement.textContent = '';
+                    return;
                 }
+                selectedFileElement.textContent = `Selected: ${file.name}`;
+                actionButton.disabled = false;
+                errorElement.textContent = '';
+            } else {
+                selectedFileElement.textContent = '';
+                actionButton.disabled = true;
             }
-
+        }
 
         async function handleFileUpload() {
             const fileInput = document.getElementById('fileInput');
@@ -996,129 +952,129 @@
                     body: formData
                 });
                 
-                const data = await response.json();
-                
-                if (response.ok) {
-                    document.getElementById('uploadSuccess').textContent = 
-                        `File uploaded successfully! Access your file at: ${FRONTEND_URL}/${data.url}`;
-                    
-                    fileInput.value = '';
-                    customUrlInput.value = '';
-                    document.getElementById('selectedFile').textContent = '';
-                    
-                    fetchUserInfo();
-                    if (document.getElementById('myFilesContainer').style.display !== 'none') {
-                        fetchUserFiles();
-                    }
-                } else {
-                    document.getElementById('uploadError').textContent = data.detail || 'Upload failed';
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.status}`);
                 }
+                
+                const data = await response.json();
+                document.getElementById('uploadSuccess').textContent = 
+                    `File uploaded successfully! Access your file at: ${FRONTEND_URL}/${data.url}`;
+                
+                fileInput.value = '';
+                customUrlInput.value = '';
+                document.getElementById('selectedFile').textContent = '';
+                
+                fetchUserInfo();
+                fetchUserFiles();
+                
             } catch (error) {
                 console.error('Upload error:', error);
-                document.getElementById('uploadError').textContent = 'An error occurred. Please try again.';
+                document.getElementById('uploadError').textContent = error.message || 'An error occurred during upload. Please try again.';
             } finally {
                 document.getElementById('uploadLoading').classList.remove('active');
                 document.getElementById('uploadBtn').disabled = false;
             }
         }
 
-            async function handleFileUpdate() {
-                if (!currentUrl) {
-                    document.getElementById('editError').textContent = 'No file selected for update';
-                    return;
-                }
-                
-                const fileInput = document.getElementById('editFileInput');
-                if (!fileInput.files.length) {
-                    document.getElementById('editError').textContent = 'Please select a file';
-                    return;
-                }
-                
-                document.getElementById('editLoading').classList.add('active');
-                document.getElementById('editError').textContent = '';
-                document.getElementById('editSuccess').textContent = '';
-                
-                const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
-                
-                try {
-                    const response = await fetch(`${BASE_URL}/update/${currentUrl}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: formData
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        document.getElementById('editSuccess').textContent = 'File updated successfully!';
-                        document.getElementById('editSelectedFile').textContent = '';
-                        document.getElementById('editFileInput').value = '';
-                        document.getElementById('updateBtn').disabled = true;
-                        
-                        setTimeout(() => {
-                            switchTab('myFiles');
-                        }, 1500);
-                    } else {
-                        document.getElementById('editError').textContent = data.detail || 'Update failed';
-                    }
-                } catch (error) {
-                    document.getElementById('editError').textContent = 'An error occurred. Please try again.';
-                }
-                
-                document.getElementById('editLoading').classList.remove('active');
-            }
 
-            async function fetchUserInfo() {
-                try {
-                    const response = await fetch(`${BASE_URL}/me`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-            
-                    if (response.ok) {
-                        const data = await response.json();
-                        document.getElementById('userEmail').textContent = data.email;
-                        document.getElementById('userNumber').textContent = `#${data.user_number}`;
-                        document.getElementById('userStats').textContent = `URLs: ${data.url_count}/10`;
-                        
-                        const preferences = data.display_preferences || {
-                            show_views: true,
-                            show_uuid: true,
-                            show_tags: true
-                        };
-                        
-                        document.getElementById('showViews').checked = preferences.show_views;
-                        document.getElementById('showUuid').checked = preferences.show_uuid;
-                        document.getElementById('showTags').checked = preferences.show_tags;
-                        const tagsContainer = document.getElementById('userTags');
-                        tagsContainer.innerHTML = '';
-                        if (data.tags && data.tags.length > 0) {
-                            data.tags.forEach(tag => {
-                                const tagElement = document.createElement('span');
-                                tagElement.className = 'tag';
-                                
-                                const iconContent = processTagIcon(tag.icon);
-                                
-                                tagElement.innerHTML = `
-                                    <span class="tag-icon">${iconContent}</span>
-                                    <span class="tag-text">${tag.text}</span>
-                                `;
-                                tagsContainer.appendChild(tagElement);
-                            });
-                        }
-                    } else {
-                        if (response.status === 401) {
-                            logout();
-                        }
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch user info:', error);
-                }
+        async function handleFileUpdate() {
+            if (!currentUrl) {
+                document.getElementById('editError').textContent = 'No file selected for update';
+                return;
             }
+            
+            const fileInput = document.getElementById('editFileInput');
+            if (!fileInput.files.length) {
+                document.getElementById('editError').textContent = 'Please select a file';
+                return;
+            }
+            
+            document.getElementById('editLoading').classList.add('active');
+            document.getElementById('editError').textContent = '';
+            document.getElementById('editSuccess').textContent = '';
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch(`${BASE_URL}/update/${currentUrl}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('editSuccess').textContent = 'File updated successfully!';
+                    document.getElementById('editSelectedFile').textContent = '';
+                    document.getElementById('editFileInput').value = '';
+                    document.getElementById('updateBtn').disabled = true;
+                    
+                    setTimeout(() => {
+                        switchTab('myFiles');
+                    }, 1500);
+                } else {
+                    document.getElementById('editError').textContent = data.detail || 'Update failed';
+                }
+            } catch (error) {
+                document.getElementById('editError').textContent = 'An error occurred. Please try again.';
+            }
+            
+            document.getElementById('editLoading').classList.remove('active');
+        }
+
+        
+        
+        async function fetchUserInfo() {
+            try {
+                const response = await fetch(`${BASE_URL}/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const userInfoContainer = document.createElement('div');
+                    userInfoContainer.className = 'user-info';
+                    userInfoContainer.innerHTML = `
+                        <div>Email: ${data.email}</div>
+                        <div>User Number: #${data.user_number}</div>
+                        <div>URLs: ${data.url_count}/10</div>
+                        <div class="tags-container">Tags: ${renderTags(data.tags)}</div>
+                    `;
+                    document.getElementById('homeContainer').appendChild(userInfoContainer);
+                } else {
+                    if (response.status === 401) {
+                        logout();
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch user info:', error);
+            }
+        }
+        function renderTags(tags) {
+            if (!tags || tags.length === 0) return 'No tags';
+            return tags.map(tag => `
+                <div class="tag">
+                    ${processTagIcon(tag.icon)}
+                    <span class="tag-text">${tag.text}</span>
+                </div>
+            `).join('');
+        }
+        
+        function processTagIcon(icon) {
+            if (isImageUrl(icon)) {
+                return `<img src="${icon}" alt="tag icon" class="tag-icon">`;
+            }
+            if (isSvgCode(icon)) {
+                return icon.replace('<svg', '<svg class="tag-icon"');
+            }
+            return `<span class="tag-icon">${icon}</span>`;
+        }
 
         function processTagIcon(icon) {
             if (isImageUrl(icon)) {
@@ -1147,58 +1103,28 @@
             document.getElementById('myFilesLoading').classList.add('active');
             document.getElementById('myFilesError').textContent = '';
             document.getElementById('fileList').innerHTML = '';
-            
+
             try {
                 const response = await fetch(`${BASE_URL}/my-files`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                
+
                 if (response.ok) {
                     const files = await response.json();
-                    
                     if (files.length === 0) {
                         document.getElementById('fileList').innerHTML = '<p class="no-files">No files uploaded yet</p>';
                     } else {
-                        document.getElementById('fileList').innerHTML = '';
-                        
-                        const processedUrls = new Set();
-                        
-                        files.forEach(file => {
-                            if (processedUrls.has(file.url)) {
-                                return;
-                            }
-                            processedUrls.add(file.url);
-            
-                            const fileItem = document.createElement('div');
-                            fileItem.className = 'file-item';
-            
-                            const createdDate = typeof file.created_at === 'number' 
-                                ? new Date(file.created_at * 1000).toLocaleString()
-                                : new Date(file.created_at).toLocaleString();
-                                
-                            const updatedDate = file.updated_at 
-                                ? (typeof file.updated_at === 'number'
-                                    ? new Date(file.updated_at * 1000).toLocaleString()
-                                    : new Date(file.updated_at).toLocaleString())
-                                : 'N/A';
-            
-                            let fileContent = `
+                        document.getElementById('fileList').innerHTML = files.map(file => `
+                            <div class="file-item">
                                 <div class="file-info">
                                     <div class="file-name">${file.filename}</div>
                                     <div class="file-url">URL: ${FRONTEND_URL}/${file.url}</div>
-                            `;
-            
-                            // Add views if enabled
-                            if (document.getElementById('showViews').checked) {
-                                fileContent += `<div class="file-stats">Views: ${file.views || 0}</div>`;
-                            }
-            
-                            fileContent += `
+                                    <div class="file-stats">Views: ${file.views || 0}</div>
                                     <div class="file-dates">
-                                        Created: ${createdDate}<br>
-                                        Last updated: ${updatedDate}
+                                        Created: ${new Date(file.created_at).toLocaleString()}<br>
+                                        Last updated: ${file.updated_at ? new Date(file.updated_at).toLocaleString() : 'N/A'}
                                     </div>
                                 </div>
                                 <div class="file-actions">
@@ -1212,11 +1138,8 @@
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </div>
-                            `;
-            
-                            fileItem.innerHTML = fileContent;
-                            document.getElementById('fileList').appendChild(fileItem);
-                        });
+                            </div>
+                        `).join('');
 
                         document.querySelectorAll('.edit-btn').forEach(btn => {
                             btn.addEventListener('click', function() {
@@ -1225,7 +1148,7 @@
                                 showEditForm(url, filename);
                             });
                         });
-                        
+
                         document.querySelectorAll('.delete-btn').forEach(btn => {
                             btn.addEventListener('click', async function() {
                                 if (confirm('Are you sure you want to delete this file?')) {
@@ -1246,42 +1169,41 @@
                 console.error('Error fetching files:', error);
                 document.getElementById('myFilesError').textContent = 'An error occurred. Please try again.';
             }
-            
+
             document.getElementById('myFilesLoading').classList.remove('active');
         }
-
-            async function deleteFile(url) {
-                try {
-                    const response = await fetch(`${BASE_URL}/file/${url}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        fetchUserFiles();
-                        fetchUserInfo();
-                    } else {
-                        alert('Failed to delete file');
+        async function deleteFile(url) {
+            try {
+                const response = await fetch(`${BASE_URL}/file/${url}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
                     }
-                } catch (error) {
-                    alert('An error occurred. Please try again.');
+                });
+                
+                if (response.ok) {
+                    fetchUserFiles();
+                    fetchUserInfo();
+                } else {
+                    alert('Failed to delete file');
                 }
+            } catch (error) {
+                alert('An error occurred. Please try again.');
             }
+        }
 
-            function logout() {
-                localStorage.removeItem('token');
-                localStorage.removeItem('userId');
-                localStorage.removeItem('userEmail');
-                localStorage.removeItem('isVerified');
-                token = null;
-                userId = null;
-                userEmail = null;
-                isVerified = false;
-                showAuth();
-                switchAuthTab('login');
-            }
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('isVerified');
+            token = null;
+            userId = null;
+            userEmail = null;
+            isVerified = false;
+            showAuth();
+            switchAuthTab('login');
+        }
     </script>
 </body>
 </html>
