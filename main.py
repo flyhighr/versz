@@ -77,7 +77,8 @@ pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
     default="bcrypt",
-    bcrypt__rounds=settings.BCRYPT_ROUNDS
+    bcrypt__rounds=settings.BCRYPT_ROUNDS,
+    bcrypt__ident="2b"
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -356,7 +357,8 @@ async def register_user(
         user = UserCreate(email=email, password=password)
         
         async with get_database() as db:
-            if await db.users.find_one({"email": user.email}):
+            if await db.users.find_one({"email": user.email}) or \
+               await db.pending_users.find_one({"email": user.email}):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already registered"
@@ -366,13 +368,12 @@ async def register_user(
             verification_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) 
                                       for _ in range(6))
             
-            user_data = {
+            pending_user_data = {
                 "id": user_id,
                 "email": user.email,
                 "hashed_password": get_password_hash(user.password),
-                "is_active": True,
-                "is_verified": False,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(hours=24)  
             }
             
             verification_email = f"""
@@ -382,9 +383,18 @@ async def register_user(
             <p>Thank you for registering! Please use the following code to verify your email:</p>
             <h3>{verification_code}</h3>
             <p>This code will expire in 1 hour.</p>
+            <p>Your registration will be canceled if you don't verify within 24 hours.</p>
             </body>
             </html>
             """
+            
+            await db.pending_users.insert_one(pending_user_data)
+            await db.verification.insert_one({
+                "user_id": user_id,
+                "email": user.email,
+                "code": verification_code,
+                "expires_at": datetime.utcnow() + timedelta(hours=1)
+            })
             
             background_tasks.add_task(
                 send_email_async,
@@ -392,14 +402,6 @@ async def register_user(
                 "Verify Your Email",
                 verification_email
             )
-            
-            await db.users.insert_one(user_data)
-            await db.verification.insert_one({
-                "user_id": user_id,
-                "email": user.email,
-                "code": verification_code,
-                "expires_at": datetime.utcnow() + timedelta(hours=1)
-            })
             
             return {
                 "id": user_id,
@@ -415,6 +417,7 @@ async def register_user(
             detail="Registration failed. Please try again."
         )
 
+
 @app.post("/verify-email")
 async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
     async with get_database() as db:
@@ -429,12 +432,24 @@ async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired verification code"
             )
-            
-        await db.users.update_one(
-            {"email": email},
-            {"$set": {"is_verified": True}}
-        )
+        pending_user = await db.pending_users.find_one({"email": email})
+        if not pending_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Registration expired or not found"
+            )
         
+        user_data = {
+            "id": pending_user["id"],
+            "email": email,
+            "hashed_password": pending_user["hashed_password"],
+            "is_active": True,
+            "is_verified": True,
+            "created_at": pending_user["created_at"]
+        }
+        
+        await db.users.insert_one(user_data)
+        await db.pending_users.delete_one({"email": email})
         await db.verification.delete_one({"email": email})
         await user_cache.delete(f"user:{email}")
         
@@ -829,11 +844,23 @@ async def start_cleanup_scheduler():
         await cleanup_old_view_records()
         await asyncio.sleep(24 * 60 * 60)  # Run daily
 
+async def cleanup_expired_registrations():
+    async with get_database() as db:
+        await db.pending_users.delete_many({
+            "expires_at": {"$lt": datetime.utcnow()}
+        })
+
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(start_cleanup_scheduler())
+    asyncio.create_task(cleanup_expired_registrations()) 
+    async def periodic_registration_cleanup():
+        while True:
+            await cleanup_expired_registrations()
+            await asyncio.sleep(3600)  
+    
+    asyncio.create_task(periodic_registration_cleanup())
    
-# Start background ping thread
 ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
 ping_thread.start()
 
