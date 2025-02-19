@@ -71,6 +71,7 @@ class Settings:
             "text": "Top Contributor",
             "icon_type": "emoji"
         }
+    }
 
 settings = Settings()
 
