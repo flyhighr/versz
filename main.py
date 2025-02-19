@@ -58,6 +58,16 @@ class Settings:
     MONGODB_MIN_POOL_SIZE: int = 10
     VIEW_COOLDOWN_MINUTES: int = 30
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
+    DEFAULT_TAGS = {
+        "early_supporter": {
+            "icon": "🌟",
+            "text": "Early Supporter"
+        },
+        "top_contributor": {
+            "icon": "👑",
+            "text": "Top Contributor"
+        }
+    }
 
 settings = Settings()
 
@@ -131,7 +141,17 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: constr(min_length=8, max_length=64)  # type: ignore
+    
+class Tag(BaseModel):
+    name: str
+    icon: str
+    text: str
 
+class DisplayPreferences(BaseModel):
+    show_views: bool = True
+    show_uuid: bool = True
+    show_tags: bool = True
+    
     @validator('password')
     def validate_password(cls, v):
         if not any(c.isupper() for c in v):
@@ -145,10 +165,14 @@ class UserCreate(UserBase):
 class UserLogin(UserBase):
     password: str
 
+
 class UserResponse(UserBase):
     id: str
+    user_number: int
     is_verified: bool
     url_count: int
+    tags: List[Tag] = []
+    display_preferences: DisplayPreferences
 
 class UserPasswordReset(BaseModel):
     email: EmailStr
@@ -271,6 +295,14 @@ async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any
         logger.error(f"Authentication error: {str(e)}")
         return None
 
+async def get_next_user_number(db: AsyncIOMotorDatabase) -> int:
+    result = await db.users.find_one(
+        filter={},
+        sort=[("user_number", -1)],
+        projection={"user_number": 1}
+    )
+    return (result["user_number"] + 1) if result else 1
+
 async def generate_unique_url() -> str:
     async with get_database() as db:
         while True:
@@ -370,6 +402,8 @@ async def health_check(request: Request):
             detail="Service unhealthy"
         )
         
+
+            
 @app.post("/register", response_model=UserResponse)
 @limiter.limit("5/minute")
 async def register_user(
@@ -386,6 +420,7 @@ async def register_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={"detail": str(ve)}
             )
+        
         async with get_database() as db:
             existing_user = await db.users.find_one({"email": user.email})
             if existing_user:
@@ -408,16 +443,26 @@ async def register_user(
                         }
                     )
             
-            user_id = secrets.token_hex(16)
+
+            user_number = await get_next_user_number(db)
+            user_id = str(user_number)
+            
             verification_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) 
                                       for _ in range(6))
             
             pending_user_data = {
                 "id": user_id,
+                "user_number": user_number,
                 "email": user.email,
                 "hashed_password": get_password_hash(user.password),
                 "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(hours=1)  
+                "expires_at": datetime.utcnow() + timedelta(hours=1),
+                "tags": [],
+                "display_preferences": {
+                    "show_views": True,
+                    "show_uuid": True,
+                    "show_tags": True
+                }
             }
             
             verification_email = f"""
@@ -528,11 +573,13 @@ async def register_user(
             
             return {
                 "id": user_id,
+                "user_number": user_number,
                 "email": user.email,
                 "is_verified": False,
-                "url_count": 0
+                "url_count": 0,
+                "tags": [],
+                "display_preferences": DisplayPreferences()
             }
-            
     except Exception as e:
         logger.error(f"Registration error: {str(e)}")
         return JSONResponse(
@@ -724,7 +771,14 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             "token_type": "bearer",
             "is_verified": user.get("is_verified", False),
             "id": user["id"],
-            "email": user["email"]
+            "user_number": user.get("user_number"),
+            "email": user["email"],
+            "tags": user.get("tags", []),
+            "display_preferences": user.get("display_preferences", {
+                "show_views": True,
+                "show_uuid": True,
+                "show_tags": True
+            })
         }
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
@@ -884,7 +938,6 @@ async def reset_password(request: Request, reset_data: UserPasswordChange):
         
         return {"message": "Password reset successfully"}
 
-
 @app.get("/me")
 @limiter.limit(RateLimits.READ_LIMIT)
 async def read_users_me(request: Request, current_user: dict = Depends(get_current_user)):
@@ -892,9 +945,16 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
         url_count = await db.files.count_documents({"user_id": current_user["id"]})
         return {
             "id": current_user["id"],
+            "user_number": current_user.get("user_number"),
             "email": current_user["email"],
             "is_verified": current_user.get("is_verified", False),
-            "url_count": url_count
+            "url_count": url_count,
+            "tags": current_user.get("tags", []),
+            "display_preferences": current_user.get("display_preferences", {
+                "show_views": True,
+                "show_uuid": True,
+                "show_tags": True
+            })
         }
 
 @app.post("/upload")
@@ -1040,37 +1100,78 @@ async def get_file(request: Request, url: str):
                 detail="File not found"
             )
         
+        # Get user information
+        user = await db.users.find_one({"id": file["user_id"]})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        display_prefs = user.get("display_preferences", {
+            "show_views": True,
+            "show_uuid": True,
+            "show_tags": True
+        })
+        
         device_hash = await generate_device_identifier(request)
+        views = 0
         
-        if await should_count_view(db, url, device_hash):
-            view_record = ViewRecord(
-                url=url,
-                device_hash=device_hash,
-                timestamp=datetime.utcnow(),
-                ip_address=request.client.host,
-                user_agent=request.headers.get("user-agent", "")
-            )
-            
-            await db.view_records.insert_one(view_record.dict())
-            
-            result = await db.views.find_one_and_update(
-                {"url": url},
-                {"$inc": {"views": 1}},
-                upsert=True,
-                return_document=True
-            )
-            
-            views = result["views"] if result else 0
-            views_cache[f"views:{url}"] = views
-        else:
-            views_doc = await db.views.find_one({"url": url})
-            views = views_doc["views"] if views_doc else 0
+        if display_prefs.get("show_views", True):
+            if await should_count_view(db, url, device_hash):
+                view_record = ViewRecord(
+                    url=url,
+                    device_hash=device_hash,
+                    timestamp=datetime.utcnow(),
+                    ip_address=request.client.host,
+                    user_agent=request.headers.get("user-agent", "")
+                )
+                
+                await db.view_records.insert_one(view_record.dict())
+                
+                result = await db.views.find_one_and_update(
+                    {"url": url},
+                    {"$inc": {"views": 1}},
+                    upsert=True,
+                    return_document=True
+                )
+                
+                views = result["views"] if result else 0
+                views_cache[f"views:{url}"] = views
+            else:
+                views_doc = await db.views.find_one({"url": url})
+                views = views_doc["views"] if views_doc else 0
         
-        return {
+        response_data = {
             "content": file["content"].decode(),
-            "filename": file["filename"],
-            "views": views
+            "filename": file["filename"]
         }
+        
+        if display_prefs.get("show_views", True):
+            response_data["views"] = views
+            
+        if display_prefs.get("show_uuid", True):
+            response_data["user_id"] = user["id"]
+            
+        if display_prefs.get("show_tags", True):
+            response_data["tags"] = user.get("tags", [])
+            
+        return response_data
+
+@app.put("/preferences")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def update_display_preferences(
+    request: Request,
+    preferences: DisplayPreferences,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    async with get_database() as db:
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {"display_preferences": preferences.dict()}}
+        )
+        await user_cache.delete(f"user:{current_user['email']}")
+        return {"message": "Display preferences updated successfully"}
 
 @app.get("/views/{url}")
 @limiter.limit(RateLimits.READ_LIMIT)
