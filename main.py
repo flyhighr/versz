@@ -142,16 +142,6 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: constr(min_length=8, max_length=64)  # type: ignore
     
-class Tag(BaseModel):
-    name: str
-    icon: str
-    text: str
-
-class DisplayPreferences(BaseModel):
-    show_views: bool = True
-    show_uuid: bool = True
-    show_tags: bool = True
-    
     @validator('password')
     def validate_password(cls, v):
         if not any(c.isupper() for c in v):
@@ -161,6 +151,16 @@ class DisplayPreferences(BaseModel):
         if not any(c.isdigit() for c in v):
             raise ValueError('Password must contain at least one number')
         return v
+        
+class Tag(BaseModel):
+    name: str
+    icon: str
+    text: str
+
+class DisplayPreferences(BaseModel):
+    show_views: bool = True
+    show_uuid: bool = True
+    show_tags: bool = True
 
 class UserLogin(UserBase):
     password: str
