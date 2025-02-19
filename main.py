@@ -805,7 +805,7 @@ async def delete_file(
         
         return {"message": "File deleted successfully"}
 
-@@app.get("/file/{url}")
+@app.get("/file/{url}")
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_file(request: Request, url: str):
     async with get_database() as db:
