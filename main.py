@@ -55,6 +55,8 @@ class Settings:
     CACHE_TTL: int = 300  # 5 minutes
     MONGODB_MAX_POOL_SIZE: int = 100
     MONGODB_MIN_POOL_SIZE: int = 10
+    VIEW_COOLDOWN_MINUTES: int = 30  # Minimum time between views from same device
+    DEVICE_IDENTIFIER_TTL_DAYS: int = 30 # How long to store device identifiers
 
 settings = Settings()
 
@@ -255,6 +257,51 @@ async def get_current_verified_user(current_user: dict = Depends(get_current_use
             detail="Email not verified"
         )
     return current_user
+class ViewRecord(BaseModel):
+    url: str
+    device_hash: str
+    timestamp: datetime
+    ip_address: str
+    user_agent: str
+
+async def generate_device_identifier(request: Request) -> str:
+    """
+    Generate a unique device identifier based on multiple factors
+    """
+    ip = request.client.host
+    user_agent = request.headers.get("user-agent", "")
+    accept_language = request.headers.get("accept-language", "")
+    identifier = f"{ip}:{user_agent}:{accept_language}"
+    return hashlib.sha256(identifier.encode()).hexdigest()
+
+async def should_count_view(db: AsyncIOMotorDatabase, url: str, device_hash: str) -> bool:
+    """
+    Determine if a view should be counted based on device and timing rules
+    """
+    last_view = await db.view_records.find_one(
+        {
+            "url": url,
+            "device_hash": device_hash
+        },
+        sort=[("timestamp", -1)]
+    )
+    
+    if not last_view:
+        return True
+        
+    last_view_time = last_view["timestamp"]
+    time_since_last_view = datetime.utcnow() - last_view_time
+    
+    return time_since_last_view > timedelta(minutes=settings.VIEW_COOLDOWN_MINUTES)
+
+async def cleanup_old_view_records():
+    """
+    Periodically cleanup old view records
+    """
+    async with get_database() as db:
+        cutoff_date = datetime.utcnow() - timedelta(days=settings.DEVICE_IDENTIFIER_TTL_DAYS)
+        await db.view_records.delete_many({"timestamp": {"$lt": cutoff_date}})
+
 
 # Endpoints
 @app.get("/health")
@@ -652,7 +699,7 @@ async def delete_file(
         return {"message": "File deleted successfully"}
 
 @app.get("/file/{url}")
-async def get_file(url: str):
+async def get_file(url: str, request: Request):
     async with get_database() as db:
         file = await db.files.find_one({"url": url})
         if not file:
@@ -661,15 +708,31 @@ async def get_file(url: str):
                 detail="File not found"
             )
         
-        result = await db.views.find_one_and_update(
-            {"url": url},
-            {"$inc": {"views": 1}},
-            upsert=True,
-            return_document=True
-        )
+        device_hash = await generate_device_identifier(request)
         
-        views = result["views"] if result else 0
-        views_cache[f"views:{url}"] = views
+        if await should_count_view(db, url, device_hash):
+            view_record = ViewRecord(
+                url=url,
+                device_hash=device_hash,
+                timestamp=datetime.utcnow(),
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent", "")
+            )
+            
+            await db.view_records.insert_one(view_record.dict())
+            
+            result = await db.views.find_one_and_update(
+                {"url": url},
+                {"$inc": {"views": 1}},
+                upsert=True,
+                return_document=True
+            )
+            
+            views = result["views"] if result else 0
+            views_cache[f"views:{url}"] = views
+        else:
+            views_doc = await db.views.find_one({"url": url})
+            views = views_doc["views"] if views_doc else 0
         
         return {
             "content": file["content"].decode(),
@@ -730,7 +793,16 @@ def start_ping_scheduler():
     while True:
         schedule.run_pending()
         time.sleep(1)
-
+        
+async def start_cleanup_scheduler():
+    while True:
+        await cleanup_old_view_records()
+        await asyncio.sleep(24 * 60 * 60)
+        
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(start_cleanup_scheduler())
+    
 # Start background ping thread
 ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
 ping_thread.start()
