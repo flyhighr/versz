@@ -379,13 +379,27 @@ async def register_user(
 
         async with get_database() as db:
             existing_user = await db.users.find_one({"email": user.email})
-            existing_pending = await db.pending_users.find_one({"email": user.email})
-            
-            if existing_user or existing_pending:
+            if existing_user:
                 return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={"detail": "Email already registered"}
                 )
+            
+            existing_pending = await db.pending_users.find_one({"email": user.email})
+            if existing_pending:
+                # Check if the pending registration has expired
+                if existing_pending["expires_at"] < datetime.utcnow():
+                    # Delete expired registration
+                    await db.pending_users.delete_one({"email": user.email})
+                    await db.verification.delete_one({"email": user.email})
+                else:
+                    return JSONResponse(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        content={
+                            "detail": "You have a pending registration. Please complete email verification or wait for it to expire before registering again.",
+                            "status": "pending_verification"
+                        }
+                    )
             
             user_id = secrets.token_hex(16)
             verification_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) 
@@ -439,8 +453,6 @@ async def register_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Registration failed. Please try again."}
         )
-
-
 @app.post("/verify-email")
 async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
     async with get_database() as db:
