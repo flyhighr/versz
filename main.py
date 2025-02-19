@@ -439,7 +439,12 @@ async def register_user(
         )
 
 @app.post("/verify-email")
-async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
+@limiter.limit(settings.RATE_LIMIT)
+async def verify_email(
+    request: Request,
+    email: EmailStr = Form(...),
+    code: str = Form(...)
+):
     async with get_database() as db:
         verification = await db.verification.find_one({
             "email": email,
@@ -463,8 +468,11 @@ async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
         
         return {"message": "Email verified successfully"}
 
+
 @app.post("/resend-verification")
+@limiter.limit("3/hour") 
 async def resend_verification(
+    request: Request,
     background_tasks: BackgroundTasks,
     email: EmailStr = Form(...)
 ):
@@ -566,9 +574,10 @@ async def login_for_access_token(
             detail="An unexpected error occurred during login. Please try again."
         )
 
-
 @app.post("/request-password-reset")
+@limiter.limit("3/hour")
 async def request_password_reset(
+    request: Request,
     background_tasks: BackgroundTasks,
     reset_request: UserPasswordReset
 ):
@@ -612,7 +621,11 @@ async def request_password_reset(
         return {"message": "Password reset email sent"}
 
 @app.post("/reset-password")
-async def reset_password(reset_data: UserPasswordChange):
+@limiter.limit(settings.RATE_LIMIT)
+async def reset_password(
+    request: Request,
+    reset_data: UserPasswordChange
+):
     async with get_database() as db:
         reset_record = await db.password_reset.find_one({
             "email": reset_data.email,
@@ -637,8 +650,12 @@ async def reset_password(reset_data: UserPasswordChange):
         
         return {"message": "Password reset successfully"}
 
-@app.get("/me", response_model=UserResponse)
-async def read_users_me(current_user: dict = Depends(get_current_user)):
+@app.get("/me")
+@limiter.limit("60/hour")
+async def read_users_me(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
     async with get_database() as db:
         url_count = await db.files.count_documents({"user_id": current_user["id"]})
         return {
@@ -649,7 +666,9 @@ async def read_users_me(current_user: dict = Depends(get_current_user)):
         }
 
 @app.post("/upload")
+@limiter.limit("20/hour") 
 async def upload_file(
+    request: Request,
     file: UploadFile,
     custom_url: Optional[str] = None,
     current_user: dict = Depends(get_current_verified_user)
@@ -729,8 +748,12 @@ async def upload_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Upload failed. Please try again."
         )
+
+
 @app.put("/update/{url}")
+@limiter.limit("30/hour")
 async def update_file(
+    request: Request,
     url: str,
     file: UploadFile,
     current_user: dict = Depends(get_current_verified_user)
@@ -776,7 +799,9 @@ async def update_file(
         return {"message": "File updated successfully"}
 
 @app.delete("/file/{url}")
+@limiter.limit("20/hour")
 async def delete_file(
+    request: Request,
     url: str,
     current_user: dict = Depends(get_current_verified_user)
 ):
@@ -802,7 +827,11 @@ async def delete_file(
         return {"message": "File deleted successfully"}
 
 @app.get("/file/{url}")
-async def get_file(url: str, request: Request):
+@limiter.limit("100/hour")
+async def get_file(
+    request: Request,
+    url: str
+): .
     async with get_database() as db:
         file = await db.files.find_one({"url": url})
         if not file:
@@ -844,7 +873,11 @@ async def get_file(url: str, request: Request):
         }
 
 @app.get("/views/{url}")
-async def get_views(url: str):
+@limiter.limit("200/hour")
+async def get_views(
+    request: Request,
+    url: str
+)
     cache_key = f"views:{url}"
     if cache_key in views_cache:
         return {"views": views_cache[cache_key]}
@@ -855,8 +888,13 @@ async def get_views(url: str):
         views_cache[cache_key] = views
         return {"views": views}
 
+
 @app.get("/my-files")
-async def get_user_files(current_user: dict = Depends(get_current_verified_user)):
+@limiter.limit("60/hour")
+async def get_user_files(
+    request: Request,
+    current_user: dict = Depends(get_current_verified_user)
+):
     async with get_database() as db:
         cursor = db.files.find({"user_id": current_user["id"]})
         user_files = []
