@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends, Form, Body, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, validator, SecretStr, constr
 from jose import JWTError, jwt
@@ -29,10 +29,11 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import schedule
-import aiosmtplib
+import smtplib
+from email.message import EmailMessage
 from cachetools import TTLCache
 
-# Configuration class
+# Configuration class with improved email settings
 class Settings:
     MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     API_URL: str = os.getenv("API_URL", "http://localhost:8000")
@@ -43,11 +44,11 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(64))
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     ALGORITHM: str = "HS256"
-    EMAIL_HOST: str = os.getenv("EMAIL_HOST", "smtp.mail.yahoo.com")
+    EMAIL_HOST: str = os.getenv("EMAIL_HOST", "smtp.gmail.com")
     EMAIL_PORT: int = int(os.getenv("EMAIL_PORT", "587"))
     EMAIL_USERNAME: str = os.getenv("EMAIL_USERNAME", "")
     EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD", "")
-    EMAIL_FROM: str = EMAIL_USERNAME
+    EMAIL_FROM: str = os.getenv("EMAIL_FROM", EMAIL_USERNAME)
     BCRYPT_ROUNDS: int = 12 if ENVIRONMENT == "production" else 4
     MAX_FILE_SIZE: int = 20 * 1024 * 1024  # 20MB
     URL_LENGTH: int = 7
@@ -64,14 +65,18 @@ settings = Settings()
 logging.basicConfig(
     level=logging.INFO if settings.ENVIRONMENT == "production" else logging.DEBUG,
     format="%(asctime)s - %(levelname)s - [%(name)s] - %(process)d - %(thread)d - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("app.log")
+    ]
 )
 logger = logging.getLogger(__name__)
-
 # Security configurations
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
+    default="bcrypt",
     bcrypt__rounds=settings.BCRYPT_ROUNDS
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -196,31 +201,31 @@ def get_password_hash(password: str) -> str:
 
 async def send_email_async(to_email: str, subject: str, html_content: str) -> bool:
     try:
-        message = MIMEMultipart("alternative")
-        message["Subject"] = subject
-        message["From"] = settings.EMAIL_FROM
-        message["To"] = to_email
+        msg = EmailMessage()
+        msg.set_content(html_content.replace('<br>', '\n'), subtype='html')
         
-        text_part = MIMEText(html_content.replace('<br>', '\n'), "plain")
-        html_part = MIMEText(html_content, "html")
+        msg['Subject'] = subject
+        msg['From'] = settings.EMAIL_FROM
+        msg['To'] = to_email
         
-        message.attach(text_part)
-        message.attach(html_part)
-        
-        async with aiosmtplib.SMTP(
-            hostname=settings.EMAIL_HOST,
-            port=settings.EMAIL_PORT,
-            use_tls=True,
-            timeout=10
-        ) as smtp:
-            await smtp.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
-            await smtp.send_message(message)
-        
-        logger.info(f"Email sent successfully to {to_email}")
-        return True
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT) as server:
+                    server.starttls()
+                    server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
+                    server.send_message(msg)
+                logger.info(f"Email sent successfully to {to_email}")
+                return True
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise
+                await asyncio.sleep(1 * (attempt + 1)) 
+                
     except Exception as e:
         logger.error(f"Error sending email to {to_email}: {str(e)}")
         return False
+
 
 async def get_user(email: str) -> Optional[Dict[str, Any]]:
     cache_key = f"user:{email}"
