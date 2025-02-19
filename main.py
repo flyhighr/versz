@@ -1117,7 +1117,6 @@ async def get_file(request: Request, url: str):
                 detail="File not found"
             )
         
-        # Get user information
         user = await db.users.find_one({"id": file["user_id"]})
         if not user:
             raise HTTPException(
@@ -1171,9 +1170,19 @@ async def get_file(request: Request, url: str):
             response_data["user_id"] = user["id"]
             
         if display_prefs.get("show_tags", True):
-            response_data["tags"] = user.get("tags", [])
+            tags_with_types = []
+            for tag in user.get("tags", []):
+                tag_data = {
+                    "name": tag["name"],
+                    "icon": tag["icon"],
+                    "text": tag["text"],
+                    "icon_type": tag.get("icon_type", "emoji")
+                }
+                tags_with_types.append(tag_data)
+            response_data["tags"] = tags_with_types
             
         return response_data
+
 
 @app.put("/preferences")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
