@@ -279,7 +279,8 @@
             <span>Versz</span>
         </a>
         
-        <div id="authNav">
+        <!-- Changed div IDs to nav-sections for clarity -->
+        <nav id="auth-nav">
             <div class="nav-item active" onclick="handleNavClick('login')">
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Login</span>
@@ -288,9 +289,9 @@
                 <i class="fas fa-user-plus"></i>
                 <span>Register</span>
             </div>
-        </div>
+        </nav>
 
-        <div id="appNav" style="display: none;">
+        <nav id="app-nav" style="display: none;">
             <div class="nav-item active" onclick="handleNavClick('home')">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
@@ -307,7 +308,7 @@
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
             </div>
-        </div>
+        </nav>
     </div>
 
     <div class="main-content">
@@ -454,35 +455,44 @@
 
         // Initial setup
         document.addEventListener('DOMContentLoaded', function() {
-            if (token) {
+            if (token && isVerified) {
                 showApp();
                 fetchUserInfo();
-                if (isVerified) {
-                    showHomeTab();
-                    fetchUserFiles();
-                } else {
-                    showVerifyEmail();
-                }
+                fetchUserFiles();
+            } else if (token && !isVerified) {
+                showVerifyEmail();
             } else {
                 showAuth();
                 switchAuthTab('login');
             }
-
-            // Setup event listeners
-            setupAuthEventListeners();
-            setupAppEventListeners();
         });
 
         // Authentication functions
         function showAuth() {
             document.getElementById('authContainer').style.display = 'block';
             document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('auth-nav').style.display = 'block';
+            document.getElementById('app-nav').style.display = 'none';
         }
+        const style = document.createElement('style');
+        style.textContent = `
+            .link-text {
+                color: var(--accent-color);
+                cursor: pointer;
+                text-decoration: underline;
+            }
+            .link-text:hover {
+                opacity: 0.8;
+            }
+        `;
+        document.head.appendChild(style);
 
         function showApp() {
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
-            document.getElementById('userEmail').textContent = userEmail;
+            document.getElementById('auth-nav').style.display = 'none';
+            document.getElementById('app-nav').style.display = 'block';
+            showHomeTab(); // Show home tab by default
         }
 
         function switchAuthTab(tab) {
@@ -503,7 +513,30 @@
         }
 
         function showForgotPassword() {
-            document.querySelectorAll('#authContainer > div:not(.tabs)').forEach(d => d.style.display = 'none');
+            document.querySelectorAll('#authContainer > div').forEach(div => {
+                div.style.display = 'none';
+            });
+            
+            if (!document.getElementById('forgotPasswordContainer')) {
+                const container = document.createElement('div');
+                container.id = 'forgotPasswordContainer';
+                container.className = 'card';
+                container.innerHTML = `
+                    <h2>Reset Password</h2>
+                    <input type="email" id="forgotPasswordEmail" class="input" placeholder="Email">
+                    <button id="forgotPasswordBtn" class="btn btn-primary">Send Reset Link</button>
+                    <div id="forgotPasswordError" class="error"></div>
+                    <div id="forgotPasswordSuccess" class="success"></div>
+                    <div id="forgotPasswordLoading" class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                    <p style="margin-top: 15px;">
+                        <span class="link-text" onclick="switchAuthTab('login')">Back to Login</span>
+                    </p>
+                `;
+                document.getElementById('authContainer').appendChild(container);
+            }
+            
             document.getElementById('forgotPasswordContainer').style.display = 'block';
         }
 
@@ -543,22 +576,17 @@
                         localStorage.setItem('userId', data.id);
                         localStorage.setItem('userEmail', data.email);
                         localStorage.setItem('isVerified', data.is_verified);
-                        localStorage.setItem('userNumber', data.user_number);
                         
                         token = data.access_token;
                         userId = data.id;
                         userEmail = data.email;
                         isVerified = data.is_verified;
-                        
-                        showApp();
-                        
                         if (isVerified) {
-                            showHomeTab();
+                            showApp();
                             fetchUserFiles();
                         } else {
                             showVerifyEmail();
                         }
-                    
                     } else {
                         document.getElementById('loginError').textContent = data.detail || 'Login failed';
 
