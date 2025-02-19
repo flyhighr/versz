@@ -32,7 +32,7 @@ import schedule
 import smtplib
 from email.message import EmailMessage
 from cachetools import TTLCache
-# Configuration class with improved email settings
+
 class Settings:
     MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     API_URL: str = os.getenv("API_URL", "http://localhost:8000")
@@ -59,6 +59,13 @@ class Settings:
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
 
 settings = Settings()
+
+class RateLimits:
+    AUTH_LIMIT = "5/minute"
+    UPLOAD_LIMIT = "10/minute" 
+    READ_LIMIT = "30/minute" 
+    MODIFY_LIMIT = "15/minute"  
+    ADMIN_LIMIT = "60/minute"
 
 # Logging configuration
 logging.basicConfig(
@@ -332,7 +339,8 @@ async def cleanup_old_view_records():
 # Endpoints
 
 @app.get("/", response_class=HTMLResponse)
-async def root():
+@limiter.limit(RateLimits.READ_LIMIT)
+async def root(request: Request):
     return """
     <html>
         <head><title>API Service</title></head>
@@ -344,7 +352,8 @@ async def root():
     """
     
 @app.get("/health")
-async def health_check():
+@limiter.limit(RateLimits.ADMIN_LIMIT)
+async def health_check(request: Request):
     try:
         async with get_database() as db:
             await db.command("ping")
@@ -359,7 +368,6 @@ async def health_check():
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Service unhealthy"
         )
-
 @app.post("/register", response_model=UserResponse)
 @limiter.limit("5/minute")
 async def register_user(
@@ -453,8 +461,11 @@ async def register_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Registration failed. Please try again."}
         )
+
+
 @app.post("/verify-email")
-async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
+@limiter.limit(RateLimits.AUTH_LIMIT)
+async def verify_email(request: Request, email: EmailStr = Form(...), code: str = Form(...)):
     async with get_database() as db:
         verification = await db.verification.find_one({
             "email": email,
@@ -491,7 +502,9 @@ async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
         return {"message": "Email verified successfully"}
 
 @app.post("/resend-verification")
+@limiter.limit(RateLimits.AUTH_LIMIT)
 async def resend_verification(
+    request: Request,
     background_tasks: BackgroundTasks,
     email: EmailStr = Form(...)
 ):
@@ -541,7 +554,8 @@ async def resend_verification(
         return {"message": "Verification email sent"}
 
 @app.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+@limiter.limit(RateLimits.AUTH_LIMIT)
+async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         user = await authenticate_user(form_data.username, form_data.password)
         if not user:
@@ -572,8 +586,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "An error occurred during login. Please try again."}
         )
+        
 @app.post("/request-password-reset")
+@limiter.limit(RateLimits.AUTH_LIMIT)
 async def request_password_reset(
+    request: Request,
     background_tasks: BackgroundTasks,
     reset_request: UserPasswordReset
 ):
@@ -617,7 +634,8 @@ async def request_password_reset(
         return {"message": "Password reset email sent"}
 
 @app.post("/reset-password")
-async def reset_password(reset_data: UserPasswordChange):
+@limiter.limit(RateLimits.AUTH_LIMIT)
+async def reset_password(request: Request, reset_data: UserPasswordChange):
     async with get_database() as db:
         reset_record = await db.password_reset.find_one({
             "email": reset_data.email,
@@ -642,8 +660,10 @@ async def reset_password(reset_data: UserPasswordChange):
         
         return {"message": "Password reset successfully"}
 
-@app.get("/me", response_model=UserResponse)
-async def read_users_me(current_user: dict = Depends(get_current_user)):
+
+@app.get("/me")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def read_users_me(request: Request, current_user: dict = Depends(get_current_user)):
     async with get_database() as db:
         url_count = await db.files.count_documents({"user_id": current_user["id"]})
         return {
@@ -654,7 +674,9 @@ async def read_users_me(current_user: dict = Depends(get_current_user)):
         }
 
 @app.post("/upload")
+@limiter.limit(RateLimits.UPLOAD_LIMIT)
 async def upload_file(
+    request: Request,
     file: UploadFile,
     custom_url: Optional[str] = None,
     current_user: dict = Depends(get_current_verified_user)
@@ -708,7 +730,9 @@ async def upload_file(
         return {"url": url}
 
 @app.put("/update/{url}")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
 async def update_file(
+    request: Request,
     url: str,
     file: UploadFile,
     current_user: dict = Depends(get_current_verified_user)
@@ -754,7 +778,9 @@ async def update_file(
         return {"message": "File updated successfully"}
 
 @app.delete("/file/{url}")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
 async def delete_file(
+    request: Request,
     url: str,
     current_user: dict = Depends(get_current_verified_user)
 ):
@@ -779,8 +805,9 @@ async def delete_file(
         
         return {"message": "File deleted successfully"}
 
-@app.get("/file/{url}")
-async def get_file(url: str, request: Request):
+@@app.get("/file/{url}")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_file(request: Request, url: str):
     async with get_database() as db:
         file = await db.files.find_one({"url": url})
         if not file:
@@ -822,7 +849,8 @@ async def get_file(url: str, request: Request):
         }
 
 @app.get("/views/{url}")
-async def get_views(url: str):
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_views(request: Request, url: str):
     cache_key = f"views:{url}"
     if cache_key in views_cache:
         return {"views": views_cache[cache_key]}
@@ -834,7 +862,8 @@ async def get_views(url: str):
         return {"views": views}
 
 @app.get("/my-files")
-async def get_user_files(current_user: dict = Depends(get_current_verified_user)):
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_user_files(request: Request, current_user: dict = Depends(get_current_verified_user)):
     async with get_database() as db:
         cursor = db.files.find({"user_id": current_user["id"]})
         user_files = []
@@ -854,7 +883,10 @@ async def get_user_files(current_user: dict = Depends(get_current_verified_user)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        content={"detail": "Rate limit exceeded. Please try again later."}
+        content={
+            "detail": "Rate limit exceeded. Please try again later.",
+            "retry_after": exc.retry_after
+        }
     )
 
 # Health check ping
