@@ -38,6 +38,7 @@ class Settings:
     API_URL: str = os.getenv("API_URL", "http://localhost:8000")
     PING_INTERVAL: int = int(os.getenv("PING_INTERVAL", "300"))
     ALLOWED_ORIGINS: List[str] = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+    PENDING_REGISTRATION_EXPIRE_HOURS: int = 1
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production")
     RATE_LIMIT: str = os.getenv("RATE_LIMIT", "5/minute")
     SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(64))
@@ -416,7 +417,7 @@ async def register_user(
                 "email": user.email,
                 "hashed_password": get_password_hash(user.password),
                 "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(hours=24)  
+                "expires_at": datetime.utcnow() + timedelta(hours=1)  
             }
             
             verification_email = f"""
@@ -499,7 +500,7 @@ async def register_user(
                         <div class="code">{verification_code}</div>
                         <p>This code will expire in 1 hour.</p>
                         <div class="warning">
-                            Your registration will be canceled if you don't verify within 24 hours.
+                            Your registration will be canceled if you don't verify within 1 hour(s).
                         </div>
                     </div>
                     <div class="footer">
@@ -1136,19 +1137,30 @@ async def start_cleanup_scheduler():
         await asyncio.sleep(24 * 60 * 60)  # Run daily
 
 async def cleanup_expired_registrations():
+    """Cleanup function to remove expired pending registrations"""
     async with get_database() as db:
-        await db.pending_users.delete_many({
+        result = await db.pending_users.delete_many({
+            "expires_at": {"$lt": datetime.utcnow()}
+        })
+        if result.deleted_count > 0:
+            logger.info(f"Cleaned up {result.deleted_count} expired pending registrations")
+        
+        await db.verification.delete_many({
             "expires_at": {"$lt": datetime.utcnow()}
         })
 
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(start_cleanup_scheduler())
-    asyncio.create_task(cleanup_expired_registrations()) 
+    
     async def periodic_registration_cleanup():
         while True:
-            await cleanup_expired_registrations()
-            await asyncio.sleep(3600)  
+            try:
+                await cleanup_expired_registrations()
+                await asyncio.sleep(3600) 
+            except Exception as e:
+                logger.error(f"Error in periodic registration cleanup: {str(e)}")
+                await asyncio.sleep(60) 
     
     asyncio.create_task(periodic_registration_cleanup())
    
