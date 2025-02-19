@@ -917,10 +917,10 @@ function handleFileInputChange(e, type) {
         }
     }
 
+
 async function handleFileUpload() {
     const fileInput = document.getElementById('fileInput');
-    const customUrlInput = document.getElementById('customUrl');
-    const customUrl = customUrlInput.value.trim();
+    const customUrl = document.getElementById('customUrl').value.trim();
     
     if (!fileInput.files.length) {
         document.getElementById('uploadError').textContent = 'Please select a file';
@@ -931,20 +931,21 @@ async function handleFileUpload() {
     document.getElementById('uploadError').textContent = '';
     document.getElementById('uploadSuccess').textContent = '';
     
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    
-    if (customUrl) {
-        const sanitizedUrl = customUrl.replace(/[^a-zA-Z0-9-]/g, '');
-        if (sanitizedUrl !== customUrl) {
-            document.getElementById('uploadError').textContent = 'Custom URL can only contain letters, numbers, and hyphens';
-            document.getElementById('uploadLoading').classList.remove('active');
-            return;
-        }
-        formData.append('custom_url', sanitizedUrl);
-    }
-    
     try {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        
+        // Only append custom_url if it's not empty
+        if (customUrl) {
+            // Validate custom URL format
+            if (!/^[a-zA-Z0-9-_]+$/.test(customUrl)) {
+                document.getElementById('uploadError').textContent = 'Custom URL can only contain letters, numbers, hyphens, and underscores';
+                document.getElementById('uploadLoading').classList.remove('active');
+                return;
+            }
+            formData.append('custom_url', customUrl);
+        }
+        
         const response = await fetch(`${BASE_URL}/upload`, {
             method: 'POST',
             headers: {
