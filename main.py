@@ -346,6 +346,8 @@ async def health_check():
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Service unhealthy"
         )
+
+@app.post("/register", response_model=UserResponse)
 async def register_user(
     background_tasks: BackgroundTasks,
     email: str = Body(...),
