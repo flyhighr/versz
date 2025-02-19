@@ -77,8 +77,8 @@ pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
     default="bcrypt",
-    bcrypt__rounds=settings.BCRYPT_ROUNDS,
-    bcrypt__ident="2b"
+    bcrypt__rounds=12,
+    truncate_error=False
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -198,8 +198,12 @@ async def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
+    try:
+        return pwd_context.hash(password)
+    except Exception as e:
+        logger.error(f"Password hashing error: {str(e)}")
+        raise ValueError("Error creating password hash")
+        
 async def send_email_async(to_email: str, subject: str, html_content: str) -> bool:
     try:
         msg = EmailMessage()
@@ -241,14 +245,24 @@ async def get_user(email: str) -> Optional[Dict[str, Any]]:
         return user
 
 async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
-    user = await get_user(email)
-    if not user:
-        return None
-    
-    if not await verify_password(password, user["hashed_password"]):
-        return None
+    try:
+        user = await get_user(email)
+        if not user:
+            logger.info(f"Authentication failed: User not found - {email}")
+            return None
         
-    return user
+        try:
+            if not pwd_context.verify(password, user["hashed_password"]):
+                logger.info(f"Authentication failed: Invalid password for user {email}")
+                return None
+        except ValueError as e:
+            logger.error(f"Password verification error: {str(e)}")
+            return None
+            
+        return user
+    except Exception as e:
+        logger.error(f"Authentication error: {str(e)}")
+        return None
 
 async def generate_unique_url() -> str:
     async with get_database() as db:
@@ -517,10 +531,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     try:
         user = await authenticate_user(form_data.username, form_data.password)
         if not user:
-            raise HTTPException(
+            return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
+                content={
+                    "detail": "Incorrect email or password",
+                    "headers": {"WWW-Authenticate": "Bearer"}
+                }
             )
         
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -538,11 +554,10 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         }
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed. Please try again."
+            content={"detail": "An error occurred during login. Please try again."}
         )
-
 @app.post("/request-password-reset")
 async def request_password_reset(
     background_tasks: BackgroundTasks,
