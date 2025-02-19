@@ -330,6 +330,42 @@
             align-items: center;
             justify-content: center;
         }
+                .preferences-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .preference-toggle {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .preference-toggle label {
+            margin-left: 0.5rem;
+            color: #fff;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tag-icon {
+            margin-right: 0.25rem;
+        }
+
+        .user-number {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -416,8 +452,26 @@
         <div id="appContainer" style="display: none;">
             <div class="user-info">
                 <span class="user-email" id="userEmail"></span>
+                <span class="user-number" id="userNumber"></span>
                 <button class="logout-btn" id="logoutBtn">Logout</button>
                 <div class="user-stats" id="userStats"></div>
+                <div class="user-tags" id="userTags"></div>
+            </div>
+            <div class="preferences-container">
+                <h3>Display Preferences</h3>
+                <div class="preference-toggle">
+                    <input type="checkbox" id="showViews" checked>
+                    <label for="showViews">Show View Count</label>
+                </div>
+                <div class="preference-toggle">
+                    <input type="checkbox" id="showUuid" checked>
+                    <label for="showUuid">Show User ID</label>
+                </div>
+                <div class="preference-toggle">
+                    <input type="checkbox" id="showTags" checked>
+                    <label for="showTags">Show Tags</label>
+                </div>
+                <button id="savePreferences" class="submit-btn">Save Preferences</button>
             </div>
             
             <div class="tabs">
@@ -575,6 +629,7 @@ function setupAuthEventListeners() {
                 localStorage.setItem('userId', data.id);
                 localStorage.setItem('userEmail', data.email);
                 localStorage.setItem('isVerified', data.is_verified);
+                localStorage.setItem('userNumber', data.user_number);
                 
                 token = data.access_token;
                 userId = data.id;
@@ -589,8 +644,11 @@ function setupAuthEventListeners() {
                 } else {
                     showVerifyEmail();
                 }
+            
             } else {
                 document.getElementById('loginError').textContent = data.detail || 'Login failed';
+
+            
             }
         } catch (error) {
             document.getElementById('loginError').textContent = 'An error occurred. Please try again.';
@@ -910,7 +968,39 @@ function setupAppEventListeners() {
     document.getElementById('cancelEditBtn').addEventListener('click', function() {
         switchTab('myFiles');
     });
+    document.getElementById('savePreferences').addEventListener('click', async function() {
+                await updatePreferences();
+    });
 }
+
+        async function updatePreferences() {
+            const preferences = {
+                show_views: document.getElementById('showViews').checked,
+                show_uuid: document.getElementById('showUuid').checked,
+                show_tags: document.getElementById('showTags').checked
+            };
+
+            try {
+                const response = await fetch(`${BASE_URL}/preferences`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(preferences)
+                });
+
+                if (response.ok) {
+                    document.getElementById('uploadSuccess').textContent = 'Preferences updated successfully!';
+                    await fetchUserInfo();
+                } else {
+                    document.getElementById('uploadError').textContent = 'Failed to update preferences';
+                }
+            } catch (error) {
+                console.error('Error updating preferences:', error);
+                document.getElementById('uploadError').textContent = 'An error occurred while updating preferences';
+            }
+        }
 
 function handleFileInputChange(e, type) {
         const isUpload = type === 'upload';
@@ -1044,25 +1134,53 @@ async function handleFileUpload() {
     }
 
     async function fetchUserInfo() {
-        try {
-            const response = await fetch(`${BASE_URL}/me`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            try {
+                const response = await fetch(`${BASE_URL}/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('userEmail').textContent = data.email;
+                    document.getElementById('userNumber').textContent = `#${data.user_number}`;
+                    document.getElementById('userStats').textContent = `URLs: ${data.url_count}/10`;
+                    
+                    // Update preference toggles
+                    const preferences = data.display_preferences || {
+                        show_views: true,
+                        show_uuid: true,
+                        show_tags: true
+                    };
+                    
+                    document.getElementById('showViews').checked = preferences.show_views;
+                    document.getElementById('showUuid').checked = preferences.show_uuid;
+                    document.getElementById('showTags').checked = preferences.show_tags;
+
+                    // Display tags
+                    const tagsContainer = document.getElementById('userTags');
+                    tagsContainer.innerHTML = '';
+                    if (data.tags && data.tags.length > 0) {
+                        data.tags.forEach(tag => {
+                            const tagElement = document.createElement('span');
+                            tagElement.className = 'tag';
+                            tagElement.innerHTML = `
+                                <span class="tag-icon">${tag.icon}</span>
+                                <span class="tag-text">${tag.text}</span>
+                            `;
+                            tagsContainer.appendChild(tagElement);
+                        });
+                    }
+                } else {
+                    if (response.status === 401) {
+                        logout();
+                    }
                 }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                document.getElementById('userStats').textContent = `URLs: ${data.url_count}/10`;
-            } else {
-                if (response.status === 401) {
-                    logout();
-                }
+            } catch (error) {
+                console.error('Failed to fetch user info:', error);
             }
-        } catch (error) {
-            console.error('Failed to fetch user info:', error);
         }
-    }
 
 async function fetchUserFiles() {
     document.getElementById('myFilesLoading').classList.add('active');
@@ -1091,10 +1209,10 @@ async function fetchUserFiles() {
                         return;
                     }
                     processedUrls.add(file.url);
-                    
+    
                     const fileItem = document.createElement('div');
                     fileItem.className = 'file-item';
-                    
+    
                     const createdDate = typeof file.created_at === 'number' 
                         ? new Date(file.created_at * 1000).toLocaleString()
                         : new Date(file.created_at).toLocaleString();
@@ -1104,12 +1222,19 @@ async function fetchUserFiles() {
                             ? new Date(file.updated_at * 1000).toLocaleString()
                             : new Date(file.updated_at).toLocaleString())
                         : 'N/A';
-                    
-                    fileItem.innerHTML = `
+    
+                    let fileContent = `
                         <div class="file-info">
                             <div class="file-name">${file.filename}</div>
                             <div class="file-url">URL: ${FRONTEND_URL}/${file.url}</div>
-                            <div class="file-stats">Views: ${file.views || 0}</div>
+                    `;
+    
+                    // Add views if enabled
+                    if (document.getElementById('showViews').checked) {
+                        fileContent += `<div class="file-stats">Views: ${file.views || 0}</div>`;
+                    }
+    
+                    fileContent += `
                             <div class="file-dates">
                                 Created: ${createdDate}<br>
                                 Last updated: ${updatedDate}
@@ -1127,7 +1252,8 @@ async function fetchUserFiles() {
                             </button>
                         </div>
                     `;
-                    
+    
+                    fileItem.innerHTML = fileContent;
                     document.getElementById('fileList').appendChild(fileItem);
                 });
 
