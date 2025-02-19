@@ -55,8 +55,8 @@ class Settings:
     CACHE_TTL: int = 300  # 5 minutes
     MONGODB_MAX_POOL_SIZE: int = 100
     MONGODB_MIN_POOL_SIZE: int = 10
-    VIEW_COOLDOWN_MINUTES: int = 30  # Minimum time between views from same device
-    DEVICE_IDENTIFIER_TTL_DAYS: int = 30 # How long to store device identifiers
+    VIEW_COOLDOWN_MINUTES: int = 30
+    DEVICE_IDENTIFIER_TTL_DAYS: int = 30
 
 settings = Settings()
 
@@ -76,10 +76,34 @@ pwd_context = CryptContext(
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Caching
+# Custom Async Cache Implementation
+class AsyncTTLCache:
+    def __init__(self, ttl_seconds: int = 300):
+        self.cache: Dict[str, Dict[str, Any]] = {}
+        self.ttl_seconds = ttl_seconds
+
+    async def get(self, key: str) -> Optional[Dict[str, Any]]:
+        if key in self.cache:
+            entry = self.cache[key]
+            if datetime.utcnow() < entry['expires_at']:
+                return entry['data']
+            else:
+                del self.cache[key]
+        return None
+
+    async def set(self, key: str, value: Dict[str, Any]) -> None:
+        self.cache[key] = {
+            'data': value,
+            'expires_at': datetime.utcnow() + timedelta(seconds=self.ttl_seconds)
+        }
+
+    async def delete(self, key: str) -> None:
+        self.cache.pop(key, None)
+
+# Initialize caches
+user_cache = AsyncTTLCache(ttl_seconds=settings.CACHE_TTL)
 url_cache = TTLCache(maxsize=1000, ttl=settings.CACHE_TTL)
 views_cache = TTLCache(maxsize=1000, ttl=settings.CACHE_TTL)
-user_cache = TTLCache(maxsize=1000, ttl=settings.CACHE_TTL)
 
 # Pydantic models
 class Token(BaseModel):
@@ -113,15 +137,6 @@ class UserResponse(UserBase):
     is_verified: bool
     url_count: int
 
-class FileCreate(BaseModel):
-    url: str
-    filename: str
-    user_id: str
-
-class FileUpdate(BaseModel):
-    content: bytes
-    filename: str
-
 class UserPasswordReset(BaseModel):
     email: EmailStr
 
@@ -129,6 +144,13 @@ class UserPasswordChange(BaseModel):
     email: EmailStr
     reset_code: str
     new_password: constr(min_length=8, max_length=64)  # type: ignore
+
+class ViewRecord(BaseModel):
+    url: str
+    device_hash: str
+    timestamp: datetime
+    ip_address: str
+    user_agent: str
 
 # Database connection
 @asynccontextmanager
@@ -166,12 +188,11 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     to_encode.update({"exp": expire, "iat": datetime.utcnow()})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-@lru_cache(maxsize=1000)
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
 async def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
 
 async def send_email_async(to_email: str, subject: str, html_content: str) -> bool:
     try:
@@ -194,33 +215,35 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
         ) as smtp:
             await smtp.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
             await smtp.send_message(message)
-            
+        
         logger.info(f"Email sent successfully to {to_email}")
         return True
-        
     except Exception as e:
         logger.error(f"Error sending email to {to_email}: {str(e)}")
         return False
 
-@lru_cache(maxsize=1000)
 async def get_user(email: str) -> Optional[Dict[str, Any]]:
     cache_key = f"user:{email}"
-    if cache_key in user_cache:
-        return user_cache[cache_key]
+    cached_user = await user_cache.get(cache_key)
+    if cached_user is not None:
+        return cached_user
     
     async with get_database() as db:
         user = await db.users.find_one({"email": email})
         if user:
-            user_cache[cache_key] = user
+            await user_cache.set(cache_key, user)
         return user
 
 async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
     user = await get_user(email)
-    if not user or not await verify_password(password, user["hashed_password"]):
+    if not user:
         return None
+    
+    if not await verify_password(password, user["hashed_password"]):
+        return None
+        
     return user
 
-@lru_cache(maxsize=1000)
 async def generate_unique_url() -> str:
     async with get_database() as db:
         while True:
@@ -257,17 +280,8 @@ async def get_current_verified_user(current_user: dict = Depends(get_current_use
             detail="Email not verified"
         )
     return current_user
-class ViewRecord(BaseModel):
-    url: str
-    device_hash: str
-    timestamp: datetime
-    ip_address: str
-    user_agent: str
 
 async def generate_device_identifier(request: Request) -> str:
-    """
-    Generate a unique device identifier based on multiple factors
-    """
     ip = request.client.host
     user_agent = request.headers.get("user-agent", "")
     accept_language = request.headers.get("accept-language", "")
@@ -275,9 +289,6 @@ async def generate_device_identifier(request: Request) -> str:
     return hashlib.sha256(identifier.encode()).hexdigest()
 
 async def should_count_view(db: AsyncIOMotorDatabase, url: str, device_hash: str) -> bool:
-    """
-    Determine if a view should be counted based on device and timing rules
-    """
     last_view = await db.view_records.find_one(
         {
             "url": url,
@@ -295,13 +306,9 @@ async def should_count_view(db: AsyncIOMotorDatabase, url: str, device_hash: str
     return time_since_last_view > timedelta(minutes=settings.VIEW_COOLDOWN_MINUTES)
 
 async def cleanup_old_view_records():
-    """
-    Periodically cleanup old view records
-    """
     async with get_database() as db:
         cutoff_date = datetime.utcnow() - timedelta(days=settings.DEVICE_IDENTIFIER_TTL_DAYS)
         await db.view_records.delete_many({"timestamp": {"$lt": cutoff_date}})
-
 
 # Endpoints
 @app.get("/health")
@@ -383,8 +390,6 @@ async def register_user(
                 "url_count": 0
             }
             
-    except HTTPException as he:
-        raise he
     except Exception as e:
         logger.error(f"Registration error: {str(e)}")
         raise HTTPException(
@@ -413,7 +418,7 @@ async def verify_email(email: EmailStr = Form(...), code: str = Form(...)):
         )
         
         await db.verification.delete_one({"email": email})
-        user_cache.pop(f"user:{email}", None)
+        await user_cache.delete(f"user:{email}")
         
         return {"message": "Email verified successfully"}
 
@@ -469,27 +474,34 @@ async def resend_verification(
 
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        user = await authenticate_user(form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user["email"]},
+            expires_delta=access_token_expires
         )
-    
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user["email"]},
-        expires_delta=access_token_expires
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "is_verified": user.get("is_verified", False),
-        "id": user["id"],
-        "email": user["email"]
-    }
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "is_verified": user.get("is_verified", False),
+            "id": user["id"],
+            "email": user["email"]
+        }
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed. Please try again."
+        )
 
 @app.post("/request-password-reset")
 async def request_password_reset(
@@ -557,7 +569,7 @@ async def reset_password(reset_data: UserPasswordChange):
         )
         
         await db.password_reset.delete_one({"email": reset_data.email})
-        user_cache.pop(f"user:{reset_data.email}", None)
+        await user_cache.delete(f"user:{reset_data.email}")
         
         return {"message": "Password reset successfully"}
 
@@ -793,16 +805,16 @@ def start_ping_scheduler():
     while True:
         schedule.run_pending()
         time.sleep(1)
-        
+
 async def start_cleanup_scheduler():
     while True:
         await cleanup_old_view_records()
-        await asyncio.sleep(24 * 60 * 60)
-        
+        await asyncio.sleep(24 * 60 * 60)  # Run daily
+
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(start_cleanup_scheduler())
-    
+   
 # Start background ping thread
 ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
 ping_thread.start()
@@ -813,6 +825,6 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=settings.ENVIRONMENT == "development",
+        reload=settings.ENVIRONMENT == "production",
         workers=4
     )
