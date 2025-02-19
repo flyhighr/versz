@@ -348,6 +348,10 @@
             color: #fff;
         }
 
+        .user-number {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
         .tag {
             display: inline-flex;
             align-items: center;
@@ -357,14 +361,26 @@
             margin-right: 0.5rem;
             margin-bottom: 0.5rem;
         }
-
+        
         .tag-icon {
-            margin-right: 0.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.5rem;
+            width: 16px;
+            height: 16px;
         }
-
-        .user-number {
-            color: #4ecdc4;
-            font-weight: bold;
+        
+        .tag-icon img, 
+        .tag-icon svg {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .tag-text {
+            color: #fff;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -1134,53 +1150,76 @@ async function handleFileUpload() {
     }
 
     async function fetchUserInfo() {
-            try {
-                const response = await fetch(`${BASE_URL}/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('userEmail').textContent = data.email;
-                    document.getElementById('userNumber').textContent = `#${data.user_number}`;
-                    document.getElementById('userStats').textContent = `URLs: ${data.url_count}/10`;
-                    
-                    // Update preference toggles
-                    const preferences = data.display_preferences || {
-                        show_views: true,
-                        show_uuid: true,
-                        show_tags: true
-                    };
-                    
-                    document.getElementById('showViews').checked = preferences.show_views;
-                    document.getElementById('showUuid').checked = preferences.show_uuid;
-                    document.getElementById('showTags').checked = preferences.show_tags;
-
-                    // Display tags
-                    const tagsContainer = document.getElementById('userTags');
-                    tagsContainer.innerHTML = '';
-                    if (data.tags && data.tags.length > 0) {
-                        data.tags.forEach(tag => {
-                            const tagElement = document.createElement('span');
-                            tagElement.className = 'tag';
-                            tagElement.innerHTML = `
-                                <span class="tag-icon">${tag.icon}</span>
-                                <span class="tag-text">${tag.text}</span>
-                            `;
-                            tagsContainer.appendChild(tagElement);
-                        });
-                    }
-                } else {
-                    if (response.status === 401) {
-                        logout();
-                    }
+        try {
+            const response = await fetch(`${BASE_URL}/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
-            } catch (error) {
-                console.error('Failed to fetch user info:', error);
+            });
+    
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('userEmail').textContent = data.email;
+                document.getElementById('userNumber').textContent = `#${data.user_number}`;
+                document.getElementById('userStats').textContent = `URLs: ${data.url_count}/10`;
+                
+                const preferences = data.display_preferences || {
+                    show_views: true,
+                    show_uuid: true,
+                    show_tags: true
+                };
+                
+                document.getElementById('showViews').checked = preferences.show_views;
+                document.getElementById('showUuid').checked = preferences.show_uuid;
+                document.getElementById('showTags').checked = preferences.show_tags;
+                const tagsContainer = document.getElementById('userTags');
+                tagsContainer.innerHTML = '';
+                if (data.tags && data.tags.length > 0) {
+                    data.tags.forEach(tag => {
+                        const tagElement = document.createElement('span');
+                        tagElement.className = 'tag';
+                        
+                        const iconContent = processTagIcon(tag.icon);
+                        
+                        tagElement.innerHTML = `
+                            <span class="tag-icon">${iconContent}</span>
+                            <span class="tag-text">${tag.text}</span>
+                        `;
+                        tagsContainer.appendChild(tagElement);
+                    });
+                }
+            } else {
+                if (response.status === 401) {
+                    logout();
+                }
             }
+        } catch (error) {
+            console.error('Failed to fetch user info:', error);
         }
+    }
+
+function processTagIcon(icon) {
+    if (isImageUrl(icon)) {
+        return `<img src="${icon}" alt="tag icon" style="width: 16px; height: 16px; vertical-align: middle;">`;
+    }
+    if (isSvgCode(icon)) {
+        const viewBoxMatch = icon.match(/viewBox=["']([^"']+)["']/);
+        const viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 24 24";
+        
+        return icon.replace('<svg', `<svg style="width: 16px; height: 16px; vertical-align: middle;" viewBox="${viewBox}"`);
+    }
+    return icon;
+}
+
+function isImageUrl(str) {
+    return str.match(/\.(jpg|jpeg|png|gif|svg)$/i) || 
+           str.startsWith('data:image/') || 
+           str.startsWith('http') && str.match(/\.(jpg|jpeg|png|gif|svg)/i);
+}
+
+function isSvgCode(str) {
+    return str.trim().startsWith('<svg') && str.includes('</svg>');
+}
 
 async function fetchUserFiles() {
     document.getElementById('myFilesLoading').classList.add('active');
