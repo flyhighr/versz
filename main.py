@@ -60,14 +60,17 @@ class Settings:
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
     DEFAULT_TAGS = {
         "early_supporter": {
-            "icon": "🌟",
-            "text": "Early Supporter"
+            "icon": """<svg viewBox="0 0 24 24" width="24" height="24">
+                <path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>""",
+            "text": "Early Supporter",
+            "icon_type": "svg"
         },
         "top_contributor": {
             "icon": "👑",
-            "text": "Top Contributor"
+            "text": "Top Contributor",
+            "icon_type": "emoji"
         }
-    }
 
 settings = Settings()
 
@@ -156,6 +159,15 @@ class Tag(BaseModel):
     name: str
     icon: str
     text: str
+
+class Tag(BaseModel):
+    name: str
+    icon: str
+    text: str
+    icon_type: str = Field(
+        default="emoji",
+        description="Type of icon: 'emoji', 'svg', or 'image'"
+    )
 
 class DisplayPreferences(BaseModel):
     show_views: bool = True
@@ -422,6 +434,8 @@ async def register_user(
             )
         
         async with get_database() as db:
+            user_number = await get_next_user_number(db)
+            
             existing_user = await db.users.find_one({"email": user.email})
             if existing_user:
                 return JSONResponse(
@@ -443,8 +457,6 @@ async def register_user(
                         }
                     )
             
-
-            user_number = await get_next_user_number(db)
             user_id = str(user_number)
             
             verification_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) 
@@ -580,6 +592,7 @@ async def register_user(
                 "tags": [],
                 "display_preferences": DisplayPreferences()
             }
+            
     except Exception as e:
         logger.error(f"Registration error: {str(e)}")
         return JSONResponse(
@@ -602,6 +615,7 @@ async def verify_email(request: Request, email: EmailStr = Form(...), code: str 
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired verification code"
             )
+        
         pending_user = await db.pending_users.find_one({"email": email})
         if not pending_user:
             raise HTTPException(
@@ -611,11 +625,14 @@ async def verify_email(request: Request, email: EmailStr = Form(...), code: str 
         
         user_data = {
             "id": pending_user["id"],
+            "user_number": pending_user["user_number"],
             "email": email,
             "hashed_password": pending_user["hashed_password"],
             "is_active": True,
             "is_verified": True,
-            "created_at": pending_user["created_at"]
+            "created_at": pending_user["created_at"],
+            "tags": [],
+            "display_preferences": pending_user["display_preferences"]
         }
         
         await db.users.insert_one(user_data)
