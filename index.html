@@ -274,33 +274,32 @@
 </head>
 <body>
     <div class="sidebar">
-        <a href="#" class="logo">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/7/74/Grumpy_cat_drawing.jpg" alt="White Panda Logo">
+        <a href="/" class="logo">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/74/Grumpy_cat_drawing.jpg" alt="Versz Logo">
             <span>Versz</span>
         </a>
         
-        <!-- Navigation -->
         <div id="authNav">
-            <a href="#" class="nav-item active" onclick="switchAuthTab('login')">
+            <a href="#login" class="nav-item active">
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Login</span>
             </a>
-            <a href="#" class="nav-item" onclick="switchAuthTab('register')">
+            <a href="#register" class="nav-item">
                 <i class="fas fa-user-plus"></i>
                 <span>Register</span>
             </a>
         </div>
 
         <div id="appNav" style="display: none;">
-            <a href="#" class="nav-item active" onclick="switchTab('home')">
+            <a href="#home" class="nav-item active">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
             </a>
-            <a href="#" class="nav-item" onclick="switchTab('upload')">
+            <a href="#upload" class="nav-item">
                 <i class="fas fa-cloud-upload-alt"></i>
                 <span>Upload</span>
             </a>
-            <a href="#" class="nav-item" onclick="switchTab('myFiles')">
+            <a href="#myFiles" class="nav-item">
                 <i class="fas fa-folder"></i>
                 <span>My Files</span>
             </a>
@@ -324,7 +323,6 @@
                 <div id="loginLoading" class="loading">
                     <div class="spinner"></div>
                 </div>
-                <p style="margin-top: 15px;">Forgot your password? <span class="link-text" onclick="showForgotPassword()">Reset it here</span></p>
             </div>
             
             <!-- Register Form -->
@@ -417,12 +415,30 @@
     <script>
         // Global variables
         const BASE_URL = 'https://versz-vs1b.onrender.com';
-        const FRONTEND_URL = 'https://versz.fun';
+        const FRONTEND_URL = window.location.origin;
         let token = localStorage.getItem('token');
         let userId = localStorage.getItem('userId');
         let userEmail = localStorage.getItem('userEmail');
         let isVerified = localStorage.getItem('isVerified') === 'true';
         let currentUrl = null;
+        window.addEventListener('hashchange', handleRoute);
+        window.addEventListener('load', handleRoute);
+
+        function handleRoute() {
+            const hash = window.location.hash.slice(1) || 'login';
+            
+            if (['login', 'register'].includes(hash)) {
+                showAuth();
+                switchAuthTab(hash);
+            } else if (['home', 'upload', 'myFiles'].includes(hash)) {
+                if (token) {
+                    showApp();
+                    switchTab(hash);
+                } else {
+                    window.location.hash = 'login';
+                }
+            }
+        }
 
         // Initial setup
         document.addEventListener('DOMContentLoaded', function() {
