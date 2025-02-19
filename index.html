@@ -482,7 +482,6 @@ let userId = localStorage.getItem('userId');
 let userEmail = localStorage.getItem('userEmail');
 let isVerified = localStorage.getItem('isVerified') === 'true';
 let currentUrl = null;
-        
 
 // Initial setup
 document.addEventListener('DOMContentLoaded', function() {
@@ -499,253 +498,11 @@ document.addEventListener('DOMContentLoaded', function() {
         showAuth();
         switchAuthTab('login');
     }
+
     // Setup event listeners
     setupAuthEventListeners();
     setupAppEventListeners();
 });
-async function handleApiResponse(response, errorElement) {
-        const contentType = response.headers.get('content-type');
-        let data;
-        
-        try {
-            if (contentType && contentType.includes('application/json')) {
-                data = await response.json();
-            } else {
-                const text = await response.text();
-                try {
-                    data = JSON.parse(text);
-                } catch {
-                    data = { detail: text };
-                }
-            }
-        } catch (error) {
-            data = { detail: 'Failed to parse server response' };
-        }
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                logout();
-                return null;
-            }
-            
-            const errorMessage = data.detail || 'An error occurred';
-            if (errorElement) {
-                errorElement.textContent = errorMessage;
-            }
-            return null;
-        }
-
-        return data;
-    }
-
-async function handleLogin(email, password) {
-        const errorElement = document.getElementById('loginError');
-        const loadingElement = document.getElementById('loginLoading');
-        
-        try {
-            loadingElement.classList.add('active');
-            errorElement.textContent = '';
-            
-            const response = await fetch(`${BASE_URL}/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-            });
-            
-            const data = await handleApiResponse(response, errorElement);
-            if (!data) return;
-            
-            localStorage.setItem('token', data.access_token);
-            localStorage.setItem('userId', data.id);
-            localStorage.setItem('userEmail', data.email);
-            localStorage.setItem('isVerified', data.is_verified);
-            
-            token = data.access_token;
-            userId = data.id;
-            userEmail = data.email;
-            isVerified = data.is_verified;
-            
-            showApp();
-            
-            if (isVerified) {
-                showUploadTab();
-                fetchUserFiles();
-            } else {
-                showVerifyEmail();
-            }
-        } catch (error) {
-            errorElement.textContent = 'An error occurred. Please try again.';
-        } finally {
-            loadingElement.classList.remove('active');
-        }
-    }
-
-    // Updated registration function
-    async function handleRegistration(email, password, confirmPassword) {
-        const errorElement = document.getElementById('registerError');
-        const loadingElement = document.getElementById('registerLoading');
-        const registerBtn = document.getElementById('registerBtn');
-        
-        try {
-            if (!email || !password || !confirmPassword) {
-                errorElement.textContent = 'Please fill all fields';
-                return;
-            }
-            
-            if (password.length < 6) {
-                errorElement.textContent = 'Password must be at least 6 characters long';
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                errorElement.textContent = 'Passwords do not match';
-                return;
-            }
-            
-            loadingElement.classList.add('active');
-            registerBtn.disabled = true;
-            errorElement.textContent = '';
-            
-            const response = await fetch(`${BASE_URL}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    email: email,
-                    password: password
-                })
-            });
-            
-            const data = await handleApiResponse(response, errorElement);
-            if (!data) return;
-            
-            localStorage.setItem('userId', data.id);
-            localStorage.setItem('userEmail', data.email);
-            userEmail = data.email;
-            
-            showVerifyEmail();
-            
-            // Clear form
-            document.getElementById('registerEmail').value = '';
-            document.getElementById('registerPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
-            
-        } catch (error) {
-            errorElement.textContent = 'An error occurred. Please try again.';
-        } finally {
-            loadingElement.classList.remove('active');
-            registerBtn.disabled = false;
-        }
-    }
-
-    // Updated file upload function
-    async function handleFileUpload() {
-        const fileInput = document.getElementById('fileInput');
-        const customUrl = document.getElementById('customUrl').value;
-        const errorElement = document.getElementById('uploadError');
-        const successElement = document.getElementById('uploadSuccess');
-        const loadingElement = document.getElementById('uploadLoading');
-        
-        if (!fileInput.files.length) {
-            errorElement.textContent = 'Please select a file';
-            return;
-        }
-        
-        try {
-            loadingElement.classList.add('active');
-            errorElement.textContent = '';
-            successElement.textContent = '';
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            if (customUrl) {
-                formData.append('custom_url', customUrl);
-            }
-            
-            const response = await fetch(`${BASE_URL}/upload`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
-            
-            const data = await handleApiResponse(response, errorElement);
-            if (!data) return;
-            
-            successElement.textContent = `File uploaded successfully. URL: ${FRONTEND_URL}/${data.url}`;
-            
-            // Clear form
-            document.getElementById('selectedFile').textContent = '';
-            document.getElementById('customUrl').value = '';
-            document.getElementById('fileInput').value = '';
-            document.getElementById('uploadBtn').disabled = true;
-            
-            await fetchUserInfo();
-            
-        } catch (error) {
-            errorElement.textContent = 'An error occurred. Please try again.';
-        } finally {
-            loadingElement.classList.remove('active');
-        }
-    }
-
-    // Updated file update function
-    async function handleFileUpdate() {
-        const fileInput = document.getElementById('editFileInput');
-        const errorElement = document.getElementById('editError');
-        const successElement = document.getElementById('editSuccess');
-        const loadingElement = document.getElementById('editLoading');
-        
-        if (!currentUrl) {
-            errorElement.textContent = 'No file selected for update';
-            return;
-        }
-        
-        if (!fileInput.files.length) {
-            errorElement.textContent = 'Please select a file';
-            return;
-        }
-        
-        try {
-            loadingElement.classList.add('active');
-            errorElement.textContent = '';
-            successElement.textContent = '';
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            
-            const response = await fetch(`${BASE_URL}/update/${currentUrl}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
-            
-            const data = await handleApiResponse(response, errorElement);
-            if (!data) return;
-            
-            successElement.textContent = 'File updated successfully!';
-            
-            // Clear form
-            document.getElementById('editSelectedFile').textContent = '';
-            document.getElementById('editFileInput').value = '';
-            document.getElementById('updateBtn').disabled = true;
-            
-            setTimeout(() => {
-                switchTab('myFiles');
-            }, 1500);
-            
-        } catch (error) {
-            errorElement.textContent = 'An error occurred. Please try again.';
-        } finally {
-            loadingElement.classList.remove('active');
-        }
-    }
 
 // Authentication functions
 function showAuth() {
@@ -790,21 +547,123 @@ function showResetPassword(email) {
 
 function setupAuthEventListeners() {
     // Login
-   document.getElementById('loginBtn').addEventListener('click', function() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            handleLogin(email, password);
-        });
-
-        // Register form submission
-        document.getElementById('registerBtn').addEventListener('click', function() {
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            handleRegistration(email, password, confirmPassword);
-        });
-
-
+    document.getElementById('loginBtn').addEventListener('click', async function() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        
+        if (!email || !password) {
+            document.getElementById('loginError').textContent = 'Please fill all fields';
+            return;
+        }
+        
+        document.getElementById('loginLoading').classList.add('active');
+        document.getElementById('loginError').textContent = '';
+        
+        try {
+            const response = await fetch(`${BASE_URL}/token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('userId', data.id);
+                localStorage.setItem('userEmail', data.email);
+                localStorage.setItem('isVerified', data.is_verified);
+                
+                token = data.access_token;
+                userId = data.id;
+                userEmail = data.email;
+                isVerified = data.is_verified;
+                
+                showApp();
+                
+                if (isVerified) {
+                    showUploadTab();
+                    fetchUserFiles();
+                } else {
+                    showVerifyEmail();
+                }
+            } else {
+                document.getElementById('loginError').textContent = data.detail || 'Login failed';
+            }
+        } catch (error) {
+            document.getElementById('loginError').textContent = 'An error occurred. Please try again.';
+        }
+        
+        document.getElementById('loginLoading').classList.remove('active');
+    });
+    
+    // Register
+    document.getElementById('registerBtn').addEventListener('click', async function() {
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const errorElement = document.getElementById('registerError');
+        
+        errorElement.textContent = '';
+        if (!email || !password || !confirmPassword) {
+            errorElement.textContent = 'Please fill all fields';
+            return;
+        }
+        
+        if (password.length < 6) {
+            errorElement.textContent = 'Password must be at least 6 characters long';
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            errorElement.textContent = 'Passwords do not match';
+            return;
+        }
+        
+        document.getElementById('registerLoading').classList.add('active');
+        document.getElementById('registerBtn').disabled = true;
+        
+        try {
+            const response = await fetch(`${BASE_URL}/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Registration failed');
+            }
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showVerifyEmail();
+                localStorage.setItem('userId', data.id);
+                localStorage.setItem('userEmail', data.email);
+                userEmail = data.email;
+                
+                document.getElementById('registerEmail').value = '';
+                document.getElementById('registerPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            errorElement.textContent = error.message || 'A network error occurred. Please check your connection and try again.';
+        } finally {
+            document.getElementById('registerLoading').classList.remove('active');
+            document.getElementById('registerBtn').disabled = false;
+        }
+    });
+    
     // Verify Email
     document.getElementById('verifyBtn').addEventListener('click', async function() {
         const code = document.getElementById('verificationCode').value;
