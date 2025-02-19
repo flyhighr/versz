@@ -346,8 +346,6 @@ async def health_check():
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Service unhealthy"
         )
-
-@app.post("/register", response_model=UserResponse)
 async def register_user(
     background_tasks: BackgroundTasks,
     email: str = Body(...),
@@ -357,11 +355,13 @@ async def register_user(
         user = UserCreate(email=email, password=password)
         
         async with get_database() as db:
-            if await db.users.find_one({"email": user.email}) or \
-               await db.pending_users.find_one({"email": user.email}):
-                raise HTTPException(
+            existing_user = await db.users.find_one({"email": user.email})
+            existing_pending = await db.pending_users.find_one({"email": user.email})
+            
+            if existing_user or existing_pending:
+                return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email already registered"
+                    content={"detail": "Email already registered"}
                 )
             
             user_id = secrets.token_hex(16)
@@ -410,11 +410,16 @@ async def register_user(
                 "url_count": 0
             }
             
+    except ValidationError as ve:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(ve)}
+        )
     except Exception as e:
         logger.error(f"Registration error: {str(e)}")
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed. Please try again."
+            content={"detail": "Registration failed. Please try again."}
         )
 
 
