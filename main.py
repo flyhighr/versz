@@ -25,7 +25,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo.errors import ConnectionFailure, OperationFailure
 from bson.binary import Binary
 import httpx
-from slowapi import Limiter
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import schedule
@@ -176,6 +176,7 @@ async def get_database() -> AsyncIOMotorDatabase:
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Enhanced API", version="2.0.0")
 app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -332,15 +333,15 @@ async def root():
         "docs_url": "/docs",
         "redoc_url": "/redoc"
     }
-
-
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     if request.url.path in ["/health", "/docs", "/redoc", "/"]:
         return await call_next(request)
     
     try:
-        await app.state.limiter.check(request)
+        ratelimit = await app.state.limiter.get_ratelimit(request)
+        if ratelimit.remaining <= 0:
+            raise RateLimitExceeded
         response = await call_next(request)
         return response
     except RateLimitExceeded:
@@ -366,8 +367,10 @@ async def health_check():
             detail="Service unhealthy"
         )
 
-@app.post("/register", response_model=UserResponse)
+@app.post("/register")
+@limiter.limit(settings.RATE_LIMIT)
 async def register_user(
+    request: Request,
     background_tasks: BackgroundTasks,
     email: str = Body(...),
     password: str = Body(...)
@@ -511,7 +514,11 @@ async def resend_verification(
         return {"message": "Verification email sent"}
 
 @app.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+@limiter.limit(settings.RATE_LIMIT)
+async def login_for_access_token(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends()
+):
     try:
         if not form_data.username or not form_data.password:
             raise HTTPException(
