@@ -316,6 +316,19 @@ async def cleanup_old_view_records():
         await db.view_records.delete_many({"timestamp": {"$lt": cutoff_date}})
 
 # Endpoints
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    return """
+    <html>
+        <head><title>API Service</title></head>
+        <body>
+            <h1>Welcome to the API Service</h1>
+            <p>Please refer to the documentation for available endpoints.</p>
+        </body>
+    </html>
+    """
+    
 @app.get("/health")
 async def health_check():
     try:
