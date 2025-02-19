@@ -68,79 +68,40 @@
         .back-btn:hover {
             opacity: 0.9;
         }
-        .stats-container {
+        #viewCounterContainer {
             position: fixed;
             top: 12px;
             left: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 999999;
-        }
-        .stat-item {
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.5);
             color: rgba(255, 255, 255, 0.9);
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 4px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 13px;
+            font-size: 12px;
+            z-index: 999999;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
+            pointer-events: none;
+            letter-spacing: 0.2px;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
+            font-weight: 400;
         }
-        .stat-item:hover {
-            background: rgba(0, 0, 0, 0.9);
-            transform: translateX(5px);
+        #viewCounterContainer::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: currentColor;
+            border-radius: 50%;
+            margin-right: 2px;
+            opacity: 0.8;
         }
-        .stat-item .icon {
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .stat-item .label {
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.7);
-            margin-right: 4px;
-        }
-        .stat-item .value {
-            font-weight: 600;
-        }
-        .tags-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 8px;
-        }
-        .tag {
-            background: rgba(78, 205, 196, 0.2);
-            color: #4ecdc4;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            border: 1px solid rgba(78, 205, 196, 0.3);
-        }
-        .tag .tag-icon {
-            width: 12px;
-            height: 12px;
-        }
-        .tag.early-supporter {
-            background: rgba(255, 184, 76, 0.2);
-            color: #ffb84c;
-            border-color: rgba(255, 184, 76, 0.3);
-        }
-        .tag.top-creator {
-            background: rgba(255, 107, 107, 0.2);
+        .rate-limit-error {
             color: #ff6b6b;
-            border-color: rgba(255, 107, 107, 0.3);
+            font-size: 1.2rem;
+            margin-top: 1rem;
         }
     </style>
 </head>
@@ -156,25 +117,15 @@
         </div>
         <a href="/" class="back-btn">Go Back</a>
     </div>
-    <div id="statsContainer" class="stats-container">
-        <div id="viewCounter" class="stat-item" style="display: none">
-            <div class="icon">👁️</div>
-            <span class="label">Views:</span>
-            <span id="viewCount" class="value">0</span>
-        </div>
-        <div id="userIdContainer" class="stat-item" style="display: none">
-            <div class="icon">🆔</div>
-            <span class="label">User:</span>
-            <span id="userId" class="value">0</span>
-        </div>
-        <div id="tagsContainer" class="tags-container"></div>
-    </div>
     <div id="appContent"></div>
     <script>
         const API_URL = 'https://versz-vs1b.onrender.com/file/';
-
         const cache = new Map();
-        
+        const viewCounterContainer = document.createElement('div');
+        viewCounterContainer.id = 'viewCounterContainer';
+        viewCounterContainer.innerHTML = '<span id="viewCount">0</span> views';
+        document.body.appendChild(viewCounterContainer);
+
         async function fetchWithTimeout(resource, options = {}) {
             const timeout = options.timeout || 5000;
             const controller = new AbortController();
@@ -193,29 +144,6 @@
             }
         }
 
-        const tagIcons = {
-            'early-supporter': '🌟',
-            'top-creator': '👑',
-            'verified': '✓'
-        };
-
-        function renderTags(tags) {
-            const tagsContainer = document.getElementById('tagsContainer');
-            tagsContainer.innerHTML = '';
-            
-            if (!tags || !tags.length) return;
-            
-            tags.forEach(tag => {
-                const tagElement = document.createElement('div');
-                tagElement.className = `tag ${tag}`;
-                tagElement.innerHTML = `
-                    <span class="tag-icon">${tagIcons[tag] || '🏷️'}</span>
-                    <span>${tag.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                `;
-                tagsContainer.appendChild(tagElement);
-            });
-        }
-
         async function loadContent() {
             const url = window.location.pathname.substring(1);
             if (!url) {
@@ -227,7 +155,7 @@
                 if (cache.has(url)) {
                     const cachedContent = cache.get(url);
                     await renderContent(cachedContent);
-                    updateStats(url);
+                    updateViewCount(url);
                     return;
                 }
 
@@ -244,40 +172,25 @@
                 }
 
                 const data = await response.json();
-                cache.set(url, data);
+                cache.set(url, data.content);
                 await renderContent(data.content);
-                updateStats(data);
+                document.getElementById('viewCount').textContent = data.views;
+
             } catch (err) {
                 console.error('Loading error:', err);
                 showError(404, 'Page not found');
             }
         }
 
-        async function updateStats(data) {
-            const viewCounter = document.getElementById('viewCounter');
-            const userIdContainer = document.getElementById('userIdContainer');
-            const viewCount = document.getElementById('viewCount');
-            const userId = document.getElementById('userId');
-
-            // Update views if enabled
-            if (data.show_views !== false) {
-                viewCount.textContent = data.views;
-                viewCounter.style.display = 'flex';
-            } else {
-                viewCounter.style.display = 'none';
-            }
-
-            // Update user ID if enabled
-            if (data.show_user_id !== false) {
-                userId.textContent = data.user_id;
-                userIdContainer.style.display = 'flex';
-            } else {
-                userIdContainer.style.display = 'none';
-            }
-
-            // Update tags if present and enabled
-            if (data.show_tags !== false && data.tags && data.tags.length > 0) {
-                renderTags(data.tags);
+        async function updateViewCount(url) {
+            try {
+                const response = await fetch(`${API_URL.replace('file/', 'views/')}${url}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('viewCount').textContent = data.views;
+                }
+            } catch (err) {
+                console.error('Error updating view count:', err);
             }
         }
 
@@ -304,9 +217,7 @@
                 }
                 return Promise.resolve();
             }));
-
             appContent.innerHTML = content;
-
             scripts.forEach(script => {
                 if (!script.src) {
                     const newScript = document.createElement('script');
@@ -330,7 +241,11 @@
             document.getElementById('errorCode').textContent = code;
             document.getElementById('errorMessage').textContent = message;
             const rateLimitMessage = document.getElementById('rateLimitMessage');
-            rateLimitMessage.style.display = code === 429 ? 'block' : 'none';
+            if (code === 429) {
+                rateLimitMessage.style.display = 'block';
+            } else {
+                rateLimitMessage.style.display = 'none';
+            }
         }
         
         loadContent();
