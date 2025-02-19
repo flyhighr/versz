@@ -5,38 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loading...</title>
     <style>
+        :root {
+            --primary-color: #4ecdc4;
+            --error-color: #ff6b6b;
+            --bg-dark: #0f0f0f;
+            --text-light: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
         .loading {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #0f0f0f;
+            background: var(--bg-dark);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             transition: opacity 0.3s ease;
         }
+
         .spinner {
             width: 40px;
             height: 40px;
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #4ecdc4;
+            border-top: 3px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
         .error-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #0f0f0f;
+            background: var(--bg-dark);
             color: #fff;
             display: none;
             flex-direction: column;
@@ -44,19 +64,21 @@
             align-items: center;
             text-align: center;
             padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+
         .error-container h1 {
             font-size: 4rem;
             margin-bottom: 1rem;
-            color: #ff6b6b;
+            color: var(--error-color);
         }
+
         .error-container p {
             color: #a0a0a0;
             margin-bottom: 2rem;
         }
+
         .back-btn {
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            background: linear-gradient(45deg, var(--error-color), var(--primary-color));
             color: #fff;
             padding: 0.8rem 2rem;
             border: none;
@@ -65,61 +87,132 @@
             text-decoration: none;
             transition: all 0.3s ease;
         }
+
         .back-btn:hover {
             opacity: 0.9;
+            transform: translateY(-1px);
         }
+
         .info-container {
             position: fixed;
             top: 12px;
             left: 12px;
             z-index: 999999;
             display: flex;
-            flex-direction: column;
             gap: 8px;
             pointer-events: none;
-        }
-        .info-item {
-            background: rgba(0, 0, 0, 0.5);
-            color: rgba(255, 255, 255, 0.9);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            letter-spacing: 0.2px;
+            padding: 4px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            font-weight: 400;
         }
-        .info-item::before {
-            content: '';
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: currentColor;
-            border-radius: 50%;
-            margin-right: 2px;
-            opacity: 0.8;
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--text-light);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.2s ease;
+            position: relative;
         }
+
+        .info-item:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: translateY(-1px);
+        }
+
+        .info-icon {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .info-text {
+            display: none;
+            white-space: nowrap;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .info-item:hover .info-text,
+        .info-item.active .info-text {
+            display: inline;
+        }
+
         .tags-container {
             display: flex;
             gap: 6px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
+
         .tag {
             display: inline-flex;
             align-items: center;
             gap: 4px;
             background: rgba(78, 205, 196, 0.2);
             border-radius: 4px;
-            padding: 2px 6px;
+            padding: 4px 8px;
+            transition: all 0.2s ease;
         }
+
+        .tag:hover {
+            background: rgba(78, 205, 196, 0.3);
+        }
+
+        .tag-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tag-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .tag-text {
+            font-size: 12px;
+        }
+
         .rate-limit-error {
-            color: #ff6b6b;
+            color: var(--error-color);
             font-size: 1.2rem;
             margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .info-container {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            
+            .info-text {
+                display: none;
+            }
+            
+            .info-item.active .info-text {
+                display: inline;
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                padding: 4px 8px;
+                border-radius: 4px;
+                margin-top: 4px;
+                white-space: nowrap;
+            }
         }
     </style>
 </head>
@@ -137,10 +230,12 @@
     </div>
     <div class="info-container">
         <div id="viewContainer" class="info-item" style="display: none">
-            <span id="viewCount">0</span> views
+            <span class="info-icon">👁️</span>
+            <span class="info-text"><span id="viewCount">0</span> views</span>
         </div>
         <div id="uuidContainer" class="info-item" style="display: none">
-            ID: <span id="uuid"></span>
+            <span class="info-icon">🔑</span>
+            <span class="info-text">ID: <span id="uuid"></span></span>
         </div>
         <div id="tagsContainer" class="info-item" style="display: none">
             <div class="tags-container"></div>
@@ -150,6 +245,35 @@
     <script>
         const API_URL = 'https://versz-vs1b.onrender.com/file/';
         const cache = new Map();
+        let isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+        window.addEventListener('resize', () => {
+            isMobile = window.matchMedia('(max-width: 768px)').matches;
+        });
+
+        function handleInfoItemClick(element) {
+            if (isMobile) {
+                const wasActive = element.classList.contains('active');
+                document.querySelectorAll('.info-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                if (!wasActive) {
+                    element.classList.add('active');
+                }
+            }
+        }
+
+        document.querySelectorAll('.info-item').forEach(item => {
+            item.addEventListener('click', () => handleInfoItemClick(item));
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.info-item')) {
+                document.querySelectorAll('.info-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+            }
+        });
 
         async function fetchWithTimeout(resource, options = {}) {
             const timeout = options.timeout || 5000;
@@ -169,9 +293,42 @@
             }
         }
 
+        function createTagElement(tag) {
+            const tagElement = document.createElement('div');
+            tagElement.className = 'tag';
+            
+            const iconElement = document.createElement('span');
+            iconElement.className = 'tag-icon';
+            
+            if (tag.icon_type === 'svg') {
+                iconElement.innerHTML = tag.icon;
+            } else if (tag.icon_type === 'emoji') {
+                iconElement.textContent = tag.icon;
+            } else if (tag.icon_type === 'image') {
+                const img = document.createElement('img');
+                img.src = tag.icon;
+                img.alt = tag.text;
+                img.width = 16;
+                img.height = 16;
+                iconElement.appendChild(img);
+            }
+            
+            const textElement = document.createElement('span');
+            textElement.className = 'tag-text';
+            textElement.textContent = tag.text;
+            
+            tagElement.appendChild(iconElement);
+            tagElement.appendChild(textElement);
+            
+            return tagElement;
+        }
+
         function updateInfoDisplay(data) {
-            // Views
             const viewContainer = document.getElementById('viewContainer');
+            const uuidContainer = document.getElementById('uuidContainer');
+            const tagsContainer = document.getElementById('tagsContainer');
+            const tagsWrapper = tagsContainer.querySelector('.tags-container');
+
             if (data.views !== undefined) {
                 document.getElementById('viewCount').textContent = data.views;
                 viewContainer.style.display = 'flex';
@@ -179,8 +336,6 @@
                 viewContainer.style.display = 'none';
             }
 
-            // UUID
-            const uuidContainer = document.getElementById('uuidContainer');
             if (data.user_id) {
                 document.getElementById('uuid').textContent = data.user_id;
                 uuidContainer.style.display = 'flex';
@@ -188,16 +343,11 @@
                 uuidContainer.style.display = 'none';
             }
 
-            // Tags
-            const tagsContainer = document.getElementById('tagsContainer');
-            const tagsWrapper = tagsContainer.querySelector('.tags-container');
             if (data.tags && data.tags.length > 0) {
-                tagsWrapper.innerHTML = data.tags.map(tag => `
-                    <div class="tag">
-                        <span class="tag-icon">${tag.icon}</span>
-                        <span class="tag-text">${tag.text}</span>
-                    </div>
-                `).join('');
+                tagsWrapper.innerHTML = '';
+                data.tags.forEach(tag => {
+                    tagsWrapper.appendChild(createTagElement(tag));
+                });
                 tagsContainer.style.display = 'flex';
             } else {
                 tagsContainer.style.display = 'none';
@@ -219,9 +369,7 @@
                     return;
                 }
 
-                const response = await fetchWithTimeout(`${API_URL}${url}`, {
-                    timeout: 5000
-                });
+                const response = await fetchWithTimeout(`${API_URL}${url}`);
 
                 if (!response.ok) {
                     if (response.status === 429) {
@@ -288,8 +436,7 @@
             document.getElementById('error').style.display = 'flex';
             document.getElementById('errorCode').textContent = code;
             document.getElementById('errorMessage').textContent = message;
-            const rateLimitMessage = document.getElementById('rateLimitMessage');
-            rateLimitMessage.style.display = code === 429 ? 'block' : 'none';
+            document.getElementById('rateLimitMessage').style.display = code === 429 ? 'block' : 'none';
         }
         
         loadContent();
