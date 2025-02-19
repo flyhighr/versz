@@ -43,10 +43,8 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(64))
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     ALGORITHM: str = "HS256"
-    EMAIL_HOST: str = os.getenv("EMAIL_HOST", "smtp.mail.yahoo.com") 
-    EMAIL_PORT: int = int(os.getenv("EMAIL_PORT", "587"))  # Yahoo uses 587 for TLS
-    EMAIL_USE_SSL: bool = False  # Yahoo uses TLS, not SSL
-    EMAIL_USE_TLS: bool = True
+    EMAIL_HOST: str = os.getenv("EMAIL_HOST", "smtp.mail.yahoo.com")
+    EMAIL_PORT: int = int(os.getenv("EMAIL_PORT", "587"))
     EMAIL_USERNAME: str = os.getenv("EMAIL_USERNAME", "")
     EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD", "")
     EMAIL_FROM: str = EMAIL_USERNAME
@@ -212,8 +210,8 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
         async with aiosmtplib.SMTP(
             hostname=settings.EMAIL_HOST,
             port=settings.EMAIL_PORT,
-            use_tls=settings.EMAIL_USE_TLS,  # Enable TLS for Yahoo
-            timeout=30
+            use_tls=True,
+            timeout=10
         ) as smtp:
             await smtp.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
             await smtp.send_message(message)
@@ -222,10 +220,6 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
         return True
     except Exception as e:
         logger.error(f"Error sending email to {to_email}: {str(e)}")
-        if "authentication failed" in str(e).lower():
-            logger.error("Yahoo SMTP authentication failed - check username and password")
-        elif "ssl" in str(e).lower():
-            logger.error("SSL/TLS error - check Yahoo SMTP security settings")
         return False
 
 async def get_user(email: str) -> Optional[Dict[str, Any]]:
