@@ -368,6 +368,7 @@ async def health_check(request: Request):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Service unhealthy"
         )
+        
 @app.post("/register", response_model=UserResponse)
 @limiter.limit("5/minute")
 async def register_user(
@@ -384,7 +385,6 @@ async def register_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={"detail": str(ve)}
             )
-
         async with get_database() as db:
             existing_user = await db.users.find_one({"email": user.email})
             if existing_user:
@@ -395,9 +395,7 @@ async def register_user(
             
             existing_pending = await db.pending_users.find_one({"email": user.email})
             if existing_pending:
-                # Check if the pending registration has expired
                 if existing_pending["expires_at"] < datetime.utcnow():
-                    # Delete expired registration
                     await db.pending_users.delete_one({"email": user.email})
                     await db.verification.delete_one({"email": user.email})
                 else:
@@ -422,13 +420,92 @@ async def register_user(
             }
             
             verification_email = f"""
+            <!DOCTYPE html>
             <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {{
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: #333333;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #f5f5f5;
+                    }}
+                    .container {{
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 40px 20px;
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    }}
+                    .header {{
+                        text-align: center;
+                        padding-bottom: 20px;
+                        border-bottom: 1px solid #eeeeee;
+                    }}
+                    .logo {{
+                        width: 120px;
+                        height: auto;
+                        margin-bottom: 20px;
+                    }}
+                    h1 {{
+                        color: #2c3e50;
+                        font-size: 24px;
+                        margin: 0;
+                        padding: 0;
+                    }}
+                    .content {{
+                        padding: 30px 0;
+                    }}
+                    .code {{
+                        background-color: #f8f9fa;
+                        color: #2c3e50;
+                        font-size: 32px;
+                        font-weight: bold;
+                        text-align: center;
+                        padding: 20px;
+                        margin: 20px 0;
+                        border-radius: 4px;
+                        letter-spacing: 5px;
+                    }}
+                    .footer {{
+                        text-align: center;
+                        color: #666666;
+                        font-size: 14px;
+                        border-top: 1px solid #eeeeee;
+                        padding-top: 20px;
+                    }}
+                    .warning {{
+                        color: #856404;
+                        background-color: #fff3cd;
+                        padding: 10px;
+                        border-radius: 4px;
+                        margin-top: 20px;
+                        font-size: 14px;
+                    }}
+                </style>
+            </head>
             <body>
-            <h2>Verify Your Email</h2>
-            <p>Thank you for registering! Please use the following code to verify your email:</p>
-            <h3>{verification_code}</h3>
-            <p>This code will expire in 1 hour.</p>
-            <p>Your registration will be canceled if you don't verify within 24 hours.</p>
+                <div class="container">
+                    <div class="header">
+                        <h1>Verify Your Email Address</h1>
+                    </div>
+                    <div class="content">
+                        <p>Thank you for registering! Please use the following verification code to complete your registration:</p>
+                        <div class="code">{verification_code}</div>
+                        <p>This code will expire in 1 hour.</p>
+                        <div class="warning">
+                            Your registration will be canceled if you don't verify within 24 hours.
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>This is an automated message, please do not reply to this email.</p>
+                    </div>
+                </div>
             </body>
             </html>
             """
@@ -461,7 +538,6 @@ async def register_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Registration failed. Please try again."}
         )
-
 
 @app.post("/verify-email")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -534,12 +610,81 @@ async def resend_verification(
         })
         
         verification_email = f"""
+        <!DOCTYPE html>
         <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f5f5f5;
+                }}
+                .container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 40px 20px;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }}
+                .header {{
+                    text-align: center;
+                    padding-bottom: 20px;
+                    border-bottom: 1px solid #eeeeee;
+                }}
+                .logo {{
+                    width: 120px;
+                    height: auto;
+                    margin-bottom: 20px;
+                }}
+                h1 {{
+                    color: #2c3e50;
+                    font-size: 24px;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .content {{
+                    padding: 30px 0;
+                }}
+                .code {{
+                    background-color: #f8f9fa;
+                    color: #2c3e50;
+                    font-size: 32px;
+                    font-weight: bold;
+                    text-align: center;
+                    padding: 20px;
+                    margin: 20px 0;
+                    border-radius: 4px;
+                    letter-spacing: 5px;
+                }}
+                .footer {{
+                    text-align: center;
+                    color: #666666;
+                    font-size: 14px;
+                    border-top: 1px solid #eeeeee;
+                    padding-top: 20px;
+                }}
+            </style>
+        </head>
         <body>
-        <h2>Verify Your Email</h2>
-        <p>Please use the following code to verify your email:</p>
-        <h3>{verification_code}</h3>
-        <p>This code will expire in 1 hour.</p>
+            <div class="container">
+                <div class="header">
+                    <h1>Verify Your Email Address</h1>
+                </div>
+                <div class="content">
+                    <p>Here's your new verification code:</p>
+                    <div class="code">{verification_code}</div>
+                    <p>This code will expire in 1 hour.</p>
+                </div>
+                <div class="footer">
+                    <p>This is an automated message, please do not reply to this email.</p>
+                </div>
+            </div>
         </body>
         </html>
         """
@@ -612,14 +757,92 @@ async def request_password_reset(
         })
         
         reset_email = f"""
+        <!DOCTYPE html>
         <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f5f5f5;
+                }}
+                .container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 40px 20px;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }}
+                .header {{
+                    text-align: center;
+                    padding-bottom: 20px;
+                    border-bottom: 1px solid #eeeeee;
+                }}
+                .logo {{
+                    width: 120px;
+                    height: auto;
+                    margin-bottom: 20px;
+                }}
+                h1 {{
+                    color: #2c3e50;
+                    font-size: 24px;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .content {{
+                    padding: 30px 0;
+                }}
+                .code {{
+                    background-color: #f8f9fa;
+                    color: #2c3e50;
+                    font-size: 32px;
+                    font-weight: bold;
+                    text-align: center;
+                    padding: 20px;
+                    margin: 20px 0;
+                    border-radius: 4px;
+                    letter-spacing: 5px;
+                }}
+                .footer {{
+                    text-align: center;
+                    color: #666666;
+                    font-size: 14px;
+                    border-top: 1px solid #eeeeee;
+                    padding-top: 20px;
+                }}
+                .security-notice {{
+                    background-color: #e8f4fd;
+                    padding: 15px;
+                    border-radius: 4px;
+                    margin-top: 20px;
+                    font-size: 14px;
+                    color: #0d47a1;
+                }}
+            </style>
+        </head>
         <body>
-        <h2>Reset Your Password</h2>
-        <p>We received a request to reset your password. If you didn't make this request, 
-           you can ignore this email.</p>
-        <p>Your password reset code is:</p>
-        <h3>{reset_code}</h3>
-        <p>This code will expire in 30 minutes.</p>
+            <div class="container">
+                <div class="header">
+                    <h1>Reset Your Password</h1>
+                </div>
+                <div class="content">
+                    <p>We received a request to reset your password. Use the following code to complete the password reset:</p>
+                    <div class="code">{reset_code}</div>
+                    <p>This code will expire in 30 minutes.</p>
+                    <div class="security-notice">
+                        If you didn't request this password reset, please ignore this email or contact support if you have concerns about your account security.
+                    </div>
+                </div>
+                <div class="footer">
+                    <p>This is an automated message, please do not reply to this email.</p>
+                </div>
+            </div>
         </body>
         </html>
         """
