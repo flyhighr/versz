@@ -18,7 +18,7 @@ from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, Field, validator, SecretStr, constr
+from pydantic import BaseModel, EmailStr, Field, validator, SecretStr, constr, ValidationError
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -32,7 +32,6 @@ import schedule
 import smtplib
 from email.message import EmailMessage
 from cachetools import TTLCache
-
 # Configuration class with improved email settings
 class Settings:
     MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
@@ -362,14 +361,22 @@ async def health_check():
         )
 
 @app.post("/register", response_model=UserResponse)
+@limiter.limit("5/minute")
 async def register_user(
+    request: Request,
     background_tasks: BackgroundTasks,
     email: str = Body(...),
     password: str = Body(...)
 ) -> Dict[str, Any]:
     try:
-        user = UserCreate(email=email, password=password)
-        
+        try:
+            user = UserCreate(email=email, password=password)
+        except ValidationError as ve:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={"detail": str(ve)}
+            )
+
         async with get_database() as db:
             existing_user = await db.users.find_one({"email": user.email})
             existing_pending = await db.pending_users.find_one({"email": user.email})
@@ -426,11 +433,6 @@ async def register_user(
                 "url_count": 0
             }
             
-    except ValidationError as ve:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"detail": str(ve)}
-        )
     except Exception as e:
         logger.error(f"Registration error: {str(e)}")
         return JSONResponse(
