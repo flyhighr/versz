@@ -234,15 +234,20 @@ async def get_user(email: str) -> Optional[Dict[str, Any]]:
             await user_cache.set(cache_key, user)
         return user
 
+
 async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
-    user = await get_user(email)
-    if not user:
-        return None
-    
-    if not await verify_password(password, user["hashed_password"]):
-        return None
+    try:
+        user = await get_user(email)
+        if not user:
+            return None
         
-    return user
+        if not await verify_password(password, user["hashed_password"]):
+            return None
+            
+        return user
+    except Exception as e:
+        logger.error(f"Authentication error: {str(e)}", exc_info=True)
+        raise
 
 async def generate_unique_url() -> str:
     async with get_database() as db:
@@ -475,6 +480,13 @@ async def resend_verification(
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
+        if not form_data.username or not form_data.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email and password are required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         user = await authenticate_user(form_data.username, form_data.password)
         if not user:
             raise HTTPException(
@@ -483,6 +495,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
+        # Verify user account is active
+        if not user.get("is_active", False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is deactivated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user["email"]},
@@ -496,12 +516,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             "id": user["id"],
             "email": user["email"]
         }
+    except HTTPException as he:
+        # Re-raise HTTP exceptions with their original status codes
+        raise he
     except Exception as e:
-        logger.error(f"Login error: {str(e)}")
+        logger.error(f"Login error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed. Please try again."
+            detail="An unexpected error occurred during login. Please try again."
         )
+
 
 @app.post("/request-password-reset")
 async def request_password_reset(
