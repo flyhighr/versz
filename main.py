@@ -831,7 +831,7 @@ async def delete_file(
 async def get_file(
     request: Request,
     url: str
-): .
+):
     async with get_database() as db:
         file = await db.files.find_one({"url": url})
         if not file:
