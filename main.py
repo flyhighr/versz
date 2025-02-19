@@ -43,8 +43,10 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(64))
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     ALGORITHM: str = "HS256"
-    EMAIL_HOST: str = os.getenv("EMAIL_HOST", "smtp.mail.yahoo.com")
-    EMAIL_PORT: int = int(os.getenv("EMAIL_PORT", "587"))
+    EMAIL_HOST: str = os.getenv("EMAIL_HOST", "smtp.mail.yahoo.com")  # I use yahoo change accordingly
+    EMAIL_PORT: int = int(os.getenv("EMAIL_PORT", "587"))  # Yahoo uses 587 for TLS
+    EMAIL_USE_SSL: bool = False
+    EMAIL_USE_TLS: bool = True 
     EMAIL_USERNAME: str = os.getenv("EMAIL_USERNAME", "")
     EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD", "")
     EMAIL_FROM: str = EMAIL_USERNAME
@@ -69,10 +71,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Security configurations
+
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
-    bcrypt__rounds=settings.BCRYPT_ROUNDS
+    bcrypt__rounds=settings.BCRYPT_ROUNDS,
+    bcrypt__ident="2b"
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -210,8 +214,8 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
         async with aiosmtplib.SMTP(
             hostname=settings.EMAIL_HOST,
             port=settings.EMAIL_PORT,
-            use_tls=True,
-            timeout=10
+            use_tls=settings.EMAIL_USE_TLS, 
+            timeout=30
         ) as smtp:
             await smtp.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
             await smtp.send_message(message)
@@ -220,6 +224,10 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
         return True
     except Exception as e:
         logger.error(f"Error sending email to {to_email}: {str(e)}")
+        if "authentication failed" in str(e).lower():
+            logger.error("Yahoo SMTP authentication failed - check username and password")
+        elif "ssl" in str(e).lower():
+            logger.error("SSL/TLS error - check Yahoo SMTP security settings")
         return False
 
 async def get_user(email: str) -> Optional[Dict[str, Any]]:
@@ -316,6 +324,31 @@ async def cleanup_old_view_records():
         await db.view_records.delete_many({"timestamp": {"$lt": cutoff_date}})
 
 # Endpoints
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to the API",
+        "docs_url": "/docs",
+        "redoc_url": "/redoc"
+    }
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    if request.url.path in ["/health", "/docs", "/redoc", "/"]:
+        return await call_next(request)
+    
+    try:
+        await app.state.limiter.check(request)
+        response = await call_next(request)
+        return response
+    except RateLimitExceeded:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "Rate limit exceeded. Please try again later."}
+        )
+        
 @app.get("/health")
 async def health_check():
     try:
@@ -614,54 +647,81 @@ async def upload_file(
     custom_url: Optional[str] = None,
     current_user: dict = Depends(get_current_verified_user)
 ):
-    async with get_database() as db:
-        url_count = await db.files.count_documents({"user_id": current_user["id"]})
-        if url_count >= settings.MAX_URLS_PER_USER:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"You have reached the maximum limit of {settings.MAX_URLS_PER_USER} URLs"
-            )
-        
-        content = await file.read()
-        if len(content) > settings.MAX_FILE_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="File too large"
-            )
-        
-        if not file.filename.endswith('.html'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only HTML files are allowed"
-            )
-        
-        if custom_url:
-            if await db.files.find_one({"url": custom_url}):
+    try:
+        async with get_database() as db:
+            url_count = await db.files.count_documents({"user_id": current_user["id"]})
+            if url_count >= settings.MAX_URLS_PER_USER:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="URL already taken"
+                    detail=f"You have reached the maximum limit of {settings.MAX_URLS_PER_USER} URLs"
                 )
-            url = custom_url
-        else:
-            url = await generate_unique_url()
-        
-        document = {
-            "url": url,
-            "content": Binary(content),
-            "filename": file.filename,
-            "created_at": datetime.utcnow(),
-            "user_id": current_user["id"]
-        }
-        
-        await db.files.insert_one(document)
-        await db.views.insert_one({
-            "url": url,
-            "views": 0
-        })
-        
-        logger.info(f"File uploaded successfully: {file.filename} with URL: {url}")
-        return {"url": url}
-
+            
+            content_type = file.content_type
+            if not content_type or "text/html" not in content_type:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Only HTML files are allowed"
+                )
+            
+            content = await file.read()
+            if len(content) > settings.MAX_FILE_SIZE:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"File too large. Maximum size is {settings.MAX_FILE_SIZE // (1024 * 1024)}MB"
+                )
+            
+            if custom_url:
+                if not re.match("^[a-zA-Z0-9-_]+$", custom_url):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Custom URL can only contain letters, numbers, hyphens, and underscores"
+                    )
+                if await db.files.find_one({"url": custom_url}):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="URL already taken"
+                    )
+                url = custom_url
+            else:
+                url = await generate_unique_url()
+            
+            try:
+                content = bleach.clean(
+                    content.decode(),
+                    tags=bleach.ALLOWED_TAGS + ['div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+                    attributes=bleach.ALLOWED_ATTRIBUTES
+                ).encode()
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid HTML content"
+                )
+            
+            document = {
+                "url": url,
+                "content": Binary(content),
+                "filename": file.filename,
+                "content_type": content_type,
+                "created_at": datetime.utcnow(),
+                "user_id": current_user["id"]
+            }
+            
+            await db.files.insert_one(document)
+            await db.views.insert_one({
+                "url": url,
+                "views": 0
+            })
+            
+            logger.info(f"File uploaded successfully: {file.filename} with URL: {url}")
+            return {"url": url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Upload failed. Please try again."
+        )
 @app.put("/update/{url}")
 async def update_file(
     url: str,
@@ -814,10 +874,13 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 # Health check ping
 async def ping_self():
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         try:
-            await client.get(f"{settings.API_URL}/health")
-            logger.info("Health check ping successful")
+            response = await client.get(f"{settings.API_URL}/health")
+            if response.status_code != 200:
+                logger.error(f"Health check failed with status {response.status_code}")
+            else:
+                logger.info("Health check ping successful")
         except Exception as e:
             logger.error(f"Health check ping failed: {str(e)}")
 
@@ -838,6 +901,16 @@ async def start_cleanup_scheduler():
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(start_cleanup_scheduler())
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    for task in asyncio.all_tasks():
+        if not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
    
 # Start background ping thread
 ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
