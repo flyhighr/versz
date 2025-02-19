@@ -835,7 +835,25 @@ function setupAuthEventListeners() {
         logout();
     });
 }
-
+document.getElementById('customUrl').addEventListener('input', function(e) {
+    const customUrl = e.target.value.trim();
+    const uploadError = document.getElementById('uploadError');
+    const uploadBtn = document.getElementById('uploadBtn');
+    
+    if (customUrl) {
+        if (!/^[a-zA-Z0-9-_]+$/.test(customUrl)) {
+            uploadError.textContent = 'Custom URL can only contain letters, numbers, hyphens, and underscores';
+            uploadBtn.disabled = true;
+            return;
+        } else {
+            uploadError.textContent = '';
+            uploadBtn.disabled = !document.getElementById('fileInput').files.length;
+        }
+    } else {
+        uploadError.textContent = '';
+        uploadBtn.disabled = !document.getElementById('fileInput').files.length;
+    }
+});
 // App functions
 function switchTab(tab) {
     document.querySelectorAll('#appContainer .tab').forEach(t => t.classList.remove('active'));
@@ -920,7 +938,8 @@ function handleFileInputChange(e, type) {
 
 async function handleFileUpload() {
     const fileInput = document.getElementById('fileInput');
-    const customUrl = document.getElementById('customUrl').value.trim();
+    const customUrlInput = document.getElementById('customUrl');
+    const customUrl = customUrlInput.value.trim();
     
     if (!fileInput.files.length) {
         document.getElementById('uploadError').textContent = 'Please select a file';
@@ -930,23 +949,18 @@ async function handleFileUpload() {
     document.getElementById('uploadLoading').classList.add('active');
     document.getElementById('uploadError').textContent = '';
     document.getElementById('uploadSuccess').textContent = '';
+    document.getElementById('uploadBtn').disabled = true;
     
     try {
+        let uploadUrl = `${BASE_URL}/upload`;
+        if (customUrl) {
+            uploadUrl += `?custom_url=${encodeURIComponent(customUrl)}`;
+        }
+        
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
         
-        // Only append custom_url if it's not empty
-        if (customUrl) {
-            // Validate custom URL format
-            if (!/^[a-zA-Z0-9-_]+$/.test(customUrl)) {
-                document.getElementById('uploadError').textContent = 'Custom URL can only contain letters, numbers, hyphens, and underscores';
-                document.getElementById('uploadLoading').classList.remove('active');
-                return;
-            }
-            formData.append('custom_url', customUrl);
-        }
-        
-        const response = await fetch(`${BASE_URL}/upload`, {
+        const response = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -958,21 +972,26 @@ async function handleFileUpload() {
         
         if (response.ok) {
             document.getElementById('uploadSuccess').textContent = 
-                `File uploaded successfully. URL: ${FRONTEND_URL}/${data.url}`;
+                `File uploaded successfully! Access your file at: ${FRONTEND_URL}/${data.url}`;
+            
+            fileInput.value = '';
+            customUrlInput.value = '';
             document.getElementById('selectedFile').textContent = '';
-            document.getElementById('customUrl').value = '';
-            document.getElementById('fileInput').value = '';
-            document.getElementById('uploadBtn').disabled = true;
+            
             fetchUserInfo();
+            if (document.getElementById('myFilesContainer').style.display !== 'none') {
+                fetchUserFiles();
+            }
         } else {
             document.getElementById('uploadError').textContent = data.detail || 'Upload failed';
         }
     } catch (error) {
         console.error('Upload error:', error);
         document.getElementById('uploadError').textContent = 'An error occurred. Please try again.';
+    } finally {
+        document.getElementById('uploadLoading').classList.remove('active');
+        document.getElementById('uploadBtn').disabled = false;
     }
-    
-    document.getElementById('uploadLoading').classList.remove('active');
 }
 
     async function handleFileUpdate() {
