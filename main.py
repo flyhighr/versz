@@ -877,7 +877,7 @@ async def get_file(
 async def get_views(
     request: Request,
     url: str
-)
+):
     cache_key = f"views:{url}"
     if cache_key in views_cache:
         return {"views": views_cache[cache_key]}
