@@ -68,27 +68,32 @@
         .back-btn:hover {
             opacity: 0.9;
         }
-        #viewCounterContainer {
+        .info-container {
             position: fixed;
             top: 12px;
             left: 12px;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .info-item {
             background: rgba(0, 0, 0, 0.5);
             color: rgba(255, 255, 255, 0.9);
             padding: 6px 12px;
             border-radius: 4px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 12px;
-            z-index: 999999;
             display: flex;
             align-items: center;
             gap: 4px;
-            pointer-events: none;
             letter-spacing: 0.2px;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
             font-weight: 400;
         }
-        #viewCounterContainer::before {
+        .info-item::before {
             content: '';
             display: inline-block;
             width: 6px;
@@ -97,6 +102,19 @@
             border-radius: 50%;
             margin-right: 2px;
             opacity: 0.8;
+        }
+        .tags-container {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(78, 205, 196, 0.2);
+            border-radius: 4px;
+            padding: 2px 6px;
         }
         .rate-limit-error {
             color: #ff6b6b;
@@ -117,14 +135,21 @@
         </div>
         <a href="/" class="back-btn">Go Back</a>
     </div>
+    <div class="info-container">
+        <div id="viewContainer" class="info-item" style="display: none">
+            <span id="viewCount">0</span> views
+        </div>
+        <div id="uuidContainer" class="info-item" style="display: none">
+            ID: <span id="uuid"></span>
+        </div>
+        <div id="tagsContainer" class="info-item" style="display: none">
+            <div class="tags-container"></div>
+        </div>
+    </div>
     <div id="appContent"></div>
     <script>
         const API_URL = 'https://versz-vs1b.onrender.com/file/';
         const cache = new Map();
-        const viewCounterContainer = document.createElement('div');
-        viewCounterContainer.id = 'viewCounterContainer';
-        viewCounterContainer.innerHTML = '<span id="viewCount">0</span> views';
-        document.body.appendChild(viewCounterContainer);
 
         async function fetchWithTimeout(resource, options = {}) {
             const timeout = options.timeout || 5000;
@@ -144,6 +169,41 @@
             }
         }
 
+        function updateInfoDisplay(data) {
+            // Views
+            const viewContainer = document.getElementById('viewContainer');
+            if (data.views !== undefined) {
+                document.getElementById('viewCount').textContent = data.views;
+                viewContainer.style.display = 'flex';
+            } else {
+                viewContainer.style.display = 'none';
+            }
+
+            // UUID
+            const uuidContainer = document.getElementById('uuidContainer');
+            if (data.user_id) {
+                document.getElementById('uuid').textContent = data.user_id;
+                uuidContainer.style.display = 'flex';
+            } else {
+                uuidContainer.style.display = 'none';
+            }
+
+            // Tags
+            const tagsContainer = document.getElementById('tagsContainer');
+            const tagsWrapper = tagsContainer.querySelector('.tags-container');
+            if (data.tags && data.tags.length > 0) {
+                tagsWrapper.innerHTML = data.tags.map(tag => `
+                    <div class="tag">
+                        <span class="tag-icon">${tag.icon}</span>
+                        <span class="tag-text">${tag.text}</span>
+                    </div>
+                `).join('');
+                tagsContainer.style.display = 'flex';
+            } else {
+                tagsContainer.style.display = 'none';
+            }
+        }
+
         async function loadContent() {
             const url = window.location.pathname.substring(1);
             if (!url) {
@@ -154,8 +214,8 @@
             try {
                 if (cache.has(url)) {
                     const cachedContent = cache.get(url);
-                    await renderContent(cachedContent);
-                    updateViewCount(url);
+                    await renderContent(cachedContent.content);
+                    updateInfoDisplay(cachedContent);
                     return;
                 }
 
@@ -172,25 +232,12 @@
                 }
 
                 const data = await response.json();
-                cache.set(url, data.content);
+                cache.set(url, data);
                 await renderContent(data.content);
-                document.getElementById('viewCount').textContent = data.views;
-
+                updateInfoDisplay(data);
             } catch (err) {
                 console.error('Loading error:', err);
                 showError(404, 'Page not found');
-            }
-        }
-
-        async function updateViewCount(url) {
-            try {
-                const response = await fetch(`${API_URL.replace('file/', 'views/')}${url}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('viewCount').textContent = data.views;
-                }
-            } catch (err) {
-                console.error('Error updating view count:', err);
             }
         }
 
@@ -217,6 +264,7 @@
                 }
                 return Promise.resolve();
             }));
+
             appContent.innerHTML = content;
             scripts.forEach(script => {
                 if (!script.src) {
@@ -241,11 +289,7 @@
             document.getElementById('errorCode').textContent = code;
             document.getElementById('errorMessage').textContent = message;
             const rateLimitMessage = document.getElementById('rateLimitMessage');
-            if (code === 429) {
-                rateLimitMessage.style.display = 'block';
-            } else {
-                rateLimitMessage.style.display = 'none';
-            }
+            rateLimitMessage.style.display = code === 429 ? 'block' : 'none';
         }
         
         loadContent();
