@@ -275,39 +275,38 @@
 <body>
     <div class="sidebar">
         <a href="#" class="logo">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/7/74/Grumpy_cat_drawing.jpg" alt="White Panda Logo">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/74/Grumpy_cat_drawing.jpg" alt="Logo">
             <span>Versz</span>
         </a>
         
-        <!-- Navigation -->
         <div id="authNav">
-            <a href="#" class="nav-item active" onclick="switchAuthTab('login')">
+            <div class="nav-item active" onclick="handleNavClick('login')">
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Login</span>
-            </a>
-            <a href="#" class="nav-item" onclick="switchAuthTab('register')">
+            </div>
+            <div class="nav-item" onclick="handleNavClick('register')">
                 <i class="fas fa-user-plus"></i>
                 <span>Register</span>
-            </a>
+            </div>
         </div>
 
         <div id="appNav" style="display: none;">
-            <a href="#" class="nav-item active" onclick="switchTab('home')">
+            <div class="nav-item active" onclick="handleNavClick('home')">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
-            </a>
-            <a href="#" class="nav-item" onclick="switchTab('upload')">
+            </div>
+            <div class="nav-item" onclick="handleNavClick('upload')">
                 <i class="fas fa-cloud-upload-alt"></i>
                 <span>Upload</span>
-            </a>
-            <a href="#" class="nav-item" onclick="switchTab('myFiles')">
+            </div>
+            <div class="nav-item" onclick="handleNavClick('myFiles')">
                 <i class="fas fa-folder"></i>
                 <span>My Files</span>
-            </a>
-            <a href="#" class="nav-item" id="logoutBtn">
+            </div>
+            <div class="nav-item" onclick="handleLogout()">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
-            </a>
+            </div>
         </div>
     </div>
 
@@ -423,6 +422,35 @@
         let userEmail = localStorage.getItem('userEmail');
         let isVerified = localStorage.getItem('isVerified') === 'true';
         let currentUrl = null;
+        
+        function handleNavClick(tab) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            event.currentTarget.classList.add('active');
+
+            switch(tab) {
+                case 'login':
+                    switchAuthTab('login');
+                    break;
+                case 'register':
+                    switchAuthTab('register');
+                    break;
+                case 'home':
+                    switchTab('home');
+                    break;
+                case 'upload':
+                    switchTab('upload');
+                    break;
+                case 'myFiles':
+                    switchTab('myFiles');
+                    break;
+            }
+        }
+        function handleLogout() {
+            logout();
+        }
 
         // Initial setup
         document.addEventListener('DOMContentLoaded', function() {
@@ -458,14 +486,13 @@
         }
 
         function switchAuthTab(tab) {
-            document.querySelectorAll('#authContainer .tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('#authContainer > div:not(.tabs)').forEach(d => d.style.display = 'none');
+            document.querySelectorAll('#authContainer > div').forEach(div => {
+                div.style.display = 'none';
+            });
             
             if (tab === 'login') {
-                document.querySelector('#authContainer .tab:nth-child(1)').classList.add('active');
                 document.getElementById('loginContainer').style.display = 'block';
             } else if (tab === 'register') {
-                document.querySelector('#authContainer .tab:nth-child(2)').classList.add('active');
                 document.getElementById('registerContainer').style.display = 'block';
             }
         }
@@ -801,30 +828,18 @@
         });
         // App functions
         function switchTab(tab) {
-            document.querySelectorAll('#appContainer .tab').forEach(t => t.classList.remove('active'));
-            
+            document.querySelectorAll('#appContainer > div').forEach(div => {
+                div.style.display = 'none';
+            });
             if (tab === 'home') {
-                document.querySelector('#appContainer .tab:nth-child(1)').classList.add('active');
                 document.getElementById('homeContainer').style.display = 'block';
-                document.getElementById('uploadContainer').style.display = 'none';
-                document.getElementById('myFilesContainer').style.display = 'none';
-                document.getElementById('editContainer').style.display = 'none';
             } else if (tab === 'upload') {
-                document.querySelector('#appContainer .tab:nth-child(2)').classList.add('active');
-                document.getElementById('homeContainer').style.display = 'none';
                 document.getElementById('uploadContainer').style.display = 'block';
-                document.getElementById('myFilesContainer').style.display = 'none';
-                document.getElementById('editContainer').style.display = 'none';
             } else if (tab === 'myFiles') {
-                document.querySelector('#appContainer .tab:nth-child(3)').classList.add('active');
-                document.getElementById('homeContainer').style.display = 'none';
-                document.getElementById('uploadContainer').style.display = 'none';
                 document.getElementById('myFilesContainer').style.display = 'block';
-                document.getElementById('editContainer').style.display = 'none';
                 fetchUserFiles();
             }
         }
-
         function showHomeTab() {
             switchTab('home');
         }
