@@ -30,6 +30,62 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .stats-container {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 999999;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 12px;
+        }
+        .stat-item {
+            background: rgba(0, 0, 0, 0.75);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+            letter-spacing: 0.2px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stat-item:hover {
+            background: rgba(0, 0, 0, 0.85);
+            transform: translateY(-1px);
+        }
+        .stat-item i {
+            width: 6px;
+            height: 6px;
+            background: currentColor;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+        .tag-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .user-tag {
+            background: rgba(78, 205, 196, 0.2);
+            color: #4ecdc4;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .user-tag img {
+            width: 12px;
+            height: 12px;
+        }
         .error-container {
             position: fixed;
             top: 0;
@@ -68,46 +124,20 @@
         .back-btn:hover {
             opacity: 0.9;
         }
-        #viewCounterContainer {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            background: rgba(0, 0, 0, 0.5);
-            color: rgba(255, 255, 255, 0.9);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 12px;
-            z-index: 999999;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            pointer-events: none;
-            letter-spacing: 0.2px;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            font-weight: 400;
-        }
-        #viewCounterContainer::before {
-            content: '';
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: currentColor;
-            border-radius: 50%;
-            margin-right: 2px;
-            opacity: 0.8;
-        }
-        .rate-limit-error {
-            color: #ff6b6b;
-            font-size: 1.2rem;
-            margin-top: 1rem;
-        }
     </style>
 </head>
 <body>
     <div id="loading" class="loading">
         <div class="spinner"></div>
+    </div>
+    <div id="stats" class="stats-container">
+        <div id="viewCounter" class="stat-item" style="display: none">
+            <i></i><span id="viewCount">0</span> views
+        </div>
+        <div id="userIdContainer" class="stat-item" style="display: none">
+            <i></i>ID: <span id="userId"></span>
+        </div>
+        <div id="tagContainer" class="tag-container"></div>
     </div>
     <div id="error" class="error-container">
         <h1 id="errorCode">404</h1>
@@ -121,10 +151,6 @@
     <script>
         const API_URL = 'https://versz-vs1b.onrender.com/file/';
         const cache = new Map();
-        const viewCounterContainer = document.createElement('div');
-        viewCounterContainer.id = 'viewCounterContainer';
-        viewCounterContainer.innerHTML = '<span id="viewCount">0</span> views';
-        document.body.appendChild(viewCounterContainer);
 
         async function fetchWithTimeout(resource, options = {}) {
             const timeout = options.timeout || 5000;
@@ -144,6 +170,31 @@
             }
         }
 
+        function updateStats(stats) {
+            const viewCounter = document.getElementById('viewCounter');
+            const userIdContainer = document.getElementById('userIdContainer');
+            const tagContainer = document.getElementById('tagContainer');
+
+            if (stats.showViews) {
+                viewCounter.style.display = 'flex';
+                document.getElementById('viewCount').textContent = stats.views;
+            }
+
+            if (stats.showUserId) {
+                userIdContainer.style.display = 'flex';
+                document.getElementById('userId').textContent = stats.userId;
+            }
+
+            if (stats.tags && stats.showTags) {
+                tagContainer.innerHTML = stats.tags.map(tag => `
+                    <div class="user-tag">
+                        <img src="${tag.icon}" alt="${tag.name}"/>
+                        ${tag.name}
+                    </div>
+                `).join('');
+            }
+        }
+
         async function loadContent() {
             const url = window.location.pathname.substring(1);
             if (!url) {
@@ -155,7 +206,7 @@
                 if (cache.has(url)) {
                     const cachedContent = cache.get(url);
                     await renderContent(cachedContent);
-                    updateViewCount(url);
+                    updateStats(cachedContent.stats);
                     return;
                 }
 
@@ -172,25 +223,13 @@
                 }
 
                 const data = await response.json();
-                cache.set(url, data.content);
+                cache.set(url, data);
                 await renderContent(data.content);
-                document.getElementById('viewCount').textContent = data.views;
+                updateStats(data.stats);
 
             } catch (err) {
                 console.error('Loading error:', err);
                 showError(404, 'Page not found');
-            }
-        }
-
-        async function updateViewCount(url) {
-            try {
-                const response = await fetch(`${API_URL.replace('file/', 'views/')}${url}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('viewCount').textContent = data.views;
-                }
-            } catch (err) {
-                console.error('Error updating view count:', err);
             }
         }
 
@@ -217,6 +256,7 @@
                 }
                 return Promise.resolve();
             }));
+
             appContent.innerHTML = content;
             scripts.forEach(script => {
                 if (!script.src) {
