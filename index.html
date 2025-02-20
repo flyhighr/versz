@@ -7,310 +7,500 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
+/* CSS Variables */
+:root {
+    --bg-color: #000000;
+    --sidebar-bg: #0a0a0a;
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent-color: #4ecdc4;
+    --hover-bg: rgba(255, 255, 255, 0.1);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --sidebar-width: 240px;
+    --sidebar-width-mobile: 60px;
+    --card-border-radius: 12px;
+    --transition-speed: 0.2s;
+}
 
-        :root {
-            --bg-color: #000000;
-            --sidebar-bg: #0a0a0a;
-            --card-bg: rgba(255, 255, 255, 0.05);
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
-            --accent-color: #4ecdc4;
-            --hover-bg: rgba(255, 255, 255, 0.1);
-            --border-color: rgba(255, 255, 255, 0.1);
-        }
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
 
-        body {
-            background: var(--bg-color);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+body {
+    background: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
 
-        .sidebar {
-            width: 240px;
-            background: var(--sidebar-bg);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            border-right: 1px solid var(--border-color);
-        }
+/* Layout Components */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    border-right: 1px solid var(--border-color);
+    transition: width var(--transition-speed) ease;
+    z-index: 1000;
+}
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 30px;
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
+.main-content {
+    margin-left: var(--sidebar-width);
+    padding: 30px;
+    width: calc(100% - var(--sidebar-width));
+    min-height: calc(100vh - 60px);
+    transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease;
+}
 
-        .logo img {
-            width: 32px;
-            height: 32px;
-        }
+.content-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
 
-        .main-content {
-            flex: 1;
-            margin-left: 240px;
-            padding: 30px;
-            width: calc(100% - 240px);
-        }
+/* Logo Styles */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
 
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            border-radius: 8px;
-            margin-bottom: 5px;
-            transition: all 0.2s ease;
-        }
+.logo img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
 
-        .nav-item:hover, .nav-item.active {
-            background: var(--hover-bg);
-            color: var(--text-primary);
-        }
+/* Navigation Styles */
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    transition: all var(--transition-speed) ease;
+    cursor: pointer;
+}
 
-        .nav-item i {
-            width: 20px;
-            text-align: center;
-        }
+.nav-item:hover, 
+.nav-item.active {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
 
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-color);
-        }
+.nav-item i {
+    width: 20px;
+    text-align: center;
+    font-size: 1.1rem;
+}
 
-        .input {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 10px 15px;
-            border-radius: 8px;
-            color: var(--text-primary);
-            width: 100%;
-            margin-bottom: 15px;
-            transition: all 0.2s ease;
-        }
+/* Card Styles */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--card-border-radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+}
 
-        .input:focus {
-            border-color: var(--accent-color);
-            outline: none;
-        }
+/* Form Elements */
+.input {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 12px 15px;
+    border-radius: 8px;
+    color: var(--text-primary);
+    width: 100%;
+    margin-bottom: 15px;
+    transition: border-color var(--transition-speed) ease;
+    font-size: 1rem;
+}
 
-        .btn {
-            background: var(--card-bg);
-            color: var(--text-primary);
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            width: 100%;
-        }
+.input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+}
 
-        .btn:hover {
-            background: var(--hover-bg);
-        }
+/* Button Styles */
+btn {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+    font-weight: 500;
+    width: 100%;
+    font-size: 1rem;
+    margin-top: 30px;  /* Adds space above buttons */
+}
 
-        .btn-primary {
-            background: var(--accent-color);
-            border: none;
-        }
+.btn:hover {
+    background: var(--hover-bg);
+}
 
-        .btn-primary:hover {
-            opacity: 0.9;
-        }
+.btn-primary {
+    background: var(--accent-color);
+    border: none;
+}
 
-        .file-list {
-            display: grid;
-            gap: 15px;
-        }
+.btn-primary:hover {
+    opacity: 0.9;
+}
 
-        .file-item {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+/* File List Styles */
+.file-list {
+    display: grid;
+    gap: 15px;
+}
 
-        .file-info {
-            flex: 1;
-        }
+.file-item {
+    background: var(--card-bg);
+    border-radius: var(--card-border-radius);
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
 
-        .file-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
+.file-info {
+    flex: 1;
+}
 
-        .file-meta {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
+.file-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
 
-        .file-actions {
-            display: flex;
-            gap: 10px;
-        }
+.file-meta,
+.file-stats,
+.file-dates {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
 
-        .file-action {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
+.file-url {
+    word-break: break-all;
+    margin: 8px 0;
+    font-size: 0.9rem;
+    color: var(--accent-color);
+}
 
-        .file-action:hover {
-            background: var(--hover-bg);
-        }
+.file-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
 
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 60px;
-                padding: 15px 10px;
-            }
+.file-action {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
 
-            .logo span, .nav-item span {
-                display: none;
-            }
+.file-action:hover {
+    background: var(--hover-bg);
+    transform: translateY(-2px);
+}
 
-            .main-content {
-                margin-left: 60px;
-                width: calc(100% - 60px);
-            }
+/* Profile Section Styles */
+.profile-section {
+    margin-top: 30px;
+}
 
-            .sidebar:hover {
-                width: 240px;
-            }
+.profile-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
 
-            .sidebar:hover .logo span,
-            .sidebar:hover .nav-item span {
-                display: inline;
-            }
-        }
+.profile-stat {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--card-border-radius);
+    border: 1px solid var(--border-color);
+}
 
-        .error {
-            color: #ff6b6b;
-            margin-top: 10px;
-        }
+.profile-stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
 
-        .success {
-            color: var(--accent-color);
-            margin-top: 10px;
-        }
+.profile-stat-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    word-break: break-all;
+    line-height: 1.4;
+}
 
-        .loading {
-            display: none;
-            margin: 15px 0;
-        }
+/* Status Indicators */
+.error {
+    color: #ff6b6b;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
 
-        .loading.active {
-            display: block;
-        }
+.success {
+    color: var(--accent-color);
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
 
-        .spinner {
-            width: 24px;
-            height: 24px;
-            margin: 0 auto;
-            border: 2px solid var(--text-secondary);
-            border-top: 2px solid var(--accent-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        .tag {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin: 2px;
-            font-size: 0.8rem;
-        }
+/* Loading Spinner */
+.loading {
+    display: none;
+    margin: 15px 0;
+}
 
-        .tag-icon {
-            margin-right: 4px;
-        }
+.loading.active {
+    display: block;
+}
 
-        .file-stats {
-            margin-top: 4px;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
+.spinner {
+    width: 24px;
+    height: 24px;
+    margin: 0 auto;
+    border: 2px solid var(--text-secondary);
+    border-top: 2px solid var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
 
-        .file-url {
-            word-break: break-all;
-            margin: 4px 0;
-        }
+label[for="fileInput"],
+label[for="editFileInput"] {
+    margin-bottom: 24px !important;  /* Adds space below file input labels */
+}
 
-        .no-files {
-            color: var(--text-secondary);
-            text-align: center;
-            padding: 20px;
-        }
+/* Update Selected File Text Styles */
+#selectedFile,
+#editSelectedFile {
+    margin: 24px 0;  /* Adds space above and below selected file text */
+    color: var(--text-secondary);
+}
 
-        .link-text {
-            color: var(--accent-color);
-            cursor: pointer;
-            text-decoration: underline;
-        }
+/* Update preferences section spacing */
+.preferences-section {
+    margin-top: 32px;  /* Adds space above preferences section */
+}
 
-        .link-text:hover {
-            opacity: 0.8;
-        }
+.preferences-section h3 {
+    margin-bottom: 24px;  /* Adds space below preferences heading */
+}
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 
-        [style*="display: none"] {
-            display: none !important;
-        }
+/* Tag Styles */
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
 
-        .home-content {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(78, 205, 196, 0.1);
+    padding: 6px 12px;
+    border-radius: 16px;
+    color: var(--accent-color);
+    font-size: 0.9rem;
+}
 
-        .home-content h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-        }
+.tag-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-        .home-content p {
-            font-size: 1.1rem;
-            line-height: 1.6;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-        }
+/* Toggle Switch Styles */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 3px;
+    background-color: var(--text-secondary);
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--accent-color);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+    background-color: white;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.link-text {
+    color: var(--accent-color);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.link-text:hover {
+    opacity: 0.8;
+}
+.preference-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;  /* Adds space between toggle bars */
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .content-container {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: var(--sidebar-width-mobile);
+        padding: 15px 10px;
+    }
+
+    .logo span, 
+    .nav-item span {
+        display: none;
+    }
+
+    .main-content {
+        margin-left: var(--sidebar-width-mobile);
+        width: calc(100% - var(--sidebar-width-mobile));
+        padding: 20px;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    .file-item {
+        flex-direction: column;
+    }
+
+    .file-actions {
+        margin-top: 15px;
+        justify-content: flex-start;
+    }
+
+    .profile-info {
+        grid-template-columns: 1fr;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        height: 40px;
+    }
+
+    .input {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        height: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 15px;
+    }
+
+    .card {
+        padding: 15px;
+        margin: 10px 0;
+    }
+
+    .tags-container {
+        gap: 6px;
+    }
+
+    .tag {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+
+    .btn {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        height: 36px;
+    }
+}
+ 
     </style>
 </head>
 <body>
@@ -335,6 +525,10 @@
             <div class="nav-item active" onclick="handleNavClick('home')">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
+            </div>
+            <div class="nav-item" onclick="handleNavClick('profile')">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
             </div>
             <div class="nav-item" onclick="handleNavClick('upload')">
                 <i class="fas fa-cloud-upload-alt"></i>
@@ -389,16 +583,86 @@
                 </div>
                 <p style="margin-top: 15px;">Didn't receive a code? <span class="link-text" id="resendVerificationLink">Resend it</span></p>
             </div>
+            <div id="forgotPasswordContainer" class="card" style="display: none;">
+                    <h2>Reset Password</h2>
+                    <div id="resetStep1">
+                        <input type="email" id="forgotPasswordEmail" class="input" placeholder="Email">
+                        <button id="forgotPasswordBtn" class="btn btn-primary">Send Reset Code</button>
+                    </div>
+                    
+                    <div id="resetStep2" class="reset-code-container">
+                        <input type="text" id="resetCode" class="input" placeholder="Reset Code">
+                        <input type="password" id="newPassword" class="input" placeholder="New Password">
+                        <input type="password" id="confirmNewPassword" class="input" placeholder="Confirm New Password">
+                        <button id="submitResetBtn" class="btn btn-primary">Reset Password</button>
+                    </div>
+
+                    <div id="forgotPasswordError" class="error"></div>
+                    <div id="forgotPasswordSuccess" class="success"></div>
+                    <div id="forgotPasswordLoading" class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                    <p style="margin-top: 15px;">
+                        <span class="link-text" onclick="switchAuthTab('login')">Back to Login</span>
+                    </p>
+                </div>
         </div>
 
         <div id="appContainer" style="display: none;">
             <div id="homeContainer" class="card">
                 <div class="home-content">
-                    <h1>What is Versz?</h1>
-                    <p>Versz is a platform to create bio sites/pages for free. Whether you're an individual, a business, or a creator, Versz provides you with the tools to create stunning, personalized bio pages that showcase your work, your brand, or your story. With easy-to-use templates and customization options, you can create a bio page that truly represents you.</p>
-                    <p>Our platform is designed to be simple yet powerful, allowing you to focus on what matters most - your content. Whether you're sharing your portfolio, your social media links, or your latest projects, Versz makes it easy to create a professional-looking bio page in minutes.</p>
-                    <p>Get started today and create your own bio page for free!</p>
+                    <h1>Welcome to Versz</h1>
+                    <p>Create and share your bio pages easily.</p>
                 </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div id="profileSection" class="card">
+                <div class="profile-section">
+                    <h2>My Profile</h2>
+                    <div class="profile-info">
+                        <div class="profile-stat">
+                            <div class="profile-stat-label">Email</div>
+                            <div class="profile-stat-value" id="profileEmail"></div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-label">User ID</div>
+                            <div class="profile-stat-value" id="profileUserId"></div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-label">URLs</div>
+                            <div class="profile-stat-value" id="profileUrlCount"></div>
+                        </div>
+                    </div>
+                    <div class="tags-container" id="profileTags"></div>
+                </div>
+
+                <div class="preferences-section">
+                        <h3>Display Preferences</h3>
+                        <div class="preference-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="showViews">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label>Show view count</label>
+                        </div>
+                        <div class="preference-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="showUuid">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label>Show UUID</label>
+                        </div>
+                        <div class="preference-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="showTags">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label>Show tags</label>
+                        </div>
+                        <button id="savePreferences" class="btn btn-primary">Save Preferences</button>
+                    </div>
+                  </div>
             </div>
 
             <div id="uploadContainer" class="card" style="display: none;">
@@ -444,6 +708,32 @@
             </div>
         </div>
     </div>
+    
+    <div id="forgotPasswordContainer" class="card" style="display: none;">
+          <h2>Reset Password</h2>
+          <div id="resetStep1">
+              <p>Enter your email to receive a reset code</p>
+              <input type="email" id="forgotPasswordEmail" class="input" placeholder="Email">
+              <button id="forgotPasswordBtn" class="btn btn-primary">Send Reset Code</button>
+          </div>
+          
+          <div id="resetStep2" style="display: none;">
+              <p>Enter the reset code sent to your email</p>
+              <input type="text" id="resetCode" class="input" placeholder="Reset Code">
+              <input type="password" id="newPassword" class="input" placeholder="New Password">
+              <input type="password" id="confirmNewPassword" class="input" placeholder="Confirm New Password">
+              <button id="submitResetBtn" class="btn btn-primary">Reset Password</button>
+          </div>
+      
+          <div id="forgotPasswordError" class="error"></div>
+          <div id="forgotPasswordSuccess" class="success"></div>
+          <div id="forgotPasswordLoading" class="loading">
+              <div class="spinner"></div>
+          </div>
+          <p style="margin-top: 15px;">
+              <span class="link-text" onclick="switchAuthTab('login')">Back to Login</span>
+          </p>
+      </div>
 
     <script>
         const BASE_URL = 'https://versz-vs1b.onrender.com';
@@ -466,16 +756,32 @@
                 showAuth();
                 switchAuthTab('login');
             }
+            
             setupAuthEventListeners();
             setupAppEventListeners();
+            document.getElementById('forgotPasswordBtn').addEventListener('click', handlePasswordReset);
+            document.getElementById('submitResetBtn').addEventListener('click', handleResetSubmit);
+            document.getElementById('savePreferences').addEventListener('click', updateDisplayPreferences);
         });
         
         function switchTab(tab) {
-            const containers = ['homeContainer', 'uploadContainer', 'myFilesContainer', 'editContainer'];
-            containers.forEach(container => {
-                document.getElementById(container).style.display = 'none';
+            // Hide all containers first
+            const allContainers = [
+                'homeContainer',
+                'uploadContainer',
+                'myFilesContainer',
+                'editContainer',
+                'profileSection'  // Add profileSection to the list
+            ];
+            
+            allContainers.forEach(container => {
+                const element = document.getElementById(container);
+                if (element) {
+                    element.style.display = 'none';
+                }
             });
-
+            
+            // Show the selected container
             switch(tab) {
                 case 'home':
                     document.getElementById('homeContainer').style.display = 'block';
@@ -490,8 +796,12 @@
                 case 'edit':
                     document.getElementById('editContainer').style.display = 'block';
                     break;
+                case 'profile':
+                    document.getElementById('profileSection').style.display = 'block';
+                    fetchUserInfo();
+                    break;
             }
-
+        
             // Update navigation active states
             document.querySelectorAll('#app-nav .nav-item').forEach(item => {
                 item.classList.remove('active');
@@ -506,6 +816,15 @@
             switchTab('home');
         }
 
+        function showProfileSection() {
+            switchTab('profile');
+        }
+
+        function handleLogout() {
+            logout();
+        }
+
+
         function showEditForm(url, filename) {
             currentUrl = url;
             document.getElementById('editFileInfo').textContent = `Editing: ${filename}`;
@@ -519,6 +838,7 @@
 
         
 
+        
         function handleNavClick(tab) {
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('active');
@@ -527,6 +847,9 @@
             event.currentTarget.classList.add('active');
 
             switch(tab) {
+                case 'profile':
+                    switchTab('profile');
+                    break;
                 case 'login':
                     switchAuthTab('login');
                     break;
@@ -540,10 +863,33 @@
                     break;
             }
         }
-
-        function handleLogout() {
-            logout();
+        
+        function hideAllSections() {
+            const sections = ['homeContainer', 'profileSection', 'uploadContainer', 'myFilesContainer', 'editContainer'];
+            sections.forEach(section => {
+                document.getElementById(section).style.display = 'none';
+            });
         }
+        function hideAllContainers() {
+            const containers = [
+                'loginContainer',
+                'registerContainer',
+                'verifyContainer',
+                'forgotPasswordContainer',
+                'uploadContainer',
+                'myFilesContainer',
+                'editContainer',
+                'profileSection'  // Add profileSection here as well
+            ];
+            
+            containers.forEach(container => {
+                const element = document.getElementById(container);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            });
+        }
+
 
         function showAuth() {
             document.getElementById('authContainer').style.display = 'block';
@@ -551,7 +897,7 @@
             document.getElementById('auth-nav').style.display = 'block';
             document.getElementById('app-nav').style.display = 'none';
         }
-
+        
         function showApp() {
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
@@ -559,7 +905,6 @@
             document.getElementById('app-nav').style.display = 'block';
             showHomeTab();
         }
-
         function switchAuthTab(tab) {
             document.querySelectorAll('#authContainer > div').forEach(div => {
                 div.style.display = 'none';
@@ -580,32 +925,22 @@
         }
 
         function showForgotPassword() {
-            document.querySelectorAll('#authContainer > div').forEach(div => {
-                div.style.display = 'none';
-            });
-            
-            if (!document.getElementById('forgotPasswordContainer')) {
-                const container = document.createElement('div');
-                container.id = 'forgotPasswordContainer';
-                container.className = 'card';
-                container.innerHTML = `
-                    <h2>Reset Password</h2>
-                    <input type="email" id="forgotPasswordEmail" class="input" placeholder="Email">
-                    <button id="forgotPasswordBtn" class="btn btn-primary">Send Reset Link</button>
-                    <div id="forgotPasswordError" class="error"></div>
-                    <div id="forgotPasswordSuccess" class="success"></div>
-                    <div id="forgotPasswordLoading" class="loading">
-                        <div class="spinner"></div>
-                    </div>
-                    <p style="margin-top: 15px;">
-                        <span class="link-text" onclick="switchAuthTab('login')">Back to Login</span>
-                    </p>
-                `;
-                document.getElementById('authContainer').appendChild(container);
-            }
-            
-            document.getElementById('forgotPasswordContainer').style.display = 'block';
-        }
+              document.querySelectorAll('#authContainer > div').forEach(div => {
+                  div.style.display = 'none';
+              });
+              
+              // Reset the form state
+              document.getElementById('resetStep1').style.display = 'block';
+              document.getElementById('resetStep2').style.display = 'none';
+              document.getElementById('forgotPasswordError').textContent = '';
+              document.getElementById('forgotPasswordSuccess').textContent = '';
+              document.getElementById('forgotPasswordEmail').value = '';
+              document.getElementById('resetCode').value = '';
+              document.getElementById('newPassword').value = '';
+              document.getElementById('confirmNewPassword').value = '';
+              
+              document.getElementById('forgotPasswordContainer').style.display = 'block';
+          }
         function checkAuth() {
             if (!token || !isVerified) {
                 logout();
@@ -845,14 +1180,19 @@
         
         async function handlePasswordReset() {
             const email = document.getElementById('forgotPasswordEmail').value;
+            const errorElement = document.getElementById('forgotPasswordError');
+            const successElement = document.getElementById('forgotPasswordSuccess');
+            const loadingElement = document.getElementById('forgotPasswordLoading');
+            
             if (!email) {
-                document.getElementById('forgotPasswordError').textContent = 'Please enter your email';
+                errorElement.textContent = 'Please enter your email';
                 return;
             }
-
-            document.getElementById('forgotPasswordLoading').classList.add('active');
-            document.getElementById('forgotPasswordError').textContent = '';
-
+        
+            loadingElement.classList.add('active');
+            errorElement.textContent = '';
+            successElement.textContent = '';
+        
             try {
                 const response = await fetch(`${BASE_URL}/request-password-reset`, {
                     method: 'POST',
@@ -861,19 +1201,97 @@
                     },
                     body: JSON.stringify({ email })
                 });
-
+        
                 if (response.ok) {
-                    document.getElementById('forgotPasswordSuccess').textContent = 'Password reset email sent!';
+                    successElement.textContent = 'Reset code sent to your email!';
+                    // Show step 2 and hide step 1
+                    document.getElementById('resetStep1').style.display = 'none';
+                    document.getElementById('resetStep2').style.display = 'block';
                 } else {
                     const errorData = await response.json();
-                    document.getElementById('forgotPasswordError').textContent = errorData.detail || 'Failed to send reset email';
+                    errorElement.textContent = errorData.detail || 'Failed to send reset code';
                 }
             } catch (error) {
-                document.getElementById('forgotPasswordError').textContent = 'An error occurred. Please try again.';
+                errorElement.textContent = 'An error occurred. Please try again.';
+            }
+        
+            loadingElement.classList.remove('active');
+        }
+        
+        async function handleResetSubmit() {
+            const email = document.getElementById('forgotPasswordEmail').value;
+            const code = document.getElementById('resetCode').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            const errorElement = document.getElementById('forgotPasswordError');
+            const successElement = document.getElementById('forgotPasswordSuccess');
+            
+            if (!code || !newPassword || !confirmPassword) {
+                errorElement.textContent = 'Please fill all fields';
+                return;
             }
 
-            document.getElementById('forgotPasswordLoading').classList.remove('active');
+            if (newPassword !== confirmPassword) {
+                errorElement.textContent = 'Passwords do not match';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        reset_code: code,
+                        new_password: newPassword
+                    })
+                });
+
+                if (response.ok) {
+                    successElement.textContent = 'Password reset successfully!';
+                    setTimeout(() => {
+                        switchAuthTab('login');
+                    }, 2000);
+                } else {
+                    const errorData = await response.json();
+                    errorElement.textContent = errorData.detail || 'Failed to reset password';
+                }
+            } catch (error) {
+                errorElement.textContent = 'An error occurred. Please try again.';
+            }
         }
+        
+        async function updateDisplayPreferences() {
+            const showViews = document.getElementById('showViews').checked;
+            const showUuid = document.getElementById('showUuid').checked;
+            const showTags = document.getElementById('showTags').checked;
+
+            try {
+                const response = await fetch(`${BASE_URL}/preferences`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        show_views: showViews,
+                        show_uuid: showUuid,
+                        show_tags: showTags
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Preferences updated successfully!');
+                } else {
+                    alert('Failed to update preferences');
+                }
+            } catch (error) {
+                alert('An error occurred while updating preferences');
+            }
+        }
+
 
         function setupAppEventListeners() {
             document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -1038,15 +1456,28 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    const userInfoContainer = document.createElement('div');
-                    userInfoContainer.className = 'user-info';
-                    userInfoContainer.innerHTML = `
-                        <div>Email: ${data.email}</div>
-                        <div>User Number: #${data.user_number}</div>
-                        <div>URLs: ${data.url_count}/10</div>
-                        <div class="tags-container">Tags: ${renderTags(data.tags)}</div>
-                    `;
-                    document.getElementById('homeContainer').appendChild(userInfoContainer);
+                    
+                    // Update profile information
+                    document.getElementById('profileEmail').textContent = data.email;
+                    document.getElementById('profileUserId').textContent = data.user_number ? `#${data.user_number}` : 'N/A';
+                    document.getElementById('profileUrlCount').textContent = `${data.url_count}/10`;
+
+                    // Update tags
+                    const tagsContainer = document.getElementById('profileTags');
+                    tagsContainer.innerHTML = data.tags?.length ? 
+                        data.tags.map(tag => `
+                            <div class="tag">
+                                ${processTagIcon(tag.icon)}
+                                <span>${tag.text}</span>
+                            </div>
+                        `).join('') : 
+                        '<div class="tag">No tags yet</div>';
+
+                    // Update preferences
+                    const preferences = data.display_preferences || {};
+                    document.getElementById('showViews').checked = preferences.show_views ?? true;
+                    document.getElementById('showUuid').checked = preferences.show_uuid ?? true;
+                    document.getElementById('showTags').checked = preferences.show_tags ?? true;
                 } else {
                     if (response.status === 401) {
                         logout();
@@ -1056,6 +1487,7 @@
                 console.error('Failed to fetch user info:', error);
             }
         }
+        
         function renderTags(tags) {
             if (!tags || tags.length === 0) return 'No tags';
             return tags.map(tag => `
@@ -1193,17 +1625,36 @@
         }
 
         function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('userEmail');
-            localStorage.removeItem('isVerified');
-            token = null;
-            userId = null;
-            userEmail = null;
-            isVerified = false;
-            showAuth();
-            switchAuthTab('login');
-        }
+          localStorage.removeItem('token');
+          localStorage.removeItem('userId');
+          localStorage.removeItem('userEmail');
+          localStorage.removeItem('isVerified');
+          token = null;
+          userId = null;
+          userEmail = null;
+          isVerified = false;
+          
+          // Clear any sensitive data from the UI
+          document.getElementById('loginEmail').value = '';
+          document.getElementById('loginPassword').value = '';
+          document.getElementById('registerEmail').value = '';
+          document.getElementById('registerPassword').value = '';
+          document.getElementById('confirmPassword').value = '';
+          
+          // Reset the password reset form
+          if (document.getElementById('resetStep1')) {
+              document.getElementById('resetStep1').style.display = 'block';
+              document.getElementById('resetStep2').style.display = 'none';
+              document.getElementById('forgotPasswordEmail').value = '';
+              document.getElementById('resetCode').value = '';
+              document.getElementById('newPassword').value = '';
+              document.getElementById('confirmNewPassword').value = '';
+          }
+          
+          showAuth();
+          switchAuthTab('login');
+      }
+
     </script>
 </body>
 </html>
