@@ -611,7 +611,7 @@ async def resend_verification(
         await db.verification.delete_one({"email": email})
         
         verification_token = secrets.token_urlsafe(32)
-        verification_link = f"{settings.API_URL}/verify?token={verification_token}"
+        verification_link = f"https://versz.fun/verify?token={verification_token}"
         
         await db.verification.insert_one({
             "user_id": user_id,
