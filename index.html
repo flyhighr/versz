@@ -558,31 +558,19 @@ label[for="editFileInput"] {
                 </div>
                 <p style="margin-top: 15px;">Forgot your password? <span class="link-text" onclick="showForgotPassword()">Reset it here</span></p>
             </div>
-            
+        
             <div id="registerContainer" class="card" style="display: none;">
                 <h2>Create Account</h2>
                 <input type="email" id="registerEmail" class="input" placeholder="Email">
                 <input type="password" id="registerPassword" class="input" placeholder="Password">
                 <input type="password" id="confirmPassword" class="input" placeholder="Confirm Password">
                 <button id="registerBtn" class="btn btn-primary">Register</button>
-                <div id="registerError" class="error"></div>
                 <div id="registerLoading" class="loading">
                     <div class="spinner"></div>
                 </div>
             </div>
             
-            <div id="verifyContainer" class="card" style="display: none;">
-                <h2>Verify Your Email</h2>
-                <p>Please enter the verification code sent to your email.</p>
-                <input type="text" id="verificationCode" class="input" placeholder="Verification Code">
-                <button id="verifyBtn" class="btn btn-primary">Verify</button>
-                <div id="verifyError" class="error"></div>
-                <div id="verifySuccess" class="success"></div>
-                <div id="verifyLoading" class="loading">
-                    <div class="spinner"></div>
-                </div>
-                <p style="margin-top: 15px;">Didn't receive a code? <span class="link-text" id="resendVerificationLink">Resend it</span></p>
-            </div>
+            
             <div id="forgotPasswordContainer" class="card" style="display: none;">
                     <h2>Reset Password</h2>
                     <div id="resetStep1">
@@ -1044,17 +1032,14 @@ label[for="editFileInput"] {
                     }
                     
                     const data = await response.json();
-                    
                     if (response.ok) {
-                        showVerifyEmail();
-                        localStorage.setItem('userId', data.id);
-                        localStorage.setItem('userEmail', data.email);
-                        userEmail = data.email;
-                        
-                        document.getElementById('registerEmail').value = '';
-                        document.getElementById('registerPassword').value = '';
-                        document.getElementById('confirmPassword').value = '';
+                        document.getElementById('registerSuccess').textContent = 
+                            'We have sent you a verification link. Please check your email to verify your account.';
+                        setTimeout(() => {
+                            switchAuthTab('login');
+                        }, 3000);
                     }
+                    
                 } catch (error) {
                     console.error('Registration error:', error);
                     errorElement.textContent = error.message || 'A network error occurred. Please check your connection and try again.';
@@ -1065,49 +1050,6 @@ label[for="editFileInput"] {
             });
             
             
-            document.getElementById('verifyBtn').addEventListener('click', async function() {
-                const code = document.getElementById('verificationCode').value;
-                
-                if (!code) {
-                    document.getElementById('verifyError').textContent = 'Please enter verification code';
-                    return;
-                }
-                
-                document.getElementById('verifyLoading').classList.add('active');
-                document.getElementById('verifyError').textContent = '';
-                document.getElementById('verifySuccess').textContent = '';
-                
-                try {
-                    const formData = new FormData();
-                    formData.append('email', userEmail);
-                    formData.append('code', code);
-                    
-                    const response = await fetch(`${BASE_URL}/verify-email`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        document.getElementById('verifySuccess').textContent = 'Email verified successfully!';
-                        localStorage.setItem('isVerified', 'true');
-                        isVerified = true;
-                        
-                        setTimeout(() => {
-                            showApp();
-                            showHomeTab();
-                            fetchUserFiles();
-                        }, 1500);
-                    } else {
-                        document.getElementById('verifyError').textContent = data.detail || 'Verification failed';
-                    }
-                } catch (error) {
-                    document.getElementById('verifyError').textContent = 'An error occurred. Please try again.';
-                }
-                
-                document.getElementById('verifyLoading').classList.remove('active');
-            });
             
             document.getElementById('resendVerificationLink').addEventListener('click', async function() {
                 document.getElementById('verifyLoading').classList.add('active');
