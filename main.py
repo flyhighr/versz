@@ -250,13 +250,12 @@ def get_password_hash(password: str) -> str:
         
 async def send_email_async(to_email: str, subject: str, html_content: str) -> bool:
     try:
-        msg = EmailMessage()
-        msg.set_content(html_content.replace('<br>', '\n'), subtype='html')
-        
-        msg['Subject'] = subject
+        msg = MIMEMultipart()
         msg['From'] = settings.EMAIL_FROM
         msg['To'] = to_email
-        
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_content, 'html'))
+
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -269,12 +268,11 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
             except Exception as e:
                 if attempt == max_retries - 1:
                     raise
-                await asyncio.sleep(1 * (attempt + 1)) 
+                await asyncio.sleep(1 * (attempt + 1))
                 
     except Exception as e:
         logger.error(f"Error sending email to {to_email}: {str(e)}")
         return False
-
 
 async def get_user(email: str) -> Optional[Dict[str, Any]]:
     cache_key = f"user:{email}"
@@ -426,162 +424,161 @@ async def register_user(
     password: str = Body(...)
 ) -> Dict[str, Any]:
     try:
-        try:
-            user = UserCreate(email=email, password=password)
-        except ValidationError as ve:
+        user = UserCreate(email=email, password=password)
+    except ValidationError as ve:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(ve)}
+        )
+    
+    async with get_database() as db:
+        user_number = await get_next_user_number(db)
+        
+        existing_user = await db.users.find_one({"email": user.email})
+        if existing_user:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content={"detail": str(ve)}
+                content={"detail": "Email already registered"}
             )
         
-        async with get_database() as db:
-            user_number = await get_next_user_number(db)
-            
-            existing_user = await db.users.find_one({"email": user.email})
-            if existing_user:
+        existing_pending = await db.pending_users.find_one({"email": user.email})
+        if existing_pending:
+            if existing_pending["expires_at"] < datetime.utcnow():
+                await db.pending_users.delete_one({"email": user.email})
+                await db.verification.delete_one({"email": user.email})
+            else:
                 return JSONResponse(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    content={"detail": "Email already registered"}
+                    status_code=status.HTTP_400_BROKEN,
+                    content={
+                        "detail": "You have a pending registration. Please complete email verification or wait for it to expire before registering again.",
+                        "status": "pending_verification"
+                    }
                 )
-            
-            existing_pending = await db.pending_users.find_one({"email": user.email})
-            if existing_pending:
-                if existing_pending["expires_at"] < datetime.utcnow():
-                    await db.pending_users.delete_one({"email": user.email})
-                    await db.verification.delete_one({"email": user.email})
-                else:
-                    return JSONResponse(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        content={
-                            "detail": "You have a pending registration. Please complete email verification or wait for it to expire before registering again.",
-                            "status": "pending_verification"
-                        }
-                    )
-            
-            user_id = str(user_number)
-            
-            verification_token = secrets.token_urlsafe(32)
-            verification_link = f"{settings.API_URL}/verify?token={verification_token}"
-            
-            pending_user_data = {
-                "id": user_id,
-                "user_number": user_number,
-                "email": user.email,
-                "hashed_password": get_password_hash(user.password),
-                "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(hours=1),
-                "tags": [],
-                "display_preferences": {
-                    "show_views": True,
-                    "show_uuid": True,
-                    "show_tags": True
-                }
+        
+        user_id = str(user_number)
+        
+        verification_token = secrets.token_urlsafe(32)
+        verification_link = f"{settings.API_URL}/verify?token={verification_token}"
+        
+        pending_user_data = {
+            "id": user_id,
+            "user_number": user_number,
+            "email": user.email,
+            "hashed_password": get_password_hash(user.password),
+            "created_at": datetime.utcnow(),
+            "expires_at": datetime.utcnow() + timedelta(hours=1),
+            "tags": [],
+            "display_preferences": {
+                "show_views": True,
+                "show_uuid": True,
+                "show_tags": True
             }
-            
-            verification_email = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    body {{
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        line-height: 1.6;
-                        color: #333333;
-                        margin: 0;
-                        padding: 0;
-                        background-color: #f5f5f5;
-                    }}
-                    .container {{
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 40px 20px;
-                        background-color: #ffffff;
-                        border-radius: 8px;
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    }}
-                    .header {{
-                        text-align: center;
-                        padding-bottom: 20px;
-                        border-bottom: 1px solid #eeeeee;
-                    }}
-                    .content {{
-                        padding: 30px 0;
-                    }}
-                    .button {{
-                        display: inline-block;
-                        padding: 10px 20px;
-                        background-color: #4ecdc4;
-                        color: white;
-                        text-decoration: none;
-                        border-radius: 5px;
-                        text-align: center;
-                        margin: 20px 0;
-                    }}
-                    .footer {{
-                        text-align: center;
-                        color: #666666;
-                        font-size: 14px;
-                        border-top: 1px solid #eeeeee;
-                        padding-top: 20px;
-                    }}
-                    .warning {{
-                        color: #856404;
-                        background-color: #fff3cd;
-                        padding: 10px;
-                        border-radius: 4px;
-                        margin-top: 20px;
-                        font-size: 14px;
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>Verify Your Email Address</h1>
-                    </div>
-                    <div class="content">
-                        <p>Thank you for registering! Please click the link below to verify your email:</p>
-                        <a href="{verification_link}" class="button">Verify Email</a>
-                        <p>This link will expire in 1 hour.</p>
-                        <div class="warning">
-                            Your registration will be canceled if you don't verify within 1 hour(s).
-                        </div>
-                    </div>
-                    <div class="footer">
-                        <p>This is an automated message, please do not reply to this email.</p>
+        }
+        
+        verification_email = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f5f5f5;
+                }}
+                .container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 40px 20px;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }}
+                .header {{
+                    text-align: center;
+                    padding-bottom: 20px;
+                    border-bottom: 1px solid #eeeeee;
+                }}
+                .content {{
+                    padding: 30px 0;
+                }}
+                .button {{
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #4ecdc4;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    text-align: center;
+                    margin: 20px 0;
+                }}
+                .footer {{
+                    text-align: center;
+                    color: #666666;
+                    font-size: 14px;
+                    border-top: 1px solid #eeeeee;
+                    padding-top: 20px;
+                }}
+                .warning {{
+                    color: #856404;
+                    background-color: #fff3cd;
+                    padding: 10px;
+                    border-radius: 4px;
+                    margin-top: 20px;
+                    font-size: 14px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Verify Your Email Address</h1>
+                </div>
+                <div class="content">
+                    <p>Thank you for registering! Please click the link below to verify your email:</p>
+                    <a href="{verification_link}" class="button">Verify Email</a>
+                    <p>This link will expire in 1 hour.</p>
+                    <div class="warning">
+                        Your registration will be canceled if you don't verify within 1 hour(s).
                     </div>
                 </div>
-            </body>
-            </html>
-            """
-            
-            await db.pending_users.insert_one(pending_user_data)
-            await db.verification.insert_one({
-                "user_id": user_id,
-                "email": user.email,
-                "token": verification_token,
-                "expires_at": datetime.utcnow() + timedelta(hours=1)
-            })
-            
-            background_tasks.add_task(
-                send_email_async,
-                user.email,
-                "Verify Your Email",
-                verification_email
-            )
-            
-            return {
-                "id": user_id,
-                "user_number": user_number,
-                "email": user.email,
-                "is_verified": False,
-                "url_count": 0,
-                "tags": [],
-                "display_preferences": DisplayPreferences()
-            }
-            
+                <div class="footer">
+                    <p>This is an automated message, please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        await db.pending_users.insert_one(pending_user_data)
+        await db.verification.insert_one({
+            "user_id": user_id,
+            "email": user.email,
+            "token": verification_token,
+            "expires_at": datetime.utcnow() + timedelta(hours=1)
+        })
+        
+        background_tasks.add_task(
+            send_email_async,
+            user.email,
+            "Verify Your Email",
+            verification_email
+        )
+        
+        return {
+            "id": user_id,
+            "user_number": user_number,
+            "email": user.email,
+            "is_verified": False,
+            "url_count": 0,
+            "tags": [],
+            "display_preferences": DisplayPreferences()
+        }
+        
     except Exception as e:
         logger.error(f"Registration error: {str(e)}")
         return JSONResponse(
