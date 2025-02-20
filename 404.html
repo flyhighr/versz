@@ -66,6 +66,45 @@
             padding: 20px;
         }
 
+        .verify-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-dark);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .verify-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            color: var(--text-light);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .verify-message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .verify-message.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #81c784;
+        }
+
+        .verify-message.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #e57373;
+        }
+
         .error-container h1 {
             font-size: 4rem;
             margin-bottom: 1rem;
@@ -236,6 +275,18 @@
     <div id="loading" class="loading">
         <div class="spinner"></div>
     </div>
+
+    <div id="verifyContainer" class="verify-container">
+        <div class="verify-box">
+            <h2>Email Verification</h2>
+            <div id="verifySpinner" class="spinner"></div>
+            <div id="verifyMessage" class="verify-message"></div>
+            <button id="loginButton" class="back-btn" style="display: none;" onclick="window.location.href='/'">
+                Go to Login
+            </button>
+        </div>
+    </div>
+
     <div id="error" class="error-container">
         <h1 id="errorCode">404</h1>
         <p id="errorMessage">Page not found</p>
@@ -244,6 +295,7 @@
         </div>
         <a href="/" class="back-btn">Go Back</a>
     </div>
+
     <div class="info-container">
         <div id="viewContainer" class="info-item" style="display: none">
             <span class="info-icon">
@@ -261,8 +313,9 @@
             <div class="tags-container"></div>
         </div>
     </div>
-    </div>
+
     <div id="appContent"></div>
+
     <script>
         const API_URL = 'https://versz-vs1b.onrender.com/file/';
         const cache = new Map();
@@ -295,6 +348,41 @@
                 });
             }
         });
+
+        async function handleVerification() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            
+            if (token) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('verifyContainer').style.display = 'flex';
+                const verifyMessage = document.getElementById('verifyMessage');
+                const verifySpinner = document.getElementById('verifySpinner');
+                const loginButton = document.getElementById('loginButton');
+
+                try {
+                    const response = await fetch(`${API_URL}verify?token=${token}`);
+                    const data = await response.json();
+
+                    verifySpinner.style.display = 'none';
+                    
+                    if (response.ok) {
+                        verifyMessage.className = 'verify-message success';
+                        verifyMessage.textContent = 'Email verified successfully! You can now login.';
+                    } else {
+                        verifyMessage.className = 'verify-message error';
+                        verifyMessage.textContent = data.detail || 'Verification failed. Please try again.';
+                    }
+                    
+                    loginButton.style.display = 'inline-block';
+                } catch (error) {
+                    verifySpinner.style.display = 'none';
+                    verifyMessage.className = 'verify-message error';
+                    verifyMessage.textContent = 'An error occurred during verification. Please try again.';
+                    loginButton.style.display = 'inline-block';
+                }
+            }
+        }
 
         async function fetchWithTimeout(resource, options = {}) {
             const timeout = options.timeout || 5000;
@@ -372,21 +460,27 @@
         }
 
         async function loadContent() {
-            const url = window.location.pathname.substring(1);
-            if (!url) {
+            const path = window.location.pathname.substring(1);
+            
+            if (path === 'verify') {
+                await handleVerification();
+                return;
+            }
+
+            if (!path) {
                 showError(404, 'Page not found');
                 return;
             }
 
             try {
-                if (cache.has(url)) {
-                    const cachedContent = cache.get(url);
-                    await renderContent(cachedContent.content);
+                if (cache.has(path)) {
+                    const cachedContent = cache.get(path);
+                                        await renderContent(cachedContent.content);
                     updateInfoDisplay(cachedContent);
                     return;
                 }
 
-                const response = await fetchWithTimeout(`${API_URL}${url}`);
+                const response = await fetchWithTimeout(`${API_URL}${path}`);
 
                 if (!response.ok) {
                     if (response.status === 429) {
@@ -397,7 +491,7 @@
                 }
 
                 const data = await response.json();
-                cache.set(url, data);
+                cache.set(path, data);
                 await renderContent(data.content);
                 updateInfoDisplay(data);
             } catch (err) {
@@ -418,7 +512,8 @@
 
             const scripts = Array.from(doc.getElementsByTagName('script'));
             await Promise.all(scripts.map(script => {
-                if (script.src) { return new Promise((resolve, reject) => {
+                if (script.src) {
+                    return new Promise((resolve, reject) => {
                         const newScript = document.createElement('script');
                         newScript.src = script.src;
                         newScript.onload = resolve;
