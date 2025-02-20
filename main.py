@@ -426,9 +426,9 @@ async def register_user(
     try:
         user = UserCreate(email=email, password=password)
     except ValidationError as ve:
-        return JSONResponse(
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"detail": str(ve)}
+            detail=str(ve)
         )
     
     async with get_database() as db:
@@ -436,9 +436,9 @@ async def register_user(
         
         existing_user = await db.users.find_one({"email": user.email})
         if existing_user:
-            return JSONResponse(
+            raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content={"detail": "Email already registered"}
+                detail="Email already registered"
             )
         
         existing_pending = await db.pending_users.find_one({"email": user.email})
@@ -447,10 +447,10 @@ async def register_user(
                 await db.pending_users.delete_one({"email": user.email})
                 await db.verification.delete_one({"email": user.email})
             else:
-                return JSONResponse(
-                    status_code=status.HTTP_400_BROKEN,
-                    content={
-                        "detail": "You have a pending registration. Please complete email verification or wait for it to expire before registering again.",
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "message": "You have a pending registration. Please complete email verification or wait for it to expire before registering again.",
                         "status": "pending_verification"
                     }
                 )
@@ -578,13 +578,6 @@ async def register_user(
             "tags": [],
             "display_preferences": DisplayPreferences()
         }
-        
-    except Exception as e:
-        logger.error(f"Registration error: {str(e)}")
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "Registration failed. Please try again."}
-        )
 
 @app.post("/resend-verification")
 @limiter.limit(RateLimits.AUTH_LIMIT)
