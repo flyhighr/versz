@@ -587,25 +587,34 @@ async def resend_verification(
     email: EmailStr = Form(...)
 ):
     async with get_database() as db:
+        # Check both users and pending_users collections
         user = await db.users.find_one({"email": email})
-        if not user:
+        pending_user = await db.pending_users.find_one({"email": email})
+        
+        if not user and not pending_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
         
-        if user.get("is_verified", False):
+        if user and user.get("is_verified", False):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already verified"
             )
         
+        # Use the appropriate user data
+        user_data = user or pending_user
+        user_id = user_data["id"]
+        
+        # Delete any existing verification tokens
         await db.verification.delete_one({"email": email})
+        
         verification_token = secrets.token_urlsafe(32)
         verification_link = f"{settings.API_URL}/verify?token={verification_token}"
         
         await db.verification.insert_one({
-            "user_id": user["id"],
+            "user_id": user_id,
             "email": email,
             "token": verification_token,
             "expires_at": datetime.utcnow() + timedelta(hours=1)
@@ -698,7 +707,6 @@ async def resend_verification(
         )
         
         return {"message": "Verification email sent"}
-
 @app.get("/verify")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def verify_email(request: Request, token: str):
