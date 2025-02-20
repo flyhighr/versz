@@ -460,8 +460,8 @@ async def register_user(
             
             user_id = str(user_number)
             
-            verification_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) 
-                                      for _ in range(6))
+            verification_token = secrets.token_urlsafe(32)
+            verification_link = f"{settings.API_URL}/verify?token={verification_token}"
             
             pending_user_data = {
                 "id": user_id,
@@ -506,30 +506,18 @@ async def register_user(
                         padding-bottom: 20px;
                         border-bottom: 1px solid #eeeeee;
                     }}
-                    .logo {{
-                        width: 120px;
-                        height: auto;
-                        margin-bottom: 20px;
-                    }}
-                    h1 {{
-                        color: #2c3e50;
-                        font-size: 24px;
-                        margin: 0;
-                        padding: 0;
-                    }}
                     .content {{
                         padding: 30px 0;
                     }}
-                    .code {{
-                        background-color: #f8f9fa;
-                        color: #2c3e50;
-                        font-size: 32px;
-                        font-weight: bold;
+                    .button {{
+                        display: inline-block;
+                        padding: 10px 20px;
+                        background-color: #4ecdc4;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
                         text-align: center;
-                        padding: 20px;
                         margin: 20px 0;
-                        border-radius: 4px;
-                        letter-spacing: 5px;
                     }}
                     .footer {{
                         text-align: center;
@@ -554,9 +542,9 @@ async def register_user(
                         <h1>Verify Your Email Address</h1>
                     </div>
                     <div class="content">
-                        <p>Thank you for registering! Please use the following verification code to complete your registration:</p>
-                        <div class="code">{verification_code}</div>
-                        <p>This code will expire in 1 hour.</p>
+                        <p>Thank you for registering! Please click the link below to verify your email:</p>
+                        <a href="{verification_link}" class="button">Verify Email</a>
+                        <p>This link will expire in 1 hour.</p>
                         <div class="warning">
                             Your registration will be canceled if you don't verify within 1 hour(s).
                         </div>
@@ -573,7 +561,7 @@ async def register_user(
             await db.verification.insert_one({
                 "user_id": user_id,
                 "email": user.email,
-                "code": verification_code,
+                "token": verification_token,
                 "expires_at": datetime.utcnow() + timedelta(hours=1)
             })
             
@@ -601,48 +589,6 @@ async def register_user(
             content={"detail": "Registration failed. Please try again."}
         )
 
-@app.post("/verify-email")
-@limiter.limit(RateLimits.AUTH_LIMIT)
-async def verify_email(request: Request, email: EmailStr = Form(...), code: str = Form(...)):
-    async with get_database() as db:
-        verification = await db.verification.find_one({
-            "email": email,
-            "code": code,
-            "expires_at": {"$gt": datetime.utcnow()}
-        })
-        
-        if not verification:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired verification code"
-            )
-        
-        pending_user = await db.pending_users.find_one({"email": email})
-        if not pending_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Registration expired or not found"
-            )
-        
-        user_data = {
-            "id": pending_user["id"],
-            "user_number": pending_user["user_number"],
-            "email": email,
-            "hashed_password": pending_user["hashed_password"],
-            "is_active": True,
-            "is_verified": True,
-            "created_at": pending_user["created_at"],
-            "tags": [],
-            "display_preferences": pending_user["display_preferences"]
-        }
-        
-        await db.users.insert_one(user_data)
-        await db.pending_users.delete_one({"email": email})
-        await db.verification.delete_one({"email": email})
-        await user_cache.delete(f"user:{email}")
-        
-        return {"message": "Email verified successfully"}
-
 @app.post("/resend-verification")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def resend_verification(
@@ -665,13 +611,13 @@ async def resend_verification(
             )
         
         await db.verification.delete_one({"email": email})
-        verification_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) 
-                                  for _ in range(6))
+        verification_token = secrets.token_urlsafe(32)
+        verification_link = f"{settings.API_URL}/verify?token={verification_token}"
         
         await db.verification.insert_one({
             "user_id": user["id"],
             "email": email,
-            "code": verification_code,
+            "token": verification_token,
             "expires_at": datetime.utcnow() + timedelta(hours=1)
         })
         
@@ -703,30 +649,18 @@ async def resend_verification(
                     padding-bottom: 20px;
                     border-bottom: 1px solid #eeeeee;
                 }}
-                .logo {{
-                    width: 120px;
-                    height: auto;
-                    margin-bottom: 20px;
-                }}
-                h1 {{
-                    color: #2c3e50;
-                    font-size: 24px;
-                    margin: 0;
-                    padding: 0;
-                }}
                 .content {{
                     padding: 30px 0;
                 }}
-                .code {{
-                    background-color: #f8f9fa;
-                    color: #2c3e50;
-                    font-size: 32px;
-                    font-weight: bold;
+                .button {{
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #4ecdc4;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
                     text-align: center;
-                    padding: 20px;
                     margin: 20px 0;
-                    border-radius: 4px;
-                    letter-spacing: 5px;
                 }}
                 .footer {{
                     text-align: center;
@@ -734,6 +668,14 @@ async def resend_verification(
                     font-size: 14px;
                     border-top: 1px solid #eeeeee;
                     padding-top: 20px;
+                }}
+                .warning {{
+                    color: #856404;
+                    background-color: #fff3cd;
+                    padding: 10px;
+                    border-radius: 4px;
+                    margin-top: 20px;
+                    font-size: 14px;
                 }}
             </style>
         </head>
@@ -743,9 +685,12 @@ async def resend_verification(
                     <h1>Verify Your Email Address</h1>
                 </div>
                 <div class="content">
-                    <p>Here's your new verification code:</p>
-                    <div class="code">{verification_code}</div>
-                    <p>This code will expire in 1 hour.</p>
+                    <p>Here's your new verification link:</p>
+                    <a href="{verification_link}" class="button">Verify Email</a>
+                    <p>This link will expire in 1 hour.</p>
+                    <div class="warning">
+                        Please verify your email within 1 hour to complete the registration process.
+                    </div>
                 </div>
                 <div class="footer">
                     <p>This is an automated message, please do not reply to this email.</p>
@@ -763,6 +708,46 @@ async def resend_verification(
         )
         
         return {"message": "Verification email sent"}
+
+@app.get("/verify")
+@limiter.limit(RateLimits.AUTH_LIMIT)
+async def verify_email(request: Request, token: str):
+    async with get_database() as db:
+        verification = await db.verification.find_one({
+            "token": token,
+            "expires_at": {"$gt": datetime.utcnow()}
+        })
+        if not verification:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification link"
+            )
+            
+        pending_user = await db.pending_users.find_one({"email": verification["email"]})
+        if not pending_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Registration expired or not found"
+            )
+            
+        user_data = {
+            "id": pending_user["id"],
+            "user_number": pending_user["user_number"],
+            "email": verification["email"],
+            "hashed_password": pending_user["hashed_password"],
+            "is_active": True,
+            "is_verified": True,
+            "created_at": pending_user["created_at"],
+            "tags": [],
+            "display_preferences": pending_user["display_preferences"]
+        }
+        
+        await db.users.insert_one(user_data)
+        await db.pending_users.delete_one({"email": verification["email"]})
+        await db.verification.delete_one({"email": verification["email"]})
+        await user_cache.delete(f"user:{verification['email']}")
+        
+        return {"message": "Email verified successfully"}
 
 @app.post("/token")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -975,6 +960,8 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             })
         }
 
+RESERVED_WORDS = ["verify", "privacy", "terms", "login", "register", "admin"]
+
 @app.post("/upload")
 @limiter.limit(RateLimits.UPLOAD_LIMIT)
 async def upload_file(
@@ -984,6 +971,7 @@ async def upload_file(
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
+        # Check user's URL quota
         url_count = await db.files.count_documents({"user_id": current_user["id"]})
         if url_count >= settings.MAX_URLS_PER_USER:
             raise HTTPException(
@@ -991,6 +979,7 @@ async def upload_file(
                 detail=f"You have reached the maximum limit of {settings.MAX_URLS_PER_USER} URLs"
             )
         
+        # Validate file size
         content = await file.read()
         if len(content) > settings.MAX_FILE_SIZE:
             raise HTTPException(
@@ -998,13 +987,23 @@ async def upload_file(
                 detail="File too large"
             )
         
+        # Validate file type
         if not file.filename.endswith('.html'):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Only HTML files are allowed"
             )
         
+        # Handle custom URL
         if custom_url:
+            # Check for reserved words
+            if custom_url.lower() in RESERVED_WORDS:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This URL is reserved and cannot be used"
+                )
+            
+            # Check URL availability
             if await db.files.find_one({"url": custom_url}):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -1014,6 +1013,7 @@ async def upload_file(
         else:
             url = await generate_unique_url()
         
+        # Prepare and store document
         document = {
             "url": url,
             "content": Binary(content),
@@ -1022,6 +1022,7 @@ async def upload_file(
             "user_id": current_user["id"]
         }
         
+        # Insert file and initialize view counter
         await db.files.insert_one(document)
         await db.views.insert_one({
             "url": url,
