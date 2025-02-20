@@ -458,7 +458,7 @@ async def register_user(
         user_id = str(user_number)
         
         verification_token = secrets.token_urlsafe(32)
-        verification_link = f"{settings.API_URL}/verify?token={verification_token}"
+        verification_link = f"https://versz.fun/verify?token={verification_token}"
         
         pending_user_data = {
             "id": user_id,
