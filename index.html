@@ -582,6 +582,226 @@ input:checked + .toggle-slider:before {
         padding: 1.5rem;
     }
 }
+
+.editor-content {
+    display: flex;
+    gap: 2rem;
+    height: calc(100vh - 200px);
+    overflow: hidden;
+}
+
+.editor-sidebar {
+    flex: 0 0 300px;
+    overflow-y: auto;
+    padding-right: 1rem;
+}
+
+.editor-preview {
+    flex: 1;
+    background: var(--card-bg);
+    border-radius: var(--card-border-radius);
+    overflow: hidden;
+}
+
+.editor-preview iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+}
+
+.editor-section {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: var(--card-border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.editor-section h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.input-group {
+    margin-bottom: 1rem;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.social-link-item {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+
+.social-link-item .input {
+    margin-bottom: 0;
+}
+
+.social-link-item .remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.social-link-item .remove-btn:hover {
+    color: #ef4444;
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.editor-actions .btn {
+    width: auto;
+}
+@media (max-width: 768px) {
+    .editor-content {
+        flex-direction: column;
+        height: auto;
+        gap: 1rem;
+    }
+
+    .editor-sidebar {
+        flex: none;
+        width: 100%;
+        max-height: 50vh;
+        overflow-y: auto;
+        padding-right: 0;
+    }
+
+    .editor-preview {
+        flex: none;
+        height: 50vh;
+    }
+
+    .editor-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .editor-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .editor-actions .btn {
+        flex: 1;
+        min-width: 120px;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .editor-section {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .input-group {
+        margin-bottom: 0.75rem;
+    }
+
+    .social-link-item {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .social-link-item .input {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .social-link-item .remove-btn {
+        padding: 0.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .editor-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .editor-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.5rem;
+        min-width: 100px;
+    }
+
+    .editor-section h3 {
+        font-size: 1rem;
+    }
+
+    .input-group label {
+        font-size: 0.9rem;
+    }
+
+    .input {
+        font-size: 0.9rem;
+        padding: 0.75rem;
+    }
+
+    .social-link-item {
+        margin-bottom: 0.75rem;
+    }
+
+    .social-link-item .input {
+        min-width: 150px;
+    }
+
+    .editor-preview {
+        height: 40vh;
+    }
+
+    .editor-sidebar {
+        max-height: 45vh;
+    }
+}
+
+/* Add smooth scrolling for better mobile experience */
+.editor-sidebar {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) var(--card-bg);
+}
+
+/* Custom scrollbar for WebKit browsers */
+.editor-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.editor-sidebar::-webkit-scrollbar-track {
+    background: var(--card-bg);
+}
+
+.editor-sidebar::-webkit-scrollbar-thumb {
+    background-color: var(--accent-color);
+    border-radius: 3px;
+}
+
+/* Improve touch targets on mobile */
+.social-link-item .remove-btn,
+.editor-actions .btn,
+.input,
+select {
+    min-height: 44px;
+}
     </style>
 </head>
 <body>
@@ -606,6 +826,10 @@ input:checked + .toggle-slider:before {
             <div class="nav-item active" onclick="handleNavClick('home')">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
+            </div>
+                        <div class="nav-item" onclick="handleNavClick('editor')">
+                <i class="fas fa-code"></i>
+                <span>Editor</span>
             </div>
             <div class="nav-item" onclick="handleNavClick('profile')">
                 <i class="fas fa-user"></i>
@@ -684,6 +908,114 @@ input:checked + .toggle-slider:before {
                     <p>Create and share your bio pages easily.</p>
                 </div>
             </div>
+            <div id="editorContainer" class="card" style="display: none;">
+              <div class="editor-header">
+                  <h2>Bio Page Editor</h2>
+                  <div class="editor-actions">
+                      <button class="btn btn-primary" onclick="previewChanges()">
+                          <i class="fas fa-eye"></i> Preview
+                      </button>
+                      <button class="btn btn-primary" onclick="downloadHTML()">
+                          <i class="fas fa-download"></i> Download
+                      </button>
+                      <button class="btn btn-primary" onclick="uploadFromEditor()">
+                          <i class="fas fa-cloud-upload-alt"></i> Upload
+                      </button>
+                  </div>
+              </div>
+              
+              <div class="editor-content">
+                  <div class="editor-sidebar">
+                      <div class="editor-section">
+                          <h3>General Settings</h3>
+                          <div class="input-group">
+                              <label>Profile Name</label>
+                              <input type="text" id="profileNameInput" class="input" value="Flyhigh">
+                          </div>
+                          <div class="input-group">
+                              <label>Bio Text</label>
+                              <textarea id="bioTextInput" class="input">no enemies</textarea>
+                          </div>
+                          <div class="input-group">
+                              <label>Background Type</label>
+                              <select id="bgTypeSelect" class="input" onchange="toggleBackgroundInputs()">
+                                  <option value="video">Video</option>
+                                  <option value="image">Image</option>
+                              </select>
+                          </div>
+                          <div id="bgVideoInput" class="input-group">
+                              <label>Background Video URL</label>
+                              <input type="text" id="bgVideoUrl" class="input" value="https://r2.guns.lol/42ced767-e7bf-445b-a2d4-073dda15878b.mp4">
+                          </div>
+                          <div id="bgImageInput" class="input-group" style="display: none;">
+                              <label>Background Image URL</label>
+                              <input type="text" id="bgImageUrl" class="input">
+                          </div>
+                      </div>
+          
+                      <div class="editor-section">
+                          <h3>Style Settings</h3>
+                          <div class="input-group">
+                              <label>Font Family</label>
+                              <select id="fontSelect" class="input">
+                                  <option value="Caveat">Caveat</option>
+                                  <option value="Roboto">Roboto</option>
+                                  <option value="Open Sans">Open Sans</option>
+                                  <option value="Montserrat">Montserrat</option>
+                                  <option value="Lato">Lato</option>
+                              </select>
+                          </div>
+                          <div class="input-group">
+                              <label>Profile Position</label>
+                              <select id="profilePosition" class="input">
+                                  <option value="center">Center</option>
+                                  <option value="bottom-left">Bottom Left</option>
+                                  <option value="bottom-right">Bottom Right</option>
+                                  <option value="top-left">Top Left</option>
+                                  <option value="top-right">Top Right</option>
+                              </select>
+                          </div>
+                          <div class="input-group">
+                              <label>Profile Name Size (px)</label>
+                              <input type="number" id="profileNameSize" class="input" value="32">
+                          </div>
+                          <div class="input-group">
+                              <label>Bio Text Size (px)</label>
+                              <input type="number" id="bioTextSize" class="input" value="20">
+                          </div>
+                      </div>
+          
+                      <div class="editor-section">
+                          <h3>Social Links</h3>
+                          <div id="socialLinksContainer">
+                              <!-- Social links will be dynamically added here -->
+                          </div>
+                          <button class="btn btn-primary" onclick="addSocialLink()">
+                              <i class="fas fa-plus"></i> Add Social Link
+                          </button>
+                      </div>
+          
+                      <div class="editor-section">
+                          <h3>Initial Screen</h3>
+                          <div class="input-group">
+                              <label>Initial Screen Type</label>
+                              <select id="initialScreenType" class="input" onchange="handleInitialScreenTypeChange()">
+                                  <option value="blood">Blood Effect</option>
+                                  <option value="image">Custom Image</option>
+                                  <option value="emoji">Emoji</option>
+                              </select>
+                          </div>
+                          <div id="initialScreenCustomization">
+                              <!-- Will be dynamically updated based on selection -->
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <div class="editor-preview">
+                      <iframe id="previewFrame"></iframe>
+                  </div>
+              </div>
+          </div>
 
             <div id="profileSection" class="card" style="display: none;">
                 <div class="profile-section">
@@ -798,6 +1130,721 @@ let userEmail = localStorage.getItem('userEmail');
 let isVerified = localStorage.getItem('isVerified') === 'true';
 let currentUrl = null;
 let currentUpdateUrl = null;
+
+let templateData = {
+    profileName: "Flyhigh",
+    bioText: "no enemies",
+    bgType: "video",
+    bgVideoUrl: "https://r2.guns.lol/42ced767-e7bf-445b-a2d4-073dda15878b.mp4",
+    bgImageUrl: "",
+    fontFamily: "Caveat",
+    profilePosition: "bottom-left",
+    profileNameSize: 32,
+    bioTextSize: 20,
+    socialLinks: [
+        { icon: "fab fa-instagram", url: "https://instagram.com/flywnts" },
+        { icon: "fab fa-discord", url: "https://discordid.netlify.app/?id=1134467862703132683" },
+        { icon: "fab fa-github", url: "https://github.com/flyhighr" },
+        { icon: "fab fa-pinterest", url: "https://in.pinterest.com/shekharxdd/" },
+        { icon: "fab fa-spotify", url: "https://open.spotify.com/user/31n7cdp26k7oz6tzgos5ri6povru" }
+    ],
+    initialScreen: {
+        type: "blood",
+        content: "🩸"
+    }
+};
+
+// Available social icons
+const availableIcons = {
+    "Instagram": "fab fa-instagram",
+    "Discord": "fab fa-discord",
+    "GitHub": "fab fa-github",
+    "Pinterest": "fab fa-pinterest",
+    "Spotify": "fab fa-spotify",
+    "Twitter": "fab fa-twitter",
+    "Facebook": "fab fa-facebook",
+    "YouTube": "fab fa-youtube",
+    "LinkedIn": "fab fa-linkedin",
+    "Reddit": "fab fa-reddit",
+    "TikTok": "fab fa-tiktok",
+    "Website": "fas fa-globe"
+};
+
+function initializeEditor() {
+    // Set initial values
+    document.getElementById('profileNameInput').value = templateData.profileName || '';
+    document.getElementById('bioTextInput').value = templateData.bioText || '';
+    document.getElementById('bgTypeSelect').value = templateData.bgType || 'video';
+    document.getElementById('bgVideoUrl').value = templateData.bgVideoUrl || '';
+    document.getElementById('bgImageUrl').value = templateData.bgImageUrl || '';
+    document.getElementById('fontSelect').value = templateData.fontFamily || 'Comfortaa';
+    document.getElementById('profilePosition').value = templateData.profilePosition || 'center';
+    document.getElementById('profileNameSize').value = templateData.profileNameSize || 32;
+    document.getElementById('bioTextSize').value = templateData.bioTextSize || 20;
+    document.getElementById('initialScreenType').value = templateData.initialScreen.type || 'blood';
+    handleInitialScreenTypeChange(); // This will set up the appropriate customization fields
+
+    // Initialize social links
+    renderSocialLinks();
+    
+    // Add event listeners
+    addEditorEventListeners();
+    
+    // Show initial preview
+    setTimeout(updatePreview, 100); // Small delay to ensure DOM is ready
+}
+function addEditorEventListeners() {
+    const editorInputs = [
+        'profileNameInput',
+        'bioTextInput',
+        'bgTypeSelect',
+        'bgVideoUrl',
+        'bgImageUrl',
+        'fontSelect',
+        'profilePosition',
+        'profileNameSize',
+        'bioTextSize'
+    ];
+
+    editorInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', debounce(updatePreview, 300));
+            element.addEventListener('change', updatePreview);
+        }
+    });
+}
+
+// Add a debounce function to prevent too many updates
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+function handleInitialScreenTypeChange() {
+    const screenType = document.getElementById('initialScreenType').value;
+    const customizationContainer = document.getElementById('initialScreenCustomization');
+    
+    switch(screenType) {
+        case 'blood':
+            customizationContainer.innerHTML = `
+                <div class="input-group">
+                    <label>Blood Effect Emoji</label>
+                    <input type="text" class="input" id="bloodEmoji" 
+                           value="${templateData.initialScreen.content || '🩸'}" 
+                           onchange="updateInitialScreen('content', this.value)">
+                </div>`;
+            break;
+            
+        case 'image':
+            customizationContainer.innerHTML = `
+                <div class="input-group">
+                    <label>Image URL</label>
+                    <input type="text" class="input" id="initialImageUrl" 
+                           value="${templateData.initialScreen.content || ''}" 
+                           placeholder="Enter image URL"
+                           onchange="updateInitialScreen('content', this.value)">
+                </div>`;
+            break;
+            
+        case 'emoji':
+            customizationContainer.innerHTML = `
+                <div class="input-group">
+                    <label>Display Emoji</label>
+                    <input type="text" class="input" id="displayEmoji" 
+                           value="${templateData.initialScreen.content || '😊'}" 
+                           onchange="updateInitialScreen('content', this.value)">
+                </div>`;
+            break;
+    }
+    
+    updateInitialScreen('type', screenType);
+}
+function updateInitialScreen(property, value) {
+    templateData.initialScreen[property] = value;
+    updatePreview();
+}
+function previewChanges() {
+    updatePreview();
+    // Optionally, you could add some visual feedback
+    const previewBtn = document.querySelector('[onclick="previewChanges()"]');
+    previewBtn.innerHTML = '<i class="fas fa-eye"></i> Updated!';
+    setTimeout(() => {
+        previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+    }, 1000);
+}
+
+function renderSocialLinks() {
+    const container = document.getElementById('socialLinksContainer');
+    container.innerHTML = '';
+
+    templateData.socialLinks.forEach((link, index) => {
+        const linkElement = document.createElement('div');
+        linkElement.className = 'social-link-item';
+        linkElement.innerHTML = `
+            <select class="input" onchange="updateSocialIcon(${index}, this.value)">
+                ${Object.entries(availableIcons).map(([name, icon]) => `
+                    <option value="${icon}" ${icon === link.icon ? 'selected' : ''}>
+                        ${name}
+                    </option>
+                `).join('')}
+            </select>
+            <input type="text" class="input" value="${link.url}" 
+                   onchange="updateSocialUrl(${index}, this.value)" 
+                   placeholder="URL">
+            <button class="remove-btn" onclick="removeSocialLink(${index})">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        container.appendChild(linkElement);
+    });
+}
+
+function addSocialLink() {
+    templateData.socialLinks.push({
+        icon: "fas fa-globe",
+        url: ""
+    });
+    renderSocialLinks();
+    updatePreview();
+}
+
+function removeSocialLink(index) {
+    templateData.socialLinks.splice(index, 1);
+    renderSocialLinks();
+    updatePreview();
+}
+
+function updateSocialIcon(index, icon) {
+    templateData.socialLinks[index].icon = icon;
+    updatePreview();
+}
+
+function updateSocialUrl(index, url) {
+    templateData.socialLinks[index].url = url;
+    updatePreview();
+}
+
+function toggleBackgroundInputs() {
+    const bgType = document.getElementById('bgTypeSelect').value;
+    document.getElementById('bgVideoInput').style.display = bgType === 'video' ? 'block' : 'none';
+    document.getElementById('bgImageInput').style.display = bgType === 'image' ? 'block' : 'none';
+    templateData.bgType = bgType;
+    updatePreview();
+}
+function generatePreviewHTML() {
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=${templateData.fontFamily.replace(' ', '+')}&display=swap');
+            
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: '${templateData.fontFamily}', sans-serif;
+                color: white;
+                height: 100vh;
+                overflow: hidden;
+                background: #000;
+            }
+            
+            .video-container {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 1;
+            }
+            
+            video, img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            
+            .content {
+                position: fixed;
+                ${getPositionCSS(templateData.profilePosition)}
+                z-index: 2;
+                padding: 20px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            }
+            
+            .profile-name {
+                font-size: ${templateData.profileNameSize}px;
+                margin-bottom: 10px;
+            }
+            
+            .bio {
+                font-size: ${templateData.bioTextSize}px;
+                margin-bottom: 15px;
+            }
+            
+            .social-links {
+                display: flex;
+                gap: 15px;
+            }
+            
+            .social-links a {
+                color: white;
+                font-size: 24px;
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="video-container">
+            ${templateData.bgType === 'video' 
+                ? `<video autoplay loop muted playsinline>
+                    <source src="${templateData.bgVideoUrl}" type="video/mp4">
+                   </video>`
+                : `<img src="${templateData.bgImageUrl}" alt="background">`
+            }
+        </div>
+        
+        <div class="content">
+            <div class="profile-name">${templateData.profileName}</div>
+            <div class="bio">${templateData.bioText}</div>
+            <div class="social-links">
+                ${templateData.socialLinks.map(link => 
+                    `<a href="${link.url}" target="_blank"><i class="${link.icon}"></i></a>`
+                ).join('')}
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
+
+function generateHTML() {
+    const parts = [];
+    
+    parts.push('<!DOCTYPE html>');
+    parts.push('<html lang="en">');
+    parts.push('<head>');
+    parts.push('    <meta charset="UTF-8">');
+    parts.push('    <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    parts.push('    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">');
+    parts.push(`    <title>${templateData.profileName}'s Profile</title>`);
+    parts.push('    <style>');
+    parts.push(`        @import url('https://fonts.googleapis.com/css2?family=${templateData.fontFamily.replace(' ', '+')}&display=swap');`);
+    parts.push('');
+    parts.push(generateCSS());
+    parts.push('    </style>');
+    parts.push('</head>');
+    parts.push('<body>');
+    parts.push(generateBody());
+    parts.push('<script>'); // Opening script tag
+    parts.push(generateJS());
+    parts.push('<\/script>'); // Escaped closing script tag
+    parts.push('</body>');
+    parts.push('</html>');
+
+    return parts.join('\n');
+}
+
+
+function generateCSS() {
+    return `
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: '${templateData.fontFamily}', cursive;
+            color: white;
+        }
+        
+        .video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+        
+        video, img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .content {
+            position: fixed;
+            ${getPositionCSS(templateData.profilePosition)}
+            z-index: 2;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: ${getAlignmentCSS(templateData.profilePosition)};
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            padding: 30px;
+        }
+        
+        .profile-name {
+            font-size: ${templateData.profileNameSize}px;
+            line-height: 1.2;
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+        
+        .bio {
+            font-size: ${templateData.bioTextSize}px;
+            opacity: 0.9;
+            max-width: 300px;
+            line-height: 1.3;
+            letter-spacing: 0.5px;
+        }
+        
+        .social-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 400px;
+        }
+        
+        .social-links a {
+            color: white;
+            font-size: 20px;
+            opacity: 0.9;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .social-links a:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .social-links a i {
+            width: 24px;
+            text-align: center;
+        }
+        
+        .initial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        ${generateInitialScreenCSS()}
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+            
+            .profile-name {
+                font-size: ${Math.max(templateData.profileNameSize - 4, 20)}px;
+            }
+            
+            .bio {
+                font-size: ${Math.max(templateData.bioTextSize - 2, 16)}px;
+            }
+
+            .social-links {
+                gap: 12px;
+                max-width: 100%;
+            }
+
+            .social-links a {
+                font-size: 18px;
+            }
+        }
+    `;
+}
+
+// Helper function to get position CSS based on selected position
+function getPositionCSS(position) {
+    switch(position) {
+        case 'center':
+            return 'top: 50%; left: 50%; transform: translate(-50%, -50%);';
+        case 'bottom-left':
+            return 'bottom: 0; left: 0;';
+        case 'bottom-right':
+            return 'bottom: 0; right: 0;';
+        case 'top-left':
+            return 'top: 0; left: 0;';
+        case 'top-right':
+            return 'top: 0; right: 0;';
+        default:
+            return 'bottom: 30px; left: 30px;';
+    }
+}
+
+// Helper function to get alignment CSS based on position
+function getAlignmentCSS(position) {
+    if (position.includes('right')) {
+        return 'flex-end';
+    } else if (position === 'center') {
+        return 'center';
+    }
+    return 'flex-start';
+}
+
+function generateInitialScreenCSS() {
+    if (templateData.initialScreen.type === 'blood') {
+        return `
+            .blood-effect {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(45deg, 
+                    rgba(12, 3, 1, 0.8),
+                    rgba(27, 6, 2, 0.6));
+                z-index: 1;
+            }
+
+            .blood-effect::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 200px;
+                height: 200px;
+                background: radial-gradient(circle,
+                    rgba(255, 0, 0, 0.4),
+                    rgba(12, 3, 1, 0.8));
+                transform: translate(-50%, -50%);
+                animation: bloodPulse 2s infinite;
+                filter: blur(20px);
+            }
+
+            @keyframes bloodPulse {
+                0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+                50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+                100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            }
+        `;
+    } else if (templateData.initialScreen.type === 'image') {
+        return `
+            .initial-overlay img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
+        `;
+    } else if (templateData.initialScreen.type === 'emoji') {
+        return `
+            .initial-emoji {
+                font-size: 72px;
+                animation: floatEmoji 2s infinite ease-in-out;
+            }
+
+            @keyframes floatEmoji {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-20px); }
+            }
+        `;
+    }
+    return '';
+}
+
+function generateBody() {
+    // Generate body HTML with dynamic values
+    return `
+    <div class="video-container">
+        ${templateData.bgType === 'video' ? `
+            <video loop playsinline>
+                <source src="${templateData.bgVideoUrl}" type="video/mp4">
+            </video>
+        ` : `
+            <img src="${templateData.bgImageUrl}" alt="background">
+        `}
+    </div>
+    
+    <div class="content">
+        <div class="profile-name">${templateData.profileName}</div>
+        <div class="bio">${templateData.bioText}</div>
+        <div class="social-links">
+            ${templateData.socialLinks.map(link => `
+                <a href="${link.url}" target="_blank">
+                    <i class="${link.icon}"></i>
+                </a>
+            `).join('')}
+        </div>
+    </div>
+    
+    <!-- Initial screen with dynamic content -->
+    <div class="initial-overlay">
+        ${generateInitialScreenHTML()}
+    </div>`;
+}
+
+function generateInitialScreenHTML() {
+    switch(templateData.initialScreen.type) {
+        case 'blood':
+            return `<div class="blood-effect">
+                        <div class="blood-droplets">
+                            ${Array(9).fill(0).map((_, i) => `
+                                <div class="blood-droplet" style="left: ${(i + 1) * 10}%; animation-delay: ${i * 0.3}s;"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <span class="blood-emoji">${templateData.initialScreen.content}</span>`;
+        case 'image':
+            return `<img src="${templateData.initialScreen.content}" alt="initial screen">`;
+        case 'emoji':
+            return `<span class="initial-emoji">${templateData.initialScreen.content}</span>`;
+        default:
+            return '';
+    }
+}
+
+function generateJS() {
+    return `
+        // Your existing JavaScript with dynamic values
+        const video = document.querySelector('video');
+        const videoContainer = document.querySelector('.video-container');
+        const content = document.querySelector('.content');
+        const initialOverlay = document.querySelector('.initial-overlay');
+        
+        initialOverlay.addEventListener('click', function() {
+            initialOverlay.style.opacity = 0;
+            setTimeout(() => {
+                initialOverlay.style.display = 'none';
+            }, 500);
+            
+            ${templateData.bgType === 'video' ? `
+                video.play().then(() => {
+                    videoContainer.style.opacity = 1;
+                    content.style.opacity = 1;
+                }).catch(error => {
+                    console.error("Video play failed:", error);
+                    videoContainer.style.opacity = 1;
+                    content.style.opacity = 1;
+                });
+            ` : `
+                videoContainer.style.opacity = 1;
+                content.style.opacity = 1;
+            `}
+        });
+        
+        ${templateData.bgType === 'video' ? 'video.load();' : ''}
+    `;
+}
+function updatePreview() {
+    // Update template data
+    templateData.profileName = document.getElementById('profileNameInput').value;
+    templateData.bioText = document.getElementById('bioTextInput').value;
+    templateData.bgType = document.getElementById('bgTypeSelect').value;
+    templateData.bgVideoUrl = document.getElementById('bgVideoUrl').value;
+    templateData.bgImageUrl = document.getElementById('bgImageUrl').value;
+    templateData.fontFamily = document.getElementById('fontSelect').value;
+    templateData.profilePosition = document.getElementById('profilePosition').value;
+    templateData.profileNameSize = parseInt(document.getElementById('profileNameSize').value);
+    templateData.bioTextSize = parseInt(document.getElementById('bioTextSize').value);
+
+    // Get the preview frame
+    const previewFrame = document.getElementById('previewFrame');
+    
+    try {
+        // Write the preview HTML
+        const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+        previewDoc.open();
+        previewDoc.write(generatePreviewHTML());
+        previewDoc.close();
+        
+        // If there's a video, play it
+        const video = previewDoc.querySelector('video');
+        if (video) {
+            video.play().catch(() => {});
+        }
+    } catch (error) {
+        console.error('Preview update failed:', error);
+    }
+}
+function downloadHTML() {
+    const html = generateHTML();
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${templateData.profileName.toLowerCase()}-profile.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+async function uploadFromEditor() {
+    const html = generateHTML();
+    const blob = new Blob([html], { type: 'text/html' });
+    const file = new File([blob], `${templateData.profileName.toLowerCase()}-profile.html`, { type: 'text/html' });
+    
+    const customUrl = prompt('Enter custom URL (optional):');
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        let url = `${BASE_URL}/upload`;
+        if (customUrl) {
+            url += `?custom_url=${encodeURIComponent(customUrl)}`;
+        }
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert(`File uploaded successfully! URL: ${FRONTEND_URL}/${data.url}`);
+            fetchUserFiles();
+        } else {
+            alert(data.detail || 'Upload failed');
+        }
+    } catch (error) {
+        alert('An error occurred during upload');
+        console.error('Upload error:', error);
+    }
+}
 
 function showUpdateFile(url) {
     currentUpdateUrl = url;
@@ -1113,6 +2160,9 @@ function handleNavClick(tab) {
         case 'register':
             switchAuthTab('register');
             break;
+        case 'editor':
+            switchTab('editor');
+            break;
         case 'home':
         case 'upload':
         case 'myFiles':
@@ -1127,7 +2177,8 @@ function switchTab(tab) {
         'homeContainer': document.getElementById('homeContainer'),
         'uploadContainer': document.getElementById('uploadContainer'),
         'myFilesContainer': document.getElementById('myFilesContainer'),
-        'profileSection': document.getElementById('profileSection')
+        'profileSection': document.getElementById('profileSection'),
+        'editorContainer': document.getElementById('editorContainer') // Add editor container
     };
 
     // Hide all containers first
@@ -1152,6 +2203,10 @@ function switchTab(tab) {
         case 'profile':
             containers.profileSection.style.display = 'block';
             fetchUserInfo();
+            break;
+        case 'editor':
+            containers.editorContainer.style.display = 'block';
+            initializeEditor(); // Initialize editor when switching to it
             break;
     }
 
