@@ -582,6 +582,451 @@ input:checked + .toggle-slider:before {
         padding: 1.5rem;
     }
 }
+
+/* Editor Styles */
+.editor-sections {
+    display: grid;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.editor-section {
+    background: var(--card-bg);
+    border-radius: var(--card-border-radius);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.editor-section h3 {
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.setting-group {
+    margin-bottom: 1.5rem;
+}
+
+.setting-group:last-child {
+    margin-bottom: 0;
+}
+
+.setting-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Custom Range Input Styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--sidebar-bg);
+    border-radius: 3px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+/* Color Input Styling */
+input[type="color"] {
+    -webkit-appearance: none;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 8px;
+    padding: 0;
+    cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 8px;
+}
+
+/* Social Links Editor */
+.social-link-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    background: var(--sidebar-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.social-link-item select {
+    width: auto;
+}
+
+.social-link-item .remove-social {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.social-link-item .remove-social:hover {
+    transform: scale(1.1);
+}
+
+/* Preview Styles */
+.preview-container {
+    margin-top: 2rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-border-radius);
+    overflow: hidden;
+    position: relative;
+    display: none;
+}
+
+.preview-container.active {
+    display: block;
+}
+
+.preview-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.preview-device-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.preview-device-btn {
+    padding: 0.5rem 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.preview-device-btn.active {
+    background: var(--accent-color);
+    color: var(--text-primary);
+    border-color: var(--accent-color);
+}
+
+.preview-frame-container {
+    position: relative;
+    width: 100%;
+    background: #000;
+    transition: all var(--transition-speed) ease;
+}
+
+.preview-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #000;
+}
+
+/* Device-specific styles */
+.preview-frame-container.desktop {
+    height: 600px;
+}
+
+.preview-frame-container.mobile {
+    width: 375px;
+    height: 667px;
+    margin: 2rem auto;
+    border-radius: 20px;
+    border: 10px solid var(--sidebar-bg);
+    box-shadow: 0 0 0 1px var(--border-color);
+}
+
+@media (max-width: 768px) {
+    .preview-frame-container.mobile {
+        width: 100%;
+        max-width: 375px;
+        height: 500px;
+    }
+}
+/* Editor Actions */
+.editor-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.editor-actions .btn {
+    flex: 1;
+}
+
+/* Responsive Textarea */
+textarea.input {
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+}
+
+/* Mobile Preview Toggle */
+.preview-toggle {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    background: var(--sidebar-bg);
+    padding: 0.5rem;
+    border-radius: 8px;
+}
+
+.preview-toggle button {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all var(--transition-speed) ease;
+}
+
+.preview-toggle button.active {
+    background: var(--accent-color);
+    color: var(--text-primary);
+}
+
+/* Icon Picker */
+.icon-picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: var(--sidebar-bg);
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+.icon-picker i {
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+    text-align: center;
+}
+
+.icon-picker i:hover {
+    color: var(--accent-color);
+    transform: scale(1.1);
+}
+
+/* Helper Text */
+.helper-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    .editor-sections {
+        gap: 1rem;
+    }
+
+    .editor-section {
+        padding: 1rem;
+    }
+
+    .social-link-item {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .editor-actions {
+        flex-direction: column;
+    }
+
+    .preview-container {
+        min-height: 300px;
+    }
+}
+.range-with-value {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.range-with-value span {
+    min-width: 48px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Custom Select Styling */
+select.input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.2em;
+    padding-right: 2.5rem;
+}
+
+/* Loading States */
+.editor-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    display: none;
+}
+
+.editor-loading.active {
+    display: flex;
+}
+
+/* Save Indicator */
+.save-indicator {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 2rem;
+    background: var(--accent-color);
+    color: var(--text-primary);
+    border-radius: 8px;
+    transform: translateY(100px);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+}
+
+.save-indicator.active {
+    transform: translateY(0);
+}
+
+.upload-options {
+    margin: 1.5rem 0;
+}
+
+.template-info {
+    background: var(--card-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-item .label {
+    color: var(--text-secondary);
+}
+
+.upload-status {
+    margin-top: 1rem;
+    display: none;
+}
+
+.upload-status.active {
+    display: block;
+}
+
+.status-message {
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.status-progress {
+    height: 4px;
+    background: var(--card-bg);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0;
+    background: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+.upload-success {
+    color: #10b981;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.upload-error {
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.uploaded-url {
+    background: var(--card-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+    word-break: break-all;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.uploaded-url .copy-btn {
+    background: none;
+    border: none;
+    color: var(--accent-color);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: all var(--transition-speed) ease;
+}
+
+.uploaded-url .copy-btn:hover {
+    background: var(--hover-bg);
+}
     </style>
 </head>
 <body>
@@ -606,6 +1051,10 @@ input:checked + .toggle-slider:before {
             <div class="nav-item active" onclick="handleNavClick('home')">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
+            </div>
+            <div class="nav-item" onclick="handleNavClick('editor')">
+                <i class="fas fa-code"></i>
+                <span>Editor</span>
             </div>
             <div class="nav-item" onclick="handleNavClick('profile')">
                 <i class="fas fa-user"></i>
@@ -684,6 +1133,191 @@ input:checked + .toggle-slider:before {
                     <p>Create and share your bio pages easily.</p>
                 </div>
             </div>
+            <div id="editorContainer" class="card" style="display: none;">
+                <div class="editor-header">
+                    <h2>Profile Page Editor</h2>
+                    <p>Customize your profile page template</p>
+                </div>
+                
+                <div class="editor-sections">
+                    <!-- Layout Settings -->
+                    <div class="editor-section">
+                        <h3>Layout</h3>
+                        <div class="setting-group">
+                            <label>Profile Position</label>
+                            <select id="profilePosition" class="input">
+                                <option value="center">Center</option>
+                                <option value="top-left">Top Left</option>
+                                <option value="top-right">Top Right</option>
+                                <option value="bottom-left">Bottom Left</option>
+                                <option value="bottom-right">Bottom Right</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>Container Transparency</label>
+                            <input type="range" id="containerOpacity" min="0" max="100" value="65" class="input">
+                            <span id="opacityValue">65%</span>
+                        </div>
+                    </div>
+            
+                    <!-- Background Settings -->
+                    <div class="editor-section">
+                        <h3>Background</h3>
+                        <div class="setting-group">
+                            <label>Background Type</label>
+                            <select id="bgType" class="input">
+                                <option value="image">Image</option>
+                                <option value="video">Video</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>Background URL</label>
+                            <input type="text" id="bgUrl" class="input" placeholder="Enter URL">
+                        </div>
+                    </div>
+            
+                    <!-- Font Settings -->
+                    <div class="editor-section">
+                        <h3>Typography</h3>
+                        <div class="setting-group">
+                            <label>Font Family</label>
+                            <select id="fontFamily" class="input">
+                                <option value="Space Grotesk">Space Grotesk</option>
+                                <option value="Poppins">Poppins</option>
+                                <option value="Montserrat">Montserrat</option>
+                                <option value="Roboto">Roboto</option>
+                                <option value="Inter">Inter</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>Name Font Size</label>
+                            <input type="range" id="nameFontSize" min="16" max="32" value="22" class="input">
+                            <span id="nameFontSizeValue">22px</span>
+                        </div>
+                    </div>
+            
+                    <!-- Profile Content -->
+                    <div class="editor-section">
+                        <h3>Profile Content</h3>
+                        <div class="setting-group">
+                            <label>Profile Name</label>
+                            <input type="text" id="profileName" class="input" value="Flyhigh">
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>Bio Type</label>
+                            <select id="bioType" class="input">
+                                <option value="static">Static Bio</option>
+                                <option value="quotes">Rotating Quotes</option>
+                            </select>
+                        </div>
+                        
+                        <div id="staticBioContainer" class="setting-group">
+                            <label>Static Bio</label>
+                            <textarea id="staticBio" class="input" rows="3"></textarea>
+                        </div>
+                        
+                        <div id="quotesContainer" class="setting-group">
+                            <label>Quotes (One per line)</label>
+                            <textarea id="quotes" class="input" rows="5"></textarea>
+                        </div>
+                    </div>
+            
+                    <!-- Social Links -->
+                    <div class="editor-section">
+                        <h3>Social Links</h3>
+                        <div id="socialLinksContainer">
+                            <!-- Social links will be added dynamically -->
+                        </div>
+                        <button id="addSocialLink" class="btn">Add Social Link</button>
+                    </div>
+            
+                    <!-- Initial Screen -->
+                    <div class="editor-section">
+                        <h3>Initial Screen</h3>
+                        <div class="setting-group">
+                            <label>Screen Color</label>
+                            <input type="color" id="initialScreenColor" class="input" value="#000000">
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>Center Icon</label>
+                            <input type="text" id="centerIcon" class="input" placeholder="Emoji or Image URL">
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="editor-actions">
+                    <button id="previewChanges" class="btn">Preview</button>
+                    <button id="downloadHtml" class="btn">Download HTML</button>
+                    <button id="uploadTemplate" class="btn btn-primary">Upload</button>
+                </div>
+            
+                <div id="editorPreview" class="preview-container">
+                    <div class="preview-header">
+                        <h3>Preview</h3>
+                        <div class="preview-device-selector">
+                            <button class="preview-device-btn active" data-device="desktop">
+                                <i class="fas fa-desktop"></i> Desktop
+                            </button>
+                            <button class="preview-device-btn" data-device="mobile">
+                                <i class="fas fa-mobile-alt"></i> Mobile
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preview-frame-container desktop">
+                        <iframe id="previewFrame" class="preview-frame"></iframe>
+                    </div>
+                </div>
+            </div>
+            <div id="uploadModal" class="modal">
+                <div class="modal-content">
+                    <h2>Upload Template</h2>
+                    <div class="upload-options">
+                        <div class="setting-group">
+                            <label>Custom URL (optional)</label>
+                            <input type="text" id="uploadCustomUrl" class="input" placeholder="Enter custom URL">
+                            <span class="helper-text">Leave empty for auto-generated URL</span>
+                        </div>
+                        
+                        <div class="upload-preview">
+                            <h3>Template Details</h3>
+                            <div class="template-info">
+                                <div class="info-item">
+                                    <span class="label">Name:</span>
+                                    <span class="value" id="previewName"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Social Links:</span>
+                                    <span class="value" id="previewSocialCount"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Bio Type:</span>
+                                    <span class="value" id="previewBioType"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button id="confirmUpload" class="btn btn-primary">
+                            <i class="fas fa-cloud-upload-alt"></i> Upload
+                        </button>
+                        <button id="cancelUpload" class="btn">Cancel</button>
+                    </div>
+                    
+                    <div id="uploadStatus" class="upload-status">
+                        <div class="status-message"></div>
+                        <div class="status-progress">
+                            <div class="progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             <div id="profileSection" class="card" style="display: none;">
                 <div class="profile-section">
@@ -798,6 +1432,805 @@ let userEmail = localStorage.getItem('userEmail');
 let isVerified = localStorage.getItem('isVerified') === 'true';
 let currentUrl = null;
 let currentUpdateUrl = null;
+
+// Editor State Management
+let editorState = {
+    layout: {
+        position: 'center',
+        opacity: 65,
+    },
+    background: {
+        type: 'image',
+        url: 'https://i.pinimg.com/736x/da/db/78/dadb78c6442f75dcb1561d1eba49cb60.jpg'
+    },
+    typography: {
+        fontFamily: 'Space Grotesk',
+        nameSize: 22,
+        bioSize: 17
+    },
+    content: {
+        name: 'Flyhigh',
+        bioType: 'quotes',
+        staticBio: '',
+        quotes: [
+            "Be loyal to your own piece of mind.",
+            "Life is just a beautiful game.",
+            "In the chaos, find your peace.",
+            "Dream big, stay humble.",
+            "Create your own destiny.",
+            "Chase sunsets, not validation.",
+            "Be the energy you want to attract.",
+            "Find beauty in the journey."
+        ]
+    },
+    initialScreen: {
+        color: '#000000',
+        icon: '🍓'
+    },
+    socialLinks: [
+        { platform: 'instagram', url: 'https://instagram.com/flywnts', icon: 'fab fa-instagram' },
+        { platform: 'discord', url: 'https://discordid.netlify.app/?id=1134467862703132683', icon: 'fab fa-discord' },
+        { platform: 'github', url: 'https://github.com/flyhighr', icon: 'fab fa-github' },
+        { platform: 'pinterest', url: 'https://in.pinterest.com/shekharxdd/', icon: 'fab fa-pinterest' },
+        { platform: 'spotify', url: 'https://open.spotify.com/user/31n7cdp26k7oz6tzgos5ri6povru', icon: 'fab fa-spotify' }
+    ]
+};
+
+// Available Social Platforms
+const socialPlatforms = {
+    instagram: { name: 'Instagram', icon: 'fab fa-instagram' },
+    discord: { name: 'Discord', icon: 'fab fa-discord' },
+    github: { name: 'GitHub', icon: 'fab fa-github' },
+    pinterest: { name: 'Pinterest', icon: 'fab fa-pinterest' },
+    spotify: { name: 'Spotify', icon: 'fab fa-spotify' },
+    twitter: { name: 'Twitter', icon: 'fab fa-twitter' },
+    facebook: { name: 'Facebook', icon: 'fab fa-facebook' },
+    youtube: { name: 'YouTube', icon: 'fab fa-youtube' },
+    twitch: { name: 'Twitch', icon: 'fab fa-twitch' },
+    linkedin: { name: 'LinkedIn', icon: 'fab fa-linkedin' },
+    reddit: { name: 'Reddit', icon: 'fab fa-reddit' },
+    website: { name: 'Website', icon: 'fas fa-globe' }
+};
+
+// Initialize Editor
+function initializeEditor() {
+    if (!document.getElementById('editorContainer')) {
+        console.error('Editor container not found');
+        return;
+    }
+
+    // Set initial values
+    document.getElementById('profilePosition').value = editorState.layout.position;
+    document.getElementById('containerOpacity').value = editorState.layout.opacity;
+    updateValueDisplay('containerOpacity', 'opacityValue', '%');
+    
+    document.getElementById('bgType').value = editorState.background.type;
+    document.getElementById('bgUrl').value = editorState.background.url;
+    
+    document.getElementById('fontFamily').value = editorState.typography.fontFamily;
+    document.getElementById('nameFontSize').value = editorState.typography.nameSize;
+    updateValueDisplay('nameFontSize', 'nameFontSizeValue', 'px');
+    
+    document.getElementById('profileName').value = editorState.content.name;
+    document.getElementById('bioType').value = editorState.content.bioType;
+    document.getElementById('quotes').value = editorState.content.quotes.join('\n');
+    document.getElementById('initialScreenColor').value = editorState.initialScreen.color;
+    document.getElementById('centerIcon').value = editorState.initialScreen.icon;
+
+    // Show/hide bio containers based on type
+    const bioType = document.getElementById('bioType').value;
+    document.getElementById('staticBioContainer').style.display = bioType === 'static' ? 'block' : 'none';
+    document.getElementById('quotesContainer').style.display = bioType === 'quotes' ? 'block' : 'none';
+
+    // Initialize social links
+    renderSocialLinks();
+
+    // Setup all event listeners
+    setupEventListeners();
+
+    // Setup preview
+    setupPreview();
+
+    // Generate initial preview
+    generatePreview();
+}
+
+// Setup Event Listeners
+function updateValueDisplay(inputId, displayId, suffix = '') {
+    const input = document.getElementById(inputId);
+    const display = document.getElementById(displayId);
+    if (input && display) {
+        display.textContent = input.value + suffix;
+    }
+}
+
+// Update the event listeners setup
+function setupEventListeners() {
+    // Typography and Layout controls
+    const controlsConfig = {
+        'containerOpacity': {
+            displayId: 'opacityValue',
+            suffix: '%',
+            update: (value) => {
+                editorState.layout.opacity = value;
+                updateValueDisplay('containerOpacity', 'opacityValue', '%');
+            }
+        },
+        'nameFontSize': {
+            displayId: 'nameFontSizeValue',
+            suffix: 'px',
+            update: (value) => {
+                editorState.typography.nameSize = value;
+                updateValueDisplay('nameFontSize', 'nameFontSizeValue', 'px');
+            }
+        },
+        'fontFamily': {
+            update: (value) => {
+                editorState.typography.fontFamily = value;
+            }
+        },
+        'profilePosition': {
+            update: (value) => {
+                editorState.layout.position = value;
+            }
+        }
+    };
+
+    // Setup control listeners
+    Object.keys(controlsConfig).forEach(controlId => {
+        const element = document.getElementById(controlId);
+        if (element) {
+            ['input', 'change'].forEach(eventType => {
+                element.addEventListener(eventType, (e) => {
+                    controlsConfig[controlId].update(e.target.value);
+                    updatePreview();
+                });
+            });
+        }
+    });
+
+    // Background settings
+    document.getElementById('bgType').addEventListener('change', updateBackground);
+    document.getElementById('bgUrl').addEventListener('input', debounce(updateBackground, 500));
+
+    // Content settings
+    document.getElementById('profileName').addEventListener('input', updateContent);
+    document.getElementById('bioType').addEventListener('change', updateContent);
+    document.getElementById('quotes').addEventListener('input', debounce(updateContent, 500));
+    document.getElementById('staticBio').addEventListener('input', debounce(updateContent, 500));
+
+    // Initial screen settings
+    document.getElementById('initialScreenColor').addEventListener('input', updateInitialScreen);
+    document.getElementById('centerIcon').addEventListener('input', updateInitialScreen);
+
+    // Preview and action buttons
+    document.getElementById('previewChanges').addEventListener('click', generatePreview);
+    document.getElementById('downloadHtml').addEventListener('click', downloadTemplate);
+    document.getElementById('uploadTemplate').addEventListener('click', uploadTemplate);
+    document.getElementById('addSocialLink').addEventListener('click', addSocialLink);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+// Update Functions
+function updateLayout(e) {
+    editorState.layout.position = document.getElementById('profilePosition').value;
+    editorState.layout.opacity = document.getElementById('containerOpacity').value;
+    updatePreview();
+}
+
+function updateBackground() {
+    editorState.background.type = document.getElementById('bgType').value;
+    editorState.background.url = document.getElementById('bgUrl').value;
+    updatePreview();
+}
+function updateTypography(e) {
+    editorState.typography.fontFamily = document.getElementById('fontFamily').value;
+    editorState.typography.nameSize = document.getElementById('nameFontSize').value;
+    updatePreview();
+}
+
+function updateContent() {
+    editorState.content.name = document.getElementById('profileName').value;
+    editorState.content.bioType = document.getElementById('bioType').value;
+    
+    // Update bio containers visibility
+    document.getElementById('staticBioContainer').style.display = 
+        editorState.content.bioType === 'static' ? 'block' : 'none';
+    document.getElementById('quotesContainer').style.display = 
+        editorState.content.bioType === 'quotes' ? 'block' : 'none';
+    
+    if (editorState.content.bioType === 'quotes') {
+        editorState.content.quotes = document.getElementById('quotes').value
+            .split('\n')
+            .filter(quote => quote.trim());
+    } else {
+        editorState.content.staticBio = document.getElementById('staticBio').value;
+    }
+    
+    updatePreview();
+}
+
+function updateInitialScreen() {
+    editorState.initialScreen.color = document.getElementById('initialScreenColor').value;
+    editorState.initialScreen.icon = document.getElementById('centerIcon').value;
+    updatePreview();
+}
+
+// Social Links Management
+function renderSocialLinks() {
+    const container = document.getElementById('socialLinksContainer');
+    container.innerHTML = '';
+
+    editorState.socialLinks.forEach((link, index) => {
+        const linkElement = createSocialLinkElement(link, index);
+        container.appendChild(linkElement);
+    });
+}
+
+function createSocialLinkElement(link, index) {
+    const div = document.createElement('div');
+    div.className = 'social-link-item';
+    div.innerHTML = `
+        <select class="input" onchange="updateSocialLink(${index}, 'platform', this.value)">
+            ${Object.entries(socialPlatforms).map(([key, platform]) => `
+                <option value="${key}" ${link.platform === key ? 'selected' : ''}>
+                    ${platform.name}
+                </option>
+            `).join('')}
+        </select>
+        <input type="text" class="input" value="${link.url}" 
+               onchange="updateSocialLink(${index}, 'url', this.value)" 
+               placeholder="Enter URL">
+        <button class="remove-social" onclick="removeSocialLink(${index})">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    return div;
+}
+
+function addSocialLink() {
+    if (editorState.socialLinks.length >= 10) {
+        alert('Maximum 10 social links allowed');
+        return;
+    }
+    
+    editorState.socialLinks.push({
+        platform: 'website',
+        url: '',
+        icon: 'fas fa-globe'
+    });
+    
+    renderSocialLinks();
+    updatePreview();
+}
+
+function updateSocialLink(index, property, value) {
+    editorState.socialLinks[index][property] = value;
+    if (property === 'platform') {
+        editorState.socialLinks[index].icon = socialPlatforms[value].icon;
+    }
+    updatePreview();
+}
+
+function removeSocialLink(index) {
+    editorState.socialLinks.splice(index, 1);
+    renderSocialLinks();
+    updatePreview();
+}
+
+// Preview Generation
+function generatePreview() {
+    const previewContainer = document.getElementById('editorPreview');
+    const previewFrame = document.getElementById('previewFrame');
+    previewContainer.classList.add('active');
+    
+    // Generate template
+    const template = generateTemplate();
+    
+    // Create blob and URL
+    const blob = new Blob([template], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    // Load preview in iframe
+    previewFrame.src = url;
+    
+    // Clean up old URL after load
+    previewFrame.onload = () => {
+        URL.revokeObjectURL(previewFrame.src);
+    };
+}
+
+// Template Generation
+function generateTemplate() {
+    const parts = [];
+    const escapeHtml = (unsafe) => {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
+    const getPositionStyles = () => {
+        switch (editorState.layout.position) {
+            case 'top-left':
+                return 'top: 2rem; left: 2rem; transform: none;';
+            case 'top-right':
+                return 'top: 2rem; right: 2rem; transform: none;';
+            case 'bottom-left':
+                return 'bottom: 2rem; left: 2rem; transform: none;';
+            case 'bottom-right':
+                return 'bottom: 2rem; right: 2rem; transform: none;';
+            default:
+                return 'top: 50%; left: 50%; transform: translate(-50%, -50%);';
+        }
+    };
+
+    const socialLinksHtml = editorState.socialLinks
+        .map(link => `
+            <a href="${escapeHtml(link.url)}" target="_blank">
+                <i class="${escapeHtml(link.icon)}"></i>
+            </a>
+        `).join('\n');
+
+    const quotesArray = editorState.content.bioType === 'quotes'
+        ? `const quotes = ${JSON.stringify(editorState.content.quotes)};`
+        : '';
+
+    // Start building HTML
+    parts.push('<!DOCTYPE html>');
+    parts.push('<html lang="en">');
+    parts.push('<head>');
+    parts.push('    <meta charset="UTF-8">');
+    parts.push('    <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    parts.push('    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">');
+    parts.push(`    <title>${escapeHtml(editorState.content.name)}'s Profile</title>`);
+    
+    // Styles
+    parts.push('    <style>');
+    parts.push(`        @import url('https://fonts.googleapis.com/css2?family=${editorState.typography.fontFamily.replace(' ', '+')}&display=swap');`);
+    parts.push(`
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: '${editorState.typography.fontFamily}', sans-serif;
+            color: #ffffff;
+        }
+        
+        .media-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+        
+        .media-container video,
+        .media-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .content {
+            position: fixed;
+            ${getPositionStyles()}
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            background: rgba(0, 0, 0, ${editorState.layout.opacity / 100});
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            min-width: 280px;
+            max-width: 500px;
+            width: 85%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+        
+        .profile-icon {
+            width: 42px;
+            height: 42px;
+            background: #ffffff;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .profile-info {
+            flex-grow: 1;
+        }
+        
+        .profile-name {
+            font-size: ${editorState.typography.nameSize}px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .join-date {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+        
+        .quote-container {
+            width: 100%;
+            min-height: 48px;
+            font-size: ${editorState.typography.bioSize}px;
+            line-height: 1.4;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 12px;
+            margin-top: 5px;
+            opacity: 0.8;
+            flex-wrap: wrap;
+        }
+        
+        .social-links a {
+            color: #ffffff;
+            font-size: 18px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .social-links a:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        
+        .initial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: ${editorState.initialScreen.color};
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: opacity 0.5s ease;
+        }
+
+        .initial-overlay span {
+            transform: scale(1);
+            transition: transform 0.3s ease;
+        }
+
+        .initial-overlay:hover span {
+            transform: scale(1.2);
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 1.5rem;
+                width: 80%;
+                min-width: 240px;
+                gap: 12px;
+            }
+            
+            .profile-icon {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .profile-name {
+                font-size: ${Math.max(16, editorState.typography.nameSize - 4)}px;
+            }
+            
+            .quote-container {
+                font-size: ${Math.max(14, editorState.typography.bioSize - 2)}px;
+            }
+            
+            .social-links {
+                gap: 10px;
+            }
+            
+            .social-links a {
+                font-size: 16px;
+            }
+        }
+    `);
+    parts.push('    </style>');
+    parts.push('</head>');
+    parts.push('<body>');
+
+    // Media Container
+    parts.push('    <div class="media-container" id="mediaContainer">');
+    if (editorState.background.type === 'video') {
+        parts.push('        <video autoplay loop muted playsinline>');
+        parts.push(`            <source src="${escapeHtml(editorState.background.url)}" type="video/mp4">`);
+        parts.push('        </video>');
+    } else {
+        parts.push(`        <img src="${escapeHtml(editorState.background.url)}" alt="background">`);
+    }
+    parts.push('    </div>');
+
+    // Content
+    parts.push('    <div class="content">');
+    parts.push(`        <div class="profile-header">
+            <div class="profile-icon"></div>
+            <div class="profile-info">
+                <div class="profile-name">${escapeHtml(editorState.content.name)}</div>
+                <div class="join-date">joined ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
+            </div>
+        </div>`);
+
+    parts.push(`        <div class="quote-container" id="quote">
+            ${editorState.content.bioType === 'static' ? escapeHtml(editorState.content.staticBio) : ''}
+        </div>`);
+
+    parts.push(`        <div class="social-links">
+            ${socialLinksHtml}
+        </div>`);
+    parts.push('    </div>');
+
+    // Initial Overlay
+    parts.push(`    <div class="initial-overlay">
+        <span style="font-size: 30px;">${escapeHtml(editorState.initialScreen.icon)}</span>
+    </div>`);
+
+    // Scripts
+    parts.push('<script>');
+    if (editorState.content.bioType === 'quotes') {
+        parts.push(quotesArray);
+    }
+    parts.push(`
+        class TypeWriter {
+            constructor(element, words) {
+                this.element = element;
+                this.words = words;
+                this.txt = '';
+                this.wordIndex = 0;
+                this.isDeleting = false;
+                this.type();
+            }
+
+            type() {
+                const current = this.wordIndex % this.words.length;
+                const fullTxt = this.words[current];
+
+                if (this.isDeleting) {
+                    this.txt = fullTxt.substring(0, this.txt.length - 1);
+                } else {
+                    this.txt = fullTxt.substring(0, this.txt.length + 1);
+                }
+
+                this.element.innerHTML = '<span>' + this.txt + '</span>';
+
+                let typeSpeed = 50;
+
+                if (this.isDeleting) {
+                    typeSpeed /= 2;
+                }
+
+                if (!this.isDeleting && this.txt === fullTxt) {
+                    typeSpeed = 3000;
+                    this.isDeleting = true;
+                } else if (this.isDeleting && this.txt === '') {
+                    this.isDeleting = false;
+                    this.wordIndex++;
+                    typeSpeed = 500;
+                }
+
+                setTimeout(() => this.type(), typeSpeed);
+            }
+        }
+
+        const mediaContainer = document.querySelector('.media-container');
+        const content = document.querySelector('.content');
+        const initialOverlay = document.querySelector('.initial-overlay');
+        
+        initialOverlay.addEventListener('click', function() {
+            initialOverlay.style.opacity = 0;
+            setTimeout(() => {
+                initialOverlay.style.display = 'none';
+            }, 500);
+            
+            mediaContainer.style.opacity = 1;
+            content.style.opacity = 1;
+            
+            ${editorState.content.bioType === 'quotes' ? 'new TypeWriter(document.getElementById("quote"), quotes);' : ''}
+        });
+    `);
+    parts.push('<\/script>');
+    parts.push('</body>');
+    parts.push('</html>');
+
+    return parts.join('\n');
+}
+
+function setupPreview() {
+    const previewContainer = document.getElementById('editorPreview');
+    const frameContainer = previewContainer.querySelector('.preview-frame-container');
+    const deviceButtons = previewContainer.querySelectorAll('.preview-device-btn');
+    
+    deviceButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Update active button
+            deviceButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Update preview container
+            frameContainer.className = 'preview-frame-container ' + btn.dataset.device;
+            
+            // Refresh preview to ensure proper rendering
+            updatePreview();
+        });
+    });
+}
+function updatePreview() {
+    if (document.getElementById('editorPreview').classList.contains('active')) {
+        generatePreview();
+    }
+}
+
+// Download Template
+function downloadTemplate() {
+    const template = generateTemplate();
+    const blob = new Blob([template], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'profile-template.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Upload Template
+// Enhanced upload functionality
+async function uploadTemplate() {
+    const modal = document.getElementById('uploadModal');
+    const statusContainer = document.getElementById('uploadStatus');
+    const statusMessage = statusContainer.querySelector('.status-message');
+    const progressBar = statusContainer.querySelector('.progress-bar');
+    
+    // Show template preview info
+    document.getElementById('previewName').textContent = editorState.content.name;
+    document.getElementById('previewSocialCount').textContent = `${editorState.socialLinks.length} links`;
+    document.getElementById('previewBioType').textContent = editorState.content.bioType === 'quotes' ? 'Rotating Quotes' : 'Static Bio';
+    
+    // Show modal
+    modal.classList.add('active');
+    document.querySelector('.overlay').classList.add('active');
+    
+    // Setup modal buttons
+    document.getElementById('cancelUpload').onclick = () => {
+        modal.classList.remove('active');
+        document.querySelector('.overlay').classList.remove('active');
+        statusContainer.classList.remove('active');
+        statusMessage.innerHTML = '';
+        progressBar.style.width = '0%';
+    };
+    
+    document.getElementById('confirmUpload').onclick = async () => {
+        try {
+            statusContainer.classList.add('active');
+            const customUrl = document.getElementById('uploadCustomUrl').value.trim();
+            
+            // Generate template
+            statusMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating template...';
+            progressBar.style.width = '30%';
+            
+            const template = generateTemplate();
+            const blob = new Blob([template], { type: 'text/html' });
+            const file = new File([blob], 'profile-template.html', { type: 'text/html' });
+            
+            // Prepare upload
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Start upload
+            statusMessage.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading...';
+            progressBar.style.width = '60%';
+            
+            let url = `${BASE_URL}/upload`;
+            if (customUrl) {
+                url += `?custom_url=${encodeURIComponent(customUrl)}`;
+            }
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                progressBar.style.width = '100%';
+                const finalUrl = `${FRONTEND_URL}/${data.url}`;
+                statusMessage.innerHTML = `
+                    <div class="upload-success">
+                        <i class="fas fa-check-circle"></i> Upload successful!
+                    </div>
+                    <div class="uploaded-url">
+                        <span>${finalUrl}</span>
+                        <button class="copy-btn" onclick="copyToClipboard('${finalUrl}')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Refresh file list
+                fetchUserFiles();
+                
+                // Auto close after delay
+                setTimeout(() => {
+                    modal.classList.remove('active');
+                    document.querySelector('.overlay').classList.remove('active');
+                    statusContainer.classList.remove('active');
+                    statusMessage.innerHTML = '';
+                    progressBar.style.width = '0%';
+                }, 3000);
+            } else {
+                throw new Error(data.detail || 'Upload failed');
+            }
+        } catch (error) {
+            progressBar.style.width = '100%';
+            statusMessage.innerHTML = `
+                <div class="upload-error">
+                    <i class="fas fa-exclamation-circle"></i> ${error.message}
+                </div>
+            `;
+        }
+    };
+}
+
+// Helper function to copy URL
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        const copyBtn = document.querySelector('.copy-btn');
+        const originalHTML = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => {
+            copyBtn.innerHTML = originalHTML;
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+    }
+}
+
 
 function showUpdateFile(url) {
     currentUpdateUrl = url;
@@ -1102,6 +2535,10 @@ function handleNavClick(tab) {
         item.classList.remove('active');
     });
     event.currentTarget.classList.add('active');
+    if (tab === 'editor') {
+        switchTab('editor');
+        initializeEditor();
+    }
 
     switch(tab) {
         case 'profile':
@@ -1127,7 +2564,8 @@ function switchTab(tab) {
         'homeContainer': document.getElementById('homeContainer'),
         'uploadContainer': document.getElementById('uploadContainer'),
         'myFilesContainer': document.getElementById('myFilesContainer'),
-        'profileSection': document.getElementById('profileSection')
+        'profileSection': document.getElementById('profileSection'),
+        'editorContainer': document.getElementById('editorContainer') // Add this line
     };
 
     // Hide all containers first
@@ -1152,6 +2590,10 @@ function switchTab(tab) {
         case 'profile':
             containers.profileSection.style.display = 'block';
             fetchUserInfo();
+            break;
+        case 'editor':
+            containers.editorContainer.style.display = 'block';
+            initializeEditor(); // Make sure this is called
             break;
     }
 
