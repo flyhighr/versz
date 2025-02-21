@@ -32,6 +32,7 @@ import schedule
 import smtplib
 from email.message import EmailMessage
 from cachetools import TTLCache
+
 class Settings:
     MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     API_URL: str = os.getenv("API_URL", "http://localhost:8000")
@@ -43,13 +44,11 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(64))
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     ALGORITHM: str = "HS256"
-    # Updated Email Settings
-    EMAIL_HOST: str = os.getenv("EMAIL_HOST", "mail.versz.fun")
-    EMAIL_PORT: int = int(os.getenv("EMAIL_PORT", "465"))  # Changed to 465 for SSL
-    EMAIL_USERNAME: str = os.getenv("EMAIL_USERNAME", "noreply@versz.fun")
+    EMAIL_HOST: str = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+    EMAIL_PORT: int = int(os.getenv("EMAIL_PORT", "587"))
+    EMAIL_USERNAME: str = os.getenv("EMAIL_USERNAME", "")
     EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD", "")
-    EMAIL_FROM: str = os.getenv("EMAIL_FROM", "noreply@versz.fun")
-    EMAIL_USE_SSL: bool = True  # Added for SSL support
+    EMAIL_FROM: str = os.getenv("EMAIL_FROM", EMAIL_USERNAME)
     BCRYPT_ROUNDS: int = 12 if ENVIRONMENT == "production" else 4
     MAX_FILE_SIZE: int = 20 * 1024 * 1024  # 20MB
     URL_LENGTH: int = 7
@@ -260,8 +259,8 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                # Changed to use SMTP_SSL for port 465
-                with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT) as server:
+                with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT) as server:
+                    server.starttls()
                     server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
                     server.send_message(msg)
                 logger.info(f"Email sent successfully to {to_email}")
