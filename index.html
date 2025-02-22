@@ -2162,9 +2162,7 @@ function setupAllEventListeners() {
     
 }
 
-function setupAllEventListeners() {
-
-
+document.addEventListener('DOMContentLoaded', function() {
     // Sidebar Toggle Listener
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.querySelector('.sidebar');
@@ -2177,7 +2175,7 @@ function setupAllEventListeners() {
             mainContent.classList.toggle('expanded');
         });
     }
-}
+});
 window.addEventListener('resize', () => {
     const sidebar = document.querySelector('.sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
