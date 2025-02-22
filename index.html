@@ -115,6 +115,8 @@ body {
     box-shadow: var(--box-shadow);
     overflow-y: auto;
     overflow-x: hidden;
+    transform: translateX(0);
+    transition: all var(--transition-speed) ease;
 }
 
 /* Logo Styles */
@@ -1506,6 +1508,51 @@ input[type="color"]::-webkit-color-swatch {
         height: 568px;
     }
 }
+
+.sidebar-toggle {
+    position: fixed;
+    left: var(--sidebar-width);
+    top: 1rem;
+    background: var(--sidebar-bg);
+    border: none;
+    color: var(--text-primary);
+    padding: 0.5rem;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 999;
+    transition: all var(--transition-speed) ease;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--box-shadow);
+    border: 1px solid var(--border-color);
+}
+
+.sidebar-toggle:hover {
+    background: var(--hover-bg);
+    color: var(--accent-color);
+}
+
+.sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+.sidebar-toggle.collapsed {
+    left: 1rem;
+}
+
+.main-content.expanded {
+    margin-left: 0;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .sidebar-toggle {
+        left: var(--sidebar-width-mobile);
+    }
+}
     </style>
 </head>
 <body>
@@ -1553,6 +1600,9 @@ input[type="color"]::-webkit-color-swatch {
             </div>
         </nav>
     </div>
+    <button id="sidebarToggle" class="sidebar-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
 
     <div class="main-content">
         <div id="authContainer">
@@ -2097,9 +2147,58 @@ function setupAllEventListeners() {
         const tab = this.getAttribute('data-tab');
         switchAuthTab(tab);
     });
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            sidebarToggle.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+    }
 });
     
 }
+
+function setupAllEventListeners() {
+
+
+    // Sidebar Toggle Listener
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            sidebarToggle.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+    }
+}
+window.addEventListener('resize', () => {
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const mainContent = document.querySelector('.main-content');
+
+    if (window.innerWidth > 768) {
+        sidebar.style.width = 'var(--sidebar-width)';
+        sidebarToggle.style.left = 'var(--sidebar-width)';
+    } else {
+        sidebar.style.width = 'var(--sidebar-width-mobile)';
+        sidebarToggle.style.left = 'var(--sidebar-width-mobile)';
+    }
+
+    // Reset collapsed state on resize
+    if (sidebar.classList.contains('collapsed')) {
+        sidebar.classList.remove('collapsed');
+        sidebarToggle.classList.remove('collapsed');
+        mainContent.classList.remove('expanded');
+    }
+});
+
 function downloadTemplate() {
     try {
         // Generate the template HTML
