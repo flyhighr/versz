@@ -827,7 +827,17 @@ textarea.input {
     transition: .4s;
     border-radius: 50%;
 }
+.btn-highlight {
+    background-color: var(--accent-color) !important;
+    transform: translateY(-1px);
+    box-shadow: var(--hover-shadow);
+}
 
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none !important;
+}
 input:checked + .toggle-slider {
     background-color: var(--accent-color);
 }
@@ -1950,7 +1960,8 @@ input[type="color"]::-webkit-color-swatch {
 
     <div class="overlay"></div>
     <script>
-      const BASE_URL = 'https://versz-vs1b.onrender.com';
+// Constants and State Management
+const BASE_URL = 'https://versz-vs1b.onrender.com';
 const FRONTEND_URL = 'https://versz.fun';
 let token = localStorage.getItem('token');
 let userId = localStorage.getItem('userId');
@@ -2026,58 +2037,809 @@ const socialPlatforms = {
     website: { name: 'Website', icon: 'fas fa-globe' }
 };
 
-// Initialize Editor
+// Main Initialization
+document.addEventListener('DOMContentLoaded', function() {
+    setupAllEventListeners();
+    
+    if (token) {
+        if (isVerified === true) {
+            showApp();
+            fetchUserInfo();
+            fetchUserFiles();
+        } else {
+            showVerifyEmail();
+        }
+    } else {
+        showAuth();
+        switchAuthTab('login');
+    }
+});
+
+// Event Listeners Setup
+function setupAllEventListeners() {
+    // Auth Listeners
+    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+    document.getElementById('registerBtn')?.addEventListener('click', handleRegister);
+    document.getElementById('forgotPasswordBtn')?.addEventListener('click', handlePasswordReset);
+    document.getElementById('submitResetBtn')?.addEventListener('click', handleResetSubmit);
+
+    // File Management Listeners
+    document.getElementById('fileInput')?.addEventListener('change', e => handleFileInputChange(e, 'upload'));
+    document.getElementById('updateFileInput')?.addEventListener('change', e => handleFileInputChange(e, 'update'));
+    document.getElementById('uploadBtn')?.addEventListener('click', handleFileUpload);
+    document.getElementById('submitUpdateBtn')?.addEventListener('click', handleFileUpdate);
+    document.getElementById('cancelUpdateBtn')?.addEventListener('click', hideUpdateModal);
+
+    // Profile and Preferences
+    document.getElementById('savePreferences')?.addEventListener('click', updateDisplayPreferences);
+    // Reset password link
+    document.querySelector('.link-text[onclick="showForgotPassword()"]')?.addEventListener('click', showForgotPassword);
+
+    // Close verify email modal
+    document.querySelector('.close-button[onclick="hideVerifyEmail()"]')?.addEventListener('click', hideVerifyEmail);
+
+    // Profile section
+    document.getElementById('savePreferences')?.addEventListener('click', updateDisplayPreferences);
+    
+}
+
+// Authentication Handling Functions
+async function handleLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+        document.getElementById('loginError').textContent = 'Please fill all fields';
+        return;
+    }
+    
+    document.getElementById('loginLoading').classList.add('active');
+    document.getElementById('loginError').textContent = '';
+    
+    try {
+        const response = await fetch(`${BASE_URL}/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('userId', data.id);
+            localStorage.setItem('userEmail', data.email);
+            localStorage.setItem('isVerified', data.is_verified);
+        
+            token = data.access_token;
+            userId = data.id;
+            userEmail = data.email;
+            isVerified = data.is_verified;
+        
+            if (data.is_verified) {
+                showApp();
+            } else {
+                document.getElementById('authContainer').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'none';
+                showVerifyEmail();
+            }
+        } else {
+            document.getElementById('loginError').textContent = data.detail || 'Login failed';
+        }
+    } catch (error) {
+        document.getElementById('loginError').textContent = 'An error occurred. Please try again.';
+    } finally {
+        document.getElementById('loginLoading').classList.remove('active');
+    }
+}
+
+async function handleRegister() {
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const errorElement = document.getElementById('registerError');
+    
+    if (!email || !password || !confirmPassword) {
+        errorElement.textContent = 'Please fill all fields';
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        errorElement.textContent = 'Passwords do not match';
+        return;
+    }
+    
+    document.getElementById('registerLoading').classList.add('active');
+    errorElement.textContent = '';
+    
+    try {
+        const response = await fetch(`${BASE_URL}/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            handleRegistrationSuccess(data);
+        } else {
+            if (data.detail && typeof data.detail === 'object') {
+                errorElement.textContent = data.detail.message || 'Registration failed';
+            } else {
+                errorElement.textContent = data.detail || 'Registration failed';
+            }
+
+            if (data.detail && data.detail.status === 'pending_verification') {
+                userEmail = email;
+                setTimeout(() => {
+                    document.getElementById('authContainer').style.display = 'none';
+                    document.getElementById('appContainer').style.display = 'none';
+                    showVerifyEmail();
+                }, 2000);
+            }
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        errorElement.textContent = 'An error occurred. Please try again.';
+    } finally {
+        document.getElementById('registerLoading').classList.remove('active');
+    }
+}
+function handleRegistrationSuccess(data) {
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('userId', data.id);
+    localStorage.setItem('userEmail', data.email);
+    localStorage.setItem('isVerified', 'false');
+
+    token = data.access_token;
+    userId = data.id;
+    userEmail = data.email;
+    isVerified = false;
+
+    document.getElementById('authContainer').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'none';
+    showVerifyEmail();
+}
+
+async function handlePasswordReset() {
+    const email = document.getElementById('forgotPasswordEmail').value;
+    const errorElement = document.getElementById('forgotPasswordError');
+    const successElement = document.getElementById('forgotPasswordSuccess');
+    const loadingElement = document.getElementById('forgotPasswordLoading');
+    
+    if (!email) {
+        errorElement.textContent = 'Please enter your email';
+        return;
+    }
+
+    try {
+        loadingElement.classList.add('active');
+        errorElement.textContent = '';
+        successElement.textContent = '';
+
+        const response = await fetch(`${BASE_URL}/request-password-reset`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            successElement.textContent = 'Reset code sent to your email!';
+            document.getElementById('resetStep1').style.display = 'none';
+            document.getElementById('resetStep2').style.display = 'block';
+        } else {
+            // Handle different error formats
+            if (Array.isArray(data.detail)) {
+                // Handle validation errors
+                const validationError = data.detail[0];
+                if (validationError.type === 'value_error') {
+                    errorElement.textContent = validationError.msg;
+                } else {
+                    errorElement.textContent = validationError.msg || 'Invalid input';
+                }
+            } else {
+                errorElement.textContent = data.detail || 'Failed to send reset code';
+            }
+        }
+    } catch (error) {
+        console.error('Password reset error:', error);
+        errorElement.textContent = 'An error occurred. Please try again.';
+    } finally {
+        loadingElement.classList.remove('active');
+    }
+}
+function formatHexColor(color) {
+    if (!color.startsWith('#')) {
+        color = '#' + color;
+    }
+    return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color) ? color : null;
+}
+
+async function handleResetSubmit() {
+    const email = document.getElementById('forgotPasswordEmail').value;
+    const code = document.getElementById('resetCode').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmNewPassword').value;
+    
+    const errorElement = document.getElementById('forgotPasswordError');
+    const successElement = document.getElementById('forgotPasswordSuccess');
+    const loadingElement = document.getElementById('forgotPasswordLoading');
+    
+    if (!code || !newPassword || !confirmPassword) {
+        errorElement.textContent = 'Please fill all fields';
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        errorElement.textContent = 'Passwords do not match';
+        return;
+    }
+
+    try {
+        loadingElement.classList.add('active');
+        errorElement.textContent = '';
+        successElement.textContent = '';
+
+        const response = await fetch(`${BASE_URL}/reset-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email,
+                reset_code: code,
+                new_password: newPassword
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            successElement.textContent = 'Password reset successfully!';
+            setTimeout(() => {
+                switchAuthTab('login');
+            }, 2000);
+        } else {
+            // Handle different error formats
+            if (Array.isArray(data.detail)) {
+                // Handle validation errors
+                const validationError = data.detail[0];
+                if (validationError.type === 'value_error') {
+                    errorElement.textContent = validationError.msg;
+                } else {
+                    errorElement.textContent = validationError.msg || 'Invalid input';
+                }
+            } else {
+                errorElement.textContent = data.detail || 'Failed to reset password';
+            }
+        }
+    } catch (error) {
+        console.error('Reset submit error:', error);
+        errorElement.textContent = 'An error occurred. Please try again.';
+    } finally {
+        loadingElement.classList.remove('active');
+    }
+}
+
+// UI State Management Functions
+function showAuth() {
+    document.getElementById('authContainer').style.display = 'block';
+    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('auth-nav').style.display = 'block';
+    document.getElementById('app-nav').style.display = 'none';
+    document.getElementById('verifyEmailContainer').classList.remove('active');
+    document.querySelector('.overlay').classList.remove('active');
+}
+
+function showApp() {
+    document.getElementById('authContainer').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+    document.getElementById('auth-nav').style.display = 'none';
+    document.getElementById('app-nav').style.display = 'block';
+    document.getElementById('verifyEmailContainer').classList.remove('active');
+    document.querySelector('.overlay').classList.remove('active');
+    showHomeTab();
+}
+
+function showVerifyEmail() {
+    document.getElementById('authContainer').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('verifyEmailContainer').classList.add('active');
+    document.querySelector('.overlay').classList.add('active');
+    
+    const verifyEmailText = document.querySelector('#verifyEmailContainer p');
+    if (verifyEmailText && userEmail) {
+        verifyEmailText.textContent = `We've sent a verification link to ${userEmail}. Please check your inbox and click the link to verify your account.`;
+    }
+}
+function hideVerifyEmail() {
+    document.getElementById('verifyEmailContainer').classList.remove('active');
+    document.querySelector('.overlay').classList.remove('active');
+    
+    if (isVerified) {
+        showApp();
+    } else if (token) {
+        showAuth();
+    }
+}
+// File Management Functions
+async function handleFileUpload() {
+    const fileInput = document.getElementById('fileInput');
+    const customUrlInput = document.getElementById('customUrl');
+    const customUrl = customUrlInput.value.trim();
+    const errorElement = document.getElementById('uploadError');
+    const successElement = document.getElementById('uploadSuccess');
+    const loadingElement = document.getElementById('uploadLoading');
+    
+    if (!fileInput.files.length) {
+        errorElement.textContent = 'Please select a file';
+        return;
+    }
+    
+    try {
+        loadingElement.classList.add('active');
+        errorElement.textContent = '';
+        successElement.textContent = '';
+        
+        let uploadUrl = `${BASE_URL}/upload`;
+        if (customUrl) {
+            uploadUrl += `?custom_url=${encodeURIComponent(customUrl)}`;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            successElement.textContent = `File uploaded successfully! Access your file at: ${FRONTEND_URL}/${data.url}`;
+            fileInput.value = '';
+            customUrlInput.value = '';
+            document.getElementById('selectedFile').textContent = '';
+            document.getElementById('uploadBtn').disabled = true;
+            
+            fetchUserInfo();
+            fetchUserFiles();
+        } else {
+            throw new Error(data.detail || 'Upload failed');
+        }
+    } catch (error) {
+        errorElement.textContent = error.message || 'An error occurred during upload';
+    } finally {
+        loadingElement.classList.remove('active');
+    }
+}
+
+async function handleFileUpdate() {
+    if (!currentUpdateUrl) {
+        document.getElementById('updateError').textContent = 'No file selected for update';
+        return;
+    }
+    
+    const fileInput = document.getElementById('updateFileInput');
+    const errorElement = document.getElementById('updateError');
+    const successElement = document.getElementById('updateSuccess');
+    const loadingElement = document.getElementById('updateLoading');
+    
+    if (!fileInput.files.length) {
+        errorElement.textContent = 'Please select a file';
+        return;
+    }
+    
+    try {
+        loadingElement.classList.add('active');
+        errorElement.textContent = '';
+        successElement.textContent = '';
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        
+        const response = await fetch(`${BASE_URL}/update/${currentUpdateUrl}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            successElement.textContent = 'File updated successfully!';
+            setTimeout(() => {
+                hideUpdateModal();
+                fetchUserFiles();
+            }, 1500);
+        } else {
+            throw new Error(data.detail || 'Update failed');
+        }
+    } catch (error) {
+        errorElement.textContent = error.message;
+    } finally {
+        loadingElement.classList.remove('active');
+    }
+}
+
+async function fetchUserFiles() {
+    try {
+        const response = await fetch(`${BASE_URL}/my-files`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const files = await response.json();
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = files.length ? files.map(file => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">${file.filename}</div>
+                        <div class="file-url">
+                            <a href="${FRONTEND_URL}/${file.url}" target="_blank">
+                                ${FRONTEND_URL}/${file.url} 👁️
+                            </a>
+                        </div>
+                        <div class="file-stats">Views: ${file.views}</div>
+                        <div class="file-dates">
+                            Created: ${new Date(file.created_at).toLocaleDateString()}
+                            ${file.updated_at ? `<br>Updated: ${new Date(file.updated_at).toLocaleDateString()}` : ''}
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="file-action" onclick="showUpdateFile('${file.url}')" title="Update">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="file-action" onclick="deleteFile('${file.url}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('') : '<div class="no-files">No files uploaded yet</div>';
+        }
+    } catch (error) {
+        console.error('Error fetching files:', error);
+    }
+}
+
+async function deleteFile(url) {
+    try {
+        const response = await fetch(`${BASE_URL}/file/${url}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            fetchUserFiles();
+            fetchUserInfo();
+        } else {
+            throw new Error('Failed to delete file');
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Editor Functions
 function initializeEditor() {
     if (!document.getElementById('editorContainer')) {
         console.error('Editor container not found');
         return;
     }
 
-    // Set initial values
+    setInitialEditorValues();
+    setupColorPickers();
+    renderSocialLinks();
+    setupPreview();
+    
+    // Add initial preview generation
+    setTimeout(() => {
+        generatePreview();
+    }, 100);
+}
+
+function setInitialEditorValues() {
+    // Set initial values for all editor inputs
     document.getElementById('profilePosition').value = editorState.layout.position;
     document.getElementById('containerOpacity').value = editorState.layout.opacity;
-    updateValueDisplay('containerOpacity', 'opacityValue', '%');
-    
     document.getElementById('bgType').value = editorState.background.type;
     document.getElementById('bgUrl').value = editorState.background.url;
-    
     document.getElementById('fontFamily').value = editorState.typography.fontFamily;
     document.getElementById('nameFontSize').value = editorState.typography.nameSize;
-    updateValueDisplay('nameFontSize', 'nameFontSizeValue', 'px');
-    
     document.getElementById('profileName').value = editorState.content.name;
     document.getElementById('bioType').value = editorState.content.bioType;
+    document.getElementById('staticBio').value = editorState.content.staticBio;
     document.getElementById('quotes').value = editorState.content.quotes.join('\n');
     document.getElementById('initialScreenColor').value = editorState.initialScreen.color;
     document.getElementById('centerIcon').value = editorState.initialScreen.icon;
+    setupRangeDisplays();
 
-    // Show/hide bio containers based on type
-    const bioType = document.getElementById('bioType').value;
-    document.getElementById('staticBioContainer').style.display = bioType === 'static' ? 'block' : 'none';
-    document.getElementById('quotesContainer').style.display = bioType === 'quotes' ? 'block' : 'none';
-     document.getElementById('profileIconColor').value = editorState.colors.profileIcon;
-    document.getElementById('textColor').value = editorState.colors.text;
-    document.getElementById('secondaryTextColor').value = editorState.colors.secondaryText;
-    document.getElementById('containerBorderColor').value = editorState.colors.containerBorder;
-    document.getElementById('socialIconsColor').value = editorState.colors.socialIcons;
-    document.getElementById('socialIconsHoverColor').value = editorState.colors.socialIconsHover;
+    // Set initial values for opacity displays
+    document.getElementById('opacityValue').textContent = `${editorState.layout.opacity}%`;
+    document.getElementById('nameFontSizeValue').textContent = `${editorState.typography.nameSize}px`;
 
-    setupColorPickers();
+    // Set initial values for color opacity displays
+    const secondaryTextOpacity = document.querySelector('[data-opacity-for="secondaryTextColor"]');
+    if (secondaryTextOpacity) {
+        secondaryTextOpacity.nextElementSibling.textContent = `${secondaryTextOpacity.value}%`;
+    }
 
-    // Initialize social links
-    renderSocialLinks();
+    const borderOpacity = document.querySelector('[data-opacity-for="containerBorderColor"]');
+    if (borderOpacity) {
+        borderOpacity.nextElementSibling.textContent = `${borderOpacity.value}%`;
+    }
 
-    // Setup all event listeners
-    setupEventListeners();
-
-    // Setup preview
-    setupPreview();
-
-    // Generate initial preview
-    generatePreview();
+    // Setup event listeners for all inputs
+    setupEditorEventListeners();
 }
 
-// Setup Event Listeners
+function setupEditorEventListeners() {
+    // Layout listeners
+    document.getElementById('profilePosition').addEventListener('change', updateLayout);
+    document.getElementById('containerOpacity').addEventListener('input', updateLayout);
+
+    // Background listeners
+    document.getElementById('bgType').addEventListener('change', updateBackground);
+    document.getElementById('bgUrl').addEventListener('input', updateBackground);
+
+    // Typography listeners
+    document.getElementById('fontFamily').addEventListener('change', updateTypography);
+    document.getElementById('nameFontSize').addEventListener('input', updateTypography);
+
+    // Content listeners
+    document.getElementById('profileName').addEventListener('input', updateContent);
+    document.getElementById('bioType').addEventListener('change', updateContent);
+    document.getElementById('staticBio').addEventListener('input', updateContent);
+    document.getElementById('quotes').addEventListener('input', updateContent);
+
+    // Initial screen listeners
+    document.getElementById('initialScreenColor').addEventListener('input', updateInitialScreen);
+    document.getElementById('centerIcon').addEventListener('input', updateInitialScreen);
+
+    // Preview button listener
+    document.getElementById('previewChanges').addEventListener('click', generatePreview);
+    document.getElementById('uploadTemplate').addEventListener('click', uploadTemplate);
+}
+
+function renderSocialLinks() {
+    const container = document.getElementById('socialLinksContainer');
+    if (!container) return;
+
+    container.innerHTML = editorState.socialLinks.map((link, index) => `
+        <div class="social-link-item">
+            <select class="input" onchange="updateSocialPlatform(${index}, this.value)">
+                ${Object.entries(socialPlatforms).map(([key, platform]) => `
+                    <option value="${key}" ${link.platform === key ? 'selected' : ''}>
+                        ${platform.name}
+                    </option>
+                `).join('')}
+            </select>
+            <input type="text" class="input" value="${link.url}" 
+                   placeholder="Enter URL" 
+                   onchange="updateSocialUrl(${index}, this.value)">
+            <button class="remove-social" onclick="removeSocialLink(${index})">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function updateSocialPlatform(index, platform) {
+    editorState.socialLinks[index].platform = platform;
+    editorState.socialLinks[index].icon = socialPlatforms[platform].icon;
+    updatePreview();
+}
+
+function updateSocialUrl(index, url) {
+    editorState.socialLinks[index].url = url;
+    updatePreview();
+}
+
+function removeSocialLink(index) {
+    editorState.socialLinks.splice(index, 1);
+    renderSocialLinks();
+    updatePreview();
+}
+
+function setupColorPickers() {
+    const colorInputs = document.querySelectorAll('.color-input');
+    colorInputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            const id = e.target.id;
+            const color = e.target.value;
+            const opacityInput = document.querySelector(`[data-opacity-for="${id}"]`);
+            
+            if (opacityInput) {
+                const opacity = opacityInput.value;
+                updateColors(id, color, opacity);
+            } else {
+                updateColors(id, color);
+            }
+            
+            // Update text input
+            const textInput = document.querySelector(`[data-color-input="${id}"]`);
+            if (textInput) {
+                textInput.value = color;
+            }
+        });
+    });
+
+    // Setup opacity range inputs
+    const opacityInputs = document.querySelectorAll('.opacity-range');
+    opacityInputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            const colorId = e.target.dataset.opacityFor;
+            const colorInput = document.getElementById(colorId);
+            updateColors(colorId, colorInput.value, e.target.value);
+            
+            // Update opacity value display
+            const opacityValue = e.target.nextElementSibling;
+            if (opacityValue) {
+                opacityValue.textContent = `${e.target.value}%`;
+            }
+        });
+    });
+    document.querySelectorAll('.color-text').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const colorInputId = e.target.dataset.colorInput;
+            const colorInput = document.getElementById(colorInputId);
+            
+            // Validate hex color
+            const isValidHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+            let color = e.target.value;
+            
+            if (!color.startsWith('#')) {
+                color = '#' + color;
+            }
+            
+            if (isValidHex.test(color)) {
+                colorInput.value = color;
+                const opacityInput = document.querySelector(`[data-opacity-for="${colorInputId}"]`);
+                
+                if (opacityInput) {
+                    updateColors(colorInputId, color, opacityInput.value);
+                } else {
+                    updateColors(colorInputId, color);
+                }
+            } else {
+                // Reset to the color input's value if invalid
+                e.target.value = colorInput.value;
+            }
+        });
+    });
+}
+
+function setupRangeDisplays() {
+    // Container Opacity
+    const opacityRange = document.getElementById('containerOpacity');
+    const opacityValue = document.getElementById('opacityValue');
+    if (opacityRange && opacityValue) {
+        opacityRange.addEventListener('input', () => {
+            opacityValue.textContent = `${opacityRange.value}%`;
+            updateLayout();
+        });
+    }
+
+    // Name Font Size
+    const nameFontSize = document.getElementById('nameFontSize');
+    const nameFontSizeValue = document.getElementById('nameFontSizeValue');
+    if (nameFontSize && nameFontSizeValue) {
+        nameFontSize.addEventListener('input', () => {
+            nameFontSizeValue.textContent = `${nameFontSize.value}px`;
+            updateTypography();
+        });
+    }
+
+    // Secondary Text Opacity
+    const secondaryTextOpacity = document.querySelector('[data-opacity-for="secondaryTextColor"]');
+    if (secondaryTextOpacity) {
+        secondaryTextOpacity.addEventListener('input', (e) => {
+            const value = e.target.value;
+            const display = e.target.nextElementSibling;
+            if (display) {
+                display.textContent = `${value}%`;
+            }
+            updateSecondaryTextColor();
+        });
+    }
+
+    // Container Border Opacity
+    const borderOpacity = document.querySelector('[data-opacity-for="containerBorderColor"]');
+    if (borderOpacity) {
+        borderOpacity.addEventListener('input', (e) => {
+            const value = e.target.value;
+            const display = e.target.nextElementSibling;
+            if (display) {
+                display.textContent = `${value}%`;
+            }
+            updateContainerBorder();
+        });
+    }
+}
+
+// Update Secondary Text Color with Opacity
+function updateSecondaryTextColor() {
+    const colorInput = document.getElementById('secondaryTextColor');
+    const opacityInput = document.querySelector('[data-opacity-for="secondaryTextColor"]');
+    
+    if (colorInput && opacityInput) {
+        const color = colorInput.value;
+        const opacity = opacityInput.value / 100;
+        const rgb = hexToRgb(color);
+        
+        if (rgb) {
+            editorState.colors.secondaryText = `rgba(${rgb.join(', ')}, ${opacity})`;
+            updatePreview();
+        }
+    }
+}
+
+// Update Container Border with Opacity
+function updateContainerBorder() {
+    const colorInput = document.getElementById('containerBorderColor');
+    const opacityInput = document.querySelector('[data-opacity-for="containerBorderColor"]');
+    
+    if (colorInput && opacityInput) {
+        const color = colorInput.value;
+        const opacity = opacityInput.value / 100;
+        const rgb = hexToRgb(color);
+        
+        if (rgb) {
+            editorState.colors.containerBorder = `rgba(${rgb.join(', ')}, ${opacity})`;
+            updatePreview();
+        }
+    }
+}
+
+
+function addSocialLink() {
+    if (editorState.socialLinks.length >= 10) {
+        alert('Maximum 10 social links allowed');
+        return;
+    }
+    
+    editorState.socialLinks.push({
+        platform: 'website',
+        url: '',
+        icon: socialPlatforms.website.icon
+    });
+    
+    renderSocialLinks();
+    updatePreview();
+}
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+    ] : null;
+}
+// Make sure this event listener is added
+document.getElementById('addSocialLink')?.addEventListener('click', addSocialLink);
+
 function updateValueDisplay(inputId, displayId, suffix = '') {
     const input = document.getElementById(inputId);
     const display = document.getElementById(displayId);
@@ -2085,88 +2847,17 @@ function updateValueDisplay(inputId, displayId, suffix = '') {
         display.textContent = input.value + suffix;
     }
 }
-
-// Update the event listeners setup
-function setupEventListeners() {
-    // Typography and Layout controls
-    const controlsConfig = {
-        'containerOpacity': {
-            displayId: 'opacityValue',
-            suffix: '%',
-            update: (value) => {
-                editorState.layout.opacity = value;
-                updateValueDisplay('containerOpacity', 'opacityValue', '%');
-            }
-        },
-        'nameFontSize': {
-            displayId: 'nameFontSizeValue',
-            suffix: 'px',
-            update: (value) => {
-                editorState.typography.nameSize = value;
-                updateValueDisplay('nameFontSize', 'nameFontSizeValue', 'px');
-            }
-        },
-        'fontFamily': {
-            update: (value) => {
-                editorState.typography.fontFamily = value;
-            }
-        },
-        'profilePosition': {
-            update: (value) => {
-                editorState.layout.position = value;
-            }
-        }
+// Editor Update Functions
+function updateLayout() {
+    const position = document.getElementById('profilePosition').value;
+    const opacity = document.getElementById('containerOpacity').value;
+    
+    editorState.layout = {
+        position: position,
+        opacity: parseInt(opacity)
     };
 
-    // Setup control listeners
-    Object.keys(controlsConfig).forEach(controlId => {
-        const element = document.getElementById(controlId);
-        if (element) {
-            ['input', 'change'].forEach(eventType => {
-                element.addEventListener(eventType, (e) => {
-                    controlsConfig[controlId].update(e.target.value);
-                    updatePreview();
-                });
-            });
-        }
-    });
-
-    // Background settings
-    document.getElementById('bgType').addEventListener('change', updateBackground);
-    document.getElementById('bgUrl').addEventListener('input', debounce(updateBackground, 500));
-
-    // Content settings
-    document.getElementById('profileName').addEventListener('input', updateContent);
-    document.getElementById('bioType').addEventListener('change', updateContent);
-    document.getElementById('quotes').addEventListener('input', debounce(updateContent, 500));
-    document.getElementById('staticBio').addEventListener('input', debounce(updateContent, 500));
-
-    // Initial screen settings
-    document.getElementById('initialScreenColor').addEventListener('input', updateInitialScreen);
-    document.getElementById('centerIcon').addEventListener('input', updateInitialScreen);
-
-    // Preview and action buttons
-    document.getElementById('previewChanges').addEventListener('click', generatePreview);
-    document.getElementById('downloadHtml').addEventListener('click', downloadTemplate);
-    document.getElementById('uploadTemplate').addEventListener('click', uploadTemplate);
-    document.getElementById('addSocialLink').addEventListener('click', addSocialLink);
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-// Update Functions
-function updateLayout(e) {
-    editorState.layout.position = document.getElementById('profilePosition').value;
-    editorState.layout.opacity = document.getElementById('containerOpacity').value;
+    // Update the preview immediately
     updatePreview();
 }
 
@@ -2175,17 +2866,31 @@ function updateBackground() {
     editorState.background.url = document.getElementById('bgUrl').value;
     updatePreview();
 }
-function updateTypography(e) {
-    editorState.typography.fontFamily = document.getElementById('fontFamily').value;
-    editorState.typography.nameSize = document.getElementById('nameFontSize').value;
+
+function updateTypography() {
+    const fontFamily = document.getElementById('fontFamily').value;
+    const nameSize = document.getElementById('nameFontSize').value;
+    
+    editorState.typography = {
+        ...editorState.typography,
+        fontFamily: fontFamily,
+        nameSize: parseInt(nameSize),
+        bioSize: Math.floor(nameSize * 0.77) // Automatically calculate bio size based on name size
+    };
+
+    // Update the font size value display
+    const nameFontSizeValue = document.getElementById('nameFontSizeValue');
+    if (nameFontSizeValue) {
+        nameFontSizeValue.textContent = `${nameSize}px`;
+    }
+
+    // Update the preview immediately
     updatePreview();
 }
-
 function updateContent() {
     editorState.content.name = document.getElementById('profileName').value;
     editorState.content.bioType = document.getElementById('bioType').value;
     
-    // Update bio containers visibility
     document.getElementById('staticBioContainer').style.display = 
         editorState.content.bioType === 'static' ? 'block' : 'none';
     document.getElementById('quotesContainer').style.display = 
@@ -2206,82 +2911,6 @@ function updateInitialScreen() {
     editorState.initialScreen.color = document.getElementById('initialScreenColor').value;
     editorState.initialScreen.icon = document.getElementById('centerIcon').value;
     updatePreview();
-}
-
-// Social Links Management
-function renderSocialLinks() {
-    const container = document.getElementById('socialLinksContainer');
-    container.innerHTML = '';
-
-    editorState.socialLinks.forEach((link, index) => {
-        const linkElement = createSocialLinkElement(link, index);
-        container.appendChild(linkElement);
-    });
-}
-
-function createSocialLinkElement(link, index) {
-    const div = document.createElement('div');
-    div.className = 'social-link-item';
-    div.innerHTML = `
-        <select class="input" onchange="updateSocialLink(${index}, 'platform', this.value)">
-            ${Object.entries(socialPlatforms).map(([key, platform]) => `
-                <option value="${key}" ${link.platform === key ? 'selected' : ''}>
-                    ${platform.name}
-                </option>
-            `).join('')}
-        </select>
-        <input type="text" class="input" value="${link.url}" 
-               onchange="updateSocialLink(${index}, 'url', this.value)" 
-               placeholder="Enter URL">
-        <button class="remove-social" onclick="removeSocialLink(${index})">
-            <i class="fas fa-trash"></i>
-        </button>
-    `;
-    return div;
-}
-// Add to setupEventListeners function
-function setupColorPickers() {
-    const colorInputs = document.querySelectorAll('.color-input');
-    const colorTexts = document.querySelectorAll('.color-text');
-    const opacityRanges = document.querySelectorAll('.opacity-range');
-
-    // Handle color picker changes
-    colorInputs.forEach(input => {
-        input.addEventListener('input', (e) => {
-            const textInput = document.querySelector(`[data-color-input="${input.id}"]`);
-            textInput.value = e.target.value;
-            updateColors(input.id, e.target.value);
-        });
-    });
-
-    // Handle text input changes
-    colorTexts.forEach(input => {
-        input.addEventListener('input', (e) => {
-            const colorInput = document.getElementById(input.dataset.colorInput);
-            if (isValidColor(e.target.value)) {
-                colorInput.value = e.target.value;
-                updateColors(input.dataset.colorInput, e.target.value);
-            }
-        });
-    });
-
-    // Handle opacity changes
-    opacityRanges.forEach(range => {
-        range.addEventListener('input', (e) => {
-            const colorId = range.dataset.opacityFor;
-            const colorInput = document.getElementById(colorId);
-            const opacityValue = range.nextElementSibling;
-            opacityValue.textContent = `${e.target.value}%`;
-            
-            updateColors(colorId, colorInput.value, e.target.value);
-        });
-    });
-}
-
-function isValidColor(color) {
-    const s = new Option().style;
-    s.color = color;
-    return s.color !== '';
 }
 
 function updateColors(id, color, opacity = null) {
@@ -2312,74 +2941,108 @@ function updateColors(id, color, opacity = null) {
     updatePreview();
 }
 
-function hexToRgb(hex) {
-    // Remove # if present
-    hex = hex.replace('#', '');
+// Template Upload Function
+async function uploadTemplate() {
+    const modal = document.getElementById('uploadModal');
+    const statusContainer = document.getElementById('uploadStatus');
+    const statusMessage = statusContainer.querySelector('.status-message');
+    const progressBar = statusContainer.querySelector('.progress-bar');
     
-    // Convert 3-digit hex to 6-digits
-    if (hex.length === 3) {
-        hex = hex.split('').map(char => char + char).join('');
-    }
+    // Show template preview info
+    document.getElementById('previewName').textContent = editorState.content.name;
+    document.getElementById('previewSocialCount').textContent = `${editorState.socialLinks.length} links`;
+    document.getElementById('previewBioType').textContent = editorState.content.bioType === 'quotes' ? 'Rotating Quotes' : 'Static Bio';
     
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
+    // Show modal
+    modal.classList.add('active');
+    document.querySelector('.overlay').classList.add('active');
     
-    return [r, g, b];
-}
-function addSocialLink() {
-    if (editorState.socialLinks.length >= 10) {
-        alert('Maximum 10 social links allowed');
-        return;
-    }
+    // Setup modal buttons
+    document.getElementById('cancelUpload').onclick = () => {
+        modal.classList.remove('active');
+        document.querySelector('.overlay').classList.remove('active');
+        statusContainer.classList.remove('active');
+        statusMessage.innerHTML = '';
+        progressBar.style.width = '0%';
+    };
     
-    editorState.socialLinks.push({
-        platform: 'website',
-        url: '',
-        icon: 'fas fa-globe'
-    });
-    
-    renderSocialLinks();
-    updatePreview();
-}
-
-function updateSocialLink(index, property, value) {
-    editorState.socialLinks[index][property] = value;
-    if (property === 'platform') {
-        editorState.socialLinks[index].icon = socialPlatforms[value].icon;
-    }
-    updatePreview();
-}
-
-function removeSocialLink(index) {
-    editorState.socialLinks.splice(index, 1);
-    renderSocialLinks();
-    updatePreview();
-}
-
-// Preview Generation
-function generatePreview() {
-    const previewContainer = document.getElementById('editorPreview');
-    const previewFrame = document.getElementById('previewFrame');
-    previewContainer.classList.add('active');
-    
-    // Generate template
-    const template = generateTemplate();
-    
-    // Create blob and URL
-    const blob = new Blob([template], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    
-    // Load preview in iframe
-    previewFrame.src = url;
-    
-    // Clean up old URL after load
-    previewFrame.onload = () => {
-        URL.revokeObjectURL(previewFrame.src);
+    document.getElementById('confirmUpload').onclick = async () => {
+        try {
+            statusContainer.classList.add('active');
+            const customUrl = document.getElementById('uploadCustomUrl').value.trim();
+            
+            // Generate template
+            statusMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating template...';
+            progressBar.style.width = '30%';
+            
+            const template = generateTemplate();
+            const blob = new Blob([template], { type: 'text/html' });
+            const file = new File([blob], 'profile-template.html', { type: 'text/html' });
+            
+            // Prepare upload
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Start upload
+            statusMessage.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading...';
+            progressBar.style.width = '60%';
+            
+            let url = `${BASE_URL}/upload`;
+            if (customUrl) {
+                url += `?custom_url=${encodeURIComponent(customUrl)}`;
+            }
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                progressBar.style.width = '100%';
+                const finalUrl = `${FRONTEND_URL}/${data.url}`;
+                statusMessage.innerHTML = `
+                    <div class="upload-success">
+                        <i class="fas fa-check-circle"></i> Upload successful!
+                    </div>
+                    <div class="uploaded-url">
+                        <span>${finalUrl}</span>
+                        <button class="copy-btn" onclick="copyToClipboard('${finalUrl}')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Refresh file list
+                fetchUserFiles();
+                
+                // Auto close after delay
+                setTimeout(() => {
+                    modal.classList.remove('active');
+                    document.querySelector('.overlay').classList.remove('active');
+                    statusContainer.classList.remove('active');
+                    statusMessage.innerHTML = '';
+                    progressBar.style.width = '0%';
+                }, 3000);
+            } else {
+                throw new Error(data.detail || 'Upload failed');
+            }
+        } catch (error) {
+            progressBar.style.width = '100%';
+            statusMessage.innerHTML = `
+                <div class="upload-error">
+                    <i class="fas fa-exclamation-circle"></i> ${error.message}
+                </div>
+            `;
+        }
     };
 }
 
-// Template Generation
+// Template Generation Function
 function generateTemplate() {
     const parts = [];
     const escapeHtml = (unsafe) => {
@@ -2729,553 +3392,172 @@ function generateTemplate() {
     return parts.join('\n');
 }
 
+// Utility Functions
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            const copyBtn = document.querySelector('.copy-btn');
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+            }, 2000);
+        })
+        .catch(err => console.error('Failed to copy:', err));
+}
+
+function processTagIcon(icon) {
+    if (isImageUrl(icon)) {
+        return `<img src="${icon}" alt="tag icon" style="width: 16px; height: 16px; vertical-align: middle;">`;
+    }
+    if (isSvgCode(icon)) {
+        const viewBoxMatch = icon.match(/viewBox=["']([^"']+)["']/);
+        const viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 24 24";
+        return icon.replace('<svg', `<svg style="width: 16px; height: 16px; vertical-align: middle;" viewBox="${viewBox}"`);
+    }
+    return icon;
+}
+
+function isImageUrl(str) {
+    return str.match(/\.(jpg|jpeg|png|gif|svg)$/i) || 
+           str.startsWith('data:image/') || 
+           str.startsWith('http') && str.match(/\.(jpg|jpeg|png|gif|svg)/i);
+}
+
+function isSvgCode(str) {
+    return str.trim().startsWith('<svg') && str.includes('</svg>');
+}
+
+function handleLogout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('isVerified');
+    window.location.reload();
+}
+// Preview and Template Management
 function setupPreview() {
     const previewContainer = document.getElementById('editorPreview');
+    if (!previewContainer) return;
+
     const frameContainer = previewContainer.querySelector('.preview-frame-container');
     const deviceButtons = previewContainer.querySelectorAll('.preview-device-btn');
     
     deviceButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Update active button
             deviceButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
-            // Update preview container
             frameContainer.className = 'preview-frame-container ' + btn.dataset.device;
-            
-            // Refresh preview to ensure proper rendering
             updatePreview();
         });
     });
+
+    // Show preview container by default
+    previewContainer.classList.add('active');
 }
+
+function generatePreview() {
+    const previewContainer = document.getElementById('editorPreview');
+    const previewFrame = document.getElementById('previewFrame');
+    if (!previewContainer || !previewFrame) return;
+
+    const template = generateTemplate();
+    const blob = new Blob([template], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    previewFrame.src = url;
+    previewFrame.onload = () => URL.revokeObjectURL(url);
+}
+
 function updatePreview() {
     if (document.getElementById('editorPreview').classList.contains('active')) {
         generatePreview();
     }
 }
 
-// Download Template
-function downloadTemplate() {
-    const template = generateTemplate();
-    const blob = new Blob([template], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'profile-template.html';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// Upload Template
-// Enhanced upload functionality
-async function uploadTemplate() {
-    const modal = document.getElementById('uploadModal');
-    const statusContainer = document.getElementById('uploadStatus');
-    const statusMessage = statusContainer.querySelector('.status-message');
-    const progressBar = statusContainer.querySelector('.progress-bar');
-    
-    // Show template preview info
-    document.getElementById('previewName').textContent = editorState.content.name;
-    document.getElementById('previewSocialCount').textContent = `${editorState.socialLinks.length} links`;
-    document.getElementById('previewBioType').textContent = editorState.content.bioType === 'quotes' ? 'Rotating Quotes' : 'Static Bio';
-    
-    // Show modal
-    modal.classList.add('active');
-    document.querySelector('.overlay').classList.add('active');
-    
-    // Setup modal buttons
-    document.getElementById('cancelUpload').onclick = () => {
-        modal.classList.remove('active');
-        document.querySelector('.overlay').classList.remove('active');
-        statusContainer.classList.remove('active');
-        statusMessage.innerHTML = '';
-        progressBar.style.width = '0%';
-    };
-    
-    document.getElementById('confirmUpload').onclick = async () => {
-        try {
-            statusContainer.classList.add('active');
-            const customUrl = document.getElementById('uploadCustomUrl').value.trim();
-            
-            // Generate template
-            statusMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating template...';
-            progressBar.style.width = '30%';
-            
-            const template = generateTemplate();
-            const blob = new Blob([template], { type: 'text/html' });
-            const file = new File([blob], 'profile-template.html', { type: 'text/html' });
-            
-            // Prepare upload
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // Start upload
-            statusMessage.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading...';
-            progressBar.style.width = '60%';
-            
-            let url = `${BASE_URL}/upload`;
-            if (customUrl) {
-                url += `?custom_url=${encodeURIComponent(customUrl)}`;
-            }
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                progressBar.style.width = '100%';
-                const finalUrl = `${FRONTEND_URL}/${data.url}`;
-                statusMessage.innerHTML = `
-                    <div class="upload-success">
-                        <i class="fas fa-check-circle"></i> Upload successful!
-                    </div>
-                    <div class="uploaded-url">
-                        <span>${finalUrl}</span>
-                        <button class="copy-btn" onclick="copyToClipboard('${finalUrl}')">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                `;
-                
-                // Refresh file list
-                fetchUserFiles();
-                
-                // Auto close after delay
-                setTimeout(() => {
-                    modal.classList.remove('active');
-                    document.querySelector('.overlay').classList.remove('active');
-                    statusContainer.classList.remove('active');
-                    statusMessage.innerHTML = '';
-                    progressBar.style.width = '0%';
-                }, 3000);
-            } else {
-                throw new Error(data.detail || 'Upload failed');
-            }
-        } catch (error) {
-            progressBar.style.width = '100%';
-            statusMessage.innerHTML = `
-                <div class="upload-error">
-                    <i class="fas fa-exclamation-circle"></i> ${error.message}
-                </div>
-            `;
-        }
-    };
-}
-
-// Helper function to copy URL
-async function copyToClipboard(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        const copyBtn = document.querySelector('.copy-btn');
-        const originalHTML = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-        setTimeout(() => {
-            copyBtn.innerHTML = originalHTML;
-        }, 2000);
-    } catch (err) {
-        console.error('Failed to copy:', err);
-    }
-}
-
-
-function showUpdateFile(url) {
-    currentUpdateUrl = url;
-    document.getElementById('updateFileModal').classList.add('active');
-    document.getElementById('updateFileInput').value = '';
-    document.getElementById('updateSelectedFile').textContent = '';
-    document.getElementById('updateError').textContent = '';
-    document.getElementById('updateSuccess').textContent = '';
-    document.getElementById('submitUpdateBtn').disabled = true;
-}
-
-function hideUpdateModal() {
-    document.getElementById('updateFileModal').classList.remove('active');
-    currentUpdateUrl = null;
-}
-
-// Add event listeners for update functionality
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('updateFileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        const selectedFileElement = document.getElementById('updateSelectedFile');
-        const updateBtn = document.getElementById('submitUpdateBtn');
-        
-        if (file) {
-            if (!file.name.endsWith('.html')) {
-                selectedFileElement.textContent = 'Only HTML files are allowed';
-                updateBtn.disabled = true;
-                return;
-            }
-            selectedFileElement.textContent = `Selected: ${file.name}`;
-            updateBtn.disabled = false;
-        } else {
-            selectedFileElement.textContent = '';
-            updateBtn.disabled = true;
-        }
-    });
-    
-    if (token) {
-        if (isVerified) {
-            showApp();
-        } else {
-            showVerifyEmail();
-        }
-    } else {
-        showAuth();
-        switchAuthTab('login');
-    }
-
-    document.getElementById('cancelUpdateBtn').addEventListener('click', hideUpdateModal);
-
-    document.getElementById('submitUpdateBtn').addEventListener('click', async function() {
-        if (!currentUpdateUrl) return;
-
-        const fileInput = document.getElementById('updateFileInput');
-        const errorElement = document.getElementById('updateError');
-        const successElement = document.getElementById('updateSuccess');
-        const loadingElement = document.getElementById('updateLoading');
-
-        if (!fileInput.files.length) {
-            errorElement.textContent = 'Please select a file';
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-
-        try {
-            loadingElement.classList.add('active');
-            errorElement.textContent = '';
-            successElement.textContent = '';
-
-            const response = await fetch(`${BASE_URL}/update/${currentUpdateUrl}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                successElement.textContent = 'File updated successfully!';
-                setTimeout(() => {
-                    hideUpdateModal();
-                    fetchUserFiles();
-                }, 1500);
-            } else {
-                errorElement.textContent = data.detail || 'Update failed';
-            }
-        } catch (error) {
-            errorElement.textContent = 'An error occurred during update';
-        } finally {
-            loadingElement.classList.remove('active');
-        }
-    });
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    setupPasswordResetListeners();
-    if (token && isVerified) {
-        showApp();
-        fetchUserInfo();
-        fetchUserFiles();
-    } else if (token && !isVerified) {
-        showVerifyEmail();
-    } else {
-        showAuth();
-        switchAuthTab('login');
-    }
-    
-    setupAuthEventListeners();
-    setupAppEventListeners();
-
-});
-
-function setupAuthEventListeners() {
-    document.getElementById('loginBtn').addEventListener('click', async function() {
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        
-        if (!email || !password) {
-            document.getElementById('loginError').textContent = 'Please fill all fields';
-            return;
-        }
-        
-        document.getElementById('loginLoading').classList.add('active');
-        document.getElementById('loginError').textContent = '';
-        
-        try {
-            const response = await fetch(`${BASE_URL}/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                localStorage.setItem('token', data.access_token);
-                localStorage.setItem('userId', data.id);
-                localStorage.setItem('userEmail', data.email);
-                localStorage.setItem('isVerified', data.is_verified);
-            
-                token = data.access_token;
-                userId = data.id;
-                userEmail = data.email;
-                isVerified = data.is_verified;
-            
-                if (data.is_verified) {
-                    showApp();
-                } else {
-                    document.getElementById('authContainer').style.display = 'none';
-                    document.getElementById('appContainer').style.display = 'none';
-                    showVerifyEmail();
-                }
-            } else {
-                document.getElementById('loginError').textContent = data.detail || 'Login failed';
-            }
-        } catch (error) {
-            document.getElementById('loginError').textContent = 'An error occurred. Please try again.';
-        } finally {
-            document.getElementById('loginLoading').classList.remove('active');
-        }
-    });
-
-    document.getElementById('registerBtn').addEventListener('click', async function() {
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
-        const errorElement = document.getElementById('registerError');
-        
-        if (!email || !password || !confirmPassword) {
-            errorElement.textContent = 'Please fill all fields';
-            return;
-        }
-        
-        if (password !== confirmPassword) {
-            errorElement.textContent = 'Passwords do not match';
-            return;
-        }
-        
-        document.getElementById('registerLoading').classList.add('active');
-        
-        try {
-            const response = await fetch(`${BASE_URL}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    email: email,
-                    password: password
-                })
-            });
-            
-            // In the register success block
-            if (response.ok) {
-                const data = await response.json();
-                localStorage.setItem('token', data.access_token);
-                localStorage.setItem('userId', data.id);
-                localStorage.setItem('userEmail', data.email);
-                localStorage.setItem('isVerified', 'false');
-                
-                token = data.access_token;
-                userId = data.id;
-                userEmail = data.email;
-                isVerified = false;
-                
-                document.getElementById('authContainer').style.display = 'none';
-                document.getElementById('appContainer').style.display = 'none';
-                showVerifyEmail();
-            }
-             else {
-                const errorData = await response.json();
-                errorElement.textContent = errorData.detail || 'Registration failed';
-            }
-            
-        } catch (error) {
-            errorElement.textContent = 'An error occurred. Please try again.';
-        } finally {
-            document.getElementById('registerLoading').classList.remove('active');
-        }
-    });
-}
-function setupAppEventListeners() {
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        handleFileInputChange(e, 'upload');
-    });
-    
-    document.getElementById('editFileInput').addEventListener('change', function(e) {
-        handleFileInputChange(e, 'edit');
-    });
-    
-    document.getElementById('uploadBtn').addEventListener('click', handleFileUpload);
-    document.getElementById('updateBtn').addEventListener('click', handleFileUpdate);
-    document.getElementById('cancelEditBtn').addEventListener('click', () => switchTab('myFiles'));
-    document.getElementById('savePreferences').addEventListener('click', updateDisplayPreferences);
-    document.getElementById('forgotPasswordBtn').addEventListener('click', handlePasswordReset);
-    document.getElementById('submitResetBtn').addEventListener('click', handleResetSubmit);
-}
-
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const selectedFileElement = document.getElementById('selectedFile');
-    const uploadBtn = document.getElementById('uploadBtn');
-    
-    if (file) {
-        if (!file.name.endsWith('.html')) {
-            selectedFileElement.textContent = 'Only HTML files are allowed';
-            uploadBtn.disabled = true;
-            return;
-        }
-        selectedFileElement.textContent = `Selected: ${file.name}`;
-        uploadBtn.disabled = false;
-    } else {
-        selectedFileElement.textContent = '';
-        uploadBtn.disabled = true;
-    }
-});
-
-document.getElementById('uploadBtn').addEventListener('click', async function() {
-    const fileInput = document.getElementById('fileInput');
-    const customUrl = document.getElementById('customUrl').value.trim();
-    const errorElement = document.getElementById('uploadError');
-    const successElement = document.getElementById('uploadSuccess');
-    const loadingElement = document.getElementById('uploadLoading');
-    
-    if (!fileInput.files.length) {
-        errorElement.textContent = 'Please select a file';
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    
-    try {
-        loadingElement.classList.add('active');
-        errorElement.textContent = '';
-        successElement.textContent = '';
-        
-        let url = `${BASE_URL}/upload`;
-        if (customUrl) {
-            url += `?custom_url=${encodeURIComponent(customUrl)}`;
-        }
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            successElement.textContent = `File uploaded successfully! URL: ${FRONTEND_URL}/${data.url}`;
-            fileInput.value = '';
-            document.getElementById('customUrl').value = '';
-            document.getElementById('selectedFile').textContent = '';
-            document.getElementById('uploadBtn').disabled = true;
-            fetchUserFiles();
-        } else {
-            errorElement.textContent = data.detail || 'Upload failed';
-        }
-    } catch (error) {
-        errorElement.textContent = 'An error occurred during upload';
-    } finally {
-        loadingElement.classList.remove('active');
-    }
-});
-
+// Navigation and Tab Management
 function handleNavClick(tab) {
+    // Remove active class from all nav items
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
+    
+    // Add active class to clicked item
     event.currentTarget.classList.add('active');
-    if (tab === 'editor') {
-        switchTab('editor');
-        initializeEditor();
-    }
 
+    // Switch to appropriate tab
     switch(tab) {
         case 'profile':
             switchTab('profile');
             break;
-        case 'login':
-            switchAuthTab('login');
+        case 'editor':
+            switchTab('editor');
             break;
-        case 'register':
-            switchAuthTab('register');
+        case 'upload':
+            switchTab('upload');
+            break;
+        case 'myFiles':
+            switchTab('myFiles');
             break;
         case 'home':
-        case 'upload':
-        case 'myFiles':
-            switchTab(tab);
+        default:
+            switchTab('home');
             break;
     }
 }
 
+
+function initializeProfile() {
+    fetchUserInfo();
+    setupPreferenceToggles();
+    
+    // Setup preference toggles
+    const toggles = ['showViews', 'showUuid', 'showTags'];
+    toggles.forEach(id => {
+        const toggle = document.getElementById(id);
+        if (toggle) {
+            toggle.addEventListener('change', () => {
+                const saveBtn = document.getElementById('savePreferences');
+                if (saveBtn) {
+                    saveBtn.style.backgroundColor = 'var(--accent-color)';
+                }
+            });
+        }
+    });
+}
+
+
 function switchTab(tab) {
-    // Define all main containers
+    // Clear all containers first
     const containers = {
-        'homeContainer': document.getElementById('homeContainer'),
-        'uploadContainer': document.getElementById('uploadContainer'),
-        'myFilesContainer': document.getElementById('myFilesContainer'),
-        'profileSection': document.getElementById('profileSection'),
-        'editorContainer': document.getElementById('editorContainer') // Add this line
+        'home': 'homeContainer',
+        'editor': 'editorContainer',
+        'profile': 'profileSection', // Note this matches the HTML ID
+        'upload': 'uploadContainer',
+        'myFiles': 'myFilesContainer'
     };
 
-    // Hide all containers first
-    Object.values(containers).forEach(container => {
+    // Hide all containers
+    Object.values(containers).forEach(containerId => {
+        const container = document.getElementById(containerId);
         if (container) {
             container.style.display = 'none';
         }
     });
 
     // Show the selected container
-    switch(tab) {
-        case 'home':
-            containers.homeContainer.style.display = 'block';
-            break;
-        case 'upload':
-            containers.uploadContainer.style.display = 'block';
-            break;
-        case 'myFiles':
-            containers.myFilesContainer.style.display = 'block';
-            fetchUserFiles();
-            break;
-        case 'profile':
-            containers.profileSection.style.display = 'block';
+    const targetContainer = document.getElementById(containers[tab]);
+    if (targetContainer) {
+        targetContainer.style.display = 'block';
+        
+        // Initialize specific tab content if needed
+        if (tab === 'profile') {
             fetchUserInfo();
-            break;
-        case 'editor':
-            containers.editorContainer.style.display = 'block';
-            initializeEditor(); // Make sure this is called
-            break;
-    }
-
-    // Update active state in navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    const activeNavItem = document.querySelector(`.nav-item[onclick*="${tab}"]`);
-    if (activeNavItem) {
-        activeNavItem.classList.add('active');
+        } else if (tab === 'myFiles') {
+            fetchUserFiles();
+        } else if (tab === 'editor') {
+            initializeEditor();
+        }
     }
 }
 
@@ -3291,48 +3573,203 @@ function switchAuthTab(tab) {
     }
 }
 
-function showAuth() {
-    document.getElementById('authContainer').style.display = 'block';
-    document.getElementById('appContainer').style.display = 'none';
-    document.getElementById('auth-nav').style.display = 'block';
-    document.getElementById('app-nav').style.display = 'none';
-    document.getElementById('verifyEmailContainer').classList.remove('active');
-    document.querySelector('.overlay').classList.remove('active');
+// Profile and Preferences Management
+async function fetchUserInfo() {
+    try {
+        const response = await fetch(`${BASE_URL}/me`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Update profile elements
+            const profileEmail = document.getElementById('profileEmail');
+            const profileUserId = document.getElementById('profileUserId');
+            const profileUrlCount = document.getElementById('profileUrlCount');
+            
+            if (profileEmail) profileEmail.textContent = data.email;
+            if (profileUserId) profileUserId.textContent = data.user_number ? `#${data.user_number}` : 'N/A';
+            if (profileUrlCount) profileUrlCount.textContent = `${data.url_count || 0}/10`;
+
+            // Update preferences toggles
+            const showViews = document.getElementById('showViews');
+            const showUuid = document.getElementById('showUuid');
+            const showTags = document.getElementById('showTags');
+
+            if (data.display_preferences) {
+                if (showViews) showViews.checked = data.display_preferences.show_views;
+                if (showUuid) showUuid.checked = data.display_preferences.show_uuid;
+                if (showTags) showTags.checked = data.display_preferences.show_tags;
+            }
+
+            // Update tags
+            const tagsContainer = document.getElementById('profileTags');
+            if (tagsContainer) {
+                if (data.tags && data.tags.length > 0) {
+                    tagsContainer.innerHTML = data.tags.map(tag => `
+                        <div class="tag">
+                            ${processTagIcon(tag.icon)}
+                            <span>${tag.text}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    tagsContainer.innerHTML = '<div class="tag">No tags yet</div>';
+                }
+            }
+        } else {
+            if (response.status === 401) {
+                handleLogout();
+            }
+        }
+    } catch (error) {
+        console.error('Failed to fetch user info:', error);
+    }
 }
 
-function showApp() {
-    document.getElementById('authContainer').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'block';
-    document.getElementById('auth-nav').style.display = 'none';
-    document.getElementById('app-nav').style.display = 'block';
-    document.getElementById('verifyEmailContainer').classList.remove('active');
-    document.querySelector('.overlay').classList.remove('active');
-    showHomeTab();
+function updateProfileUI(data) {
+    const elements = {
+        'profileEmail': data.email,
+        'profileUserId': data.user_number ? `#${data.user_number}` : 'N/A',
+        'profileUrlCount': `${data.url_count}/10`
+    };
+
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    });
+
+    // Update preferences
+    const preferences = data.display_preferences || {};
+    ['showViews', 'showUuid', 'showTags'].forEach(pref => {
+        const element = document.getElementById(pref);
+        if (element) element.checked = preferences[pref.toLowerCase().replace('show', 'show_')] ?? true;
+    });
+
+    // Update tags
+    const tagsContainer = document.getElementById('profileTags');
+    if (tagsContainer) {
+        tagsContainer.innerHTML = data.tags?.length ? 
+            data.tags.map(tag => `
+                <div class="tag">
+                    ${processTagIcon(tag.icon)}
+                    <span>${tag.text}</span>
+                </div>
+            `).join('') : 
+            '<div class="tag">No tags yet</div>';
+    }
 }
 
-function showVerifyEmail() {
-    document.getElementById('authContainer').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'none';
-    document.getElementById('verifyEmailContainer').classList.add('active');
+
+
+function setupPreferenceToggles() {
+    const toggles = ['showViews', 'showUuid', 'showTags'];
+    const saveBtn = document.getElementById('savePreferences');
+    let hasChanges = false;
+    
+    toggles.forEach(id => {
+        const toggle = document.getElementById(id);
+        if (toggle) {
+            toggle.addEventListener('change', () => {
+                hasChanges = true;
+                if (saveBtn) {
+                    saveBtn.classList.add('btn-highlight');
+                }
+            });
+        }
+    });
+}
+
+// Optimized update preferences function
+async function updateDisplayPreferences() {
+    const saveBtn = document.getElementById('savePreferences');
+    if (!saveBtn) return;
+
+    const preferences = {
+        show_views: document.getElementById('showViews')?.checked ?? true,
+        show_uuid: document.getElementById('showUuid')?.checked ?? true,
+        show_tags: document.getElementById('showTags')?.checked ?? true
+    };
+
+    try {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        const response = await fetch(`${BASE_URL}/preferences`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(preferences)
+        });
+
+        if (response.ok) {
+            saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+            saveBtn.style.backgroundColor = 'var(--success-color)';
+            
+            // Reset button after delay
+            setTimeout(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Save Preferences';
+                saveBtn.style.backgroundColor = '';
+                saveBtn.classList.remove('btn-highlight');
+            }, 1500);
+        } else {
+            throw new Error('Failed to update preferences');
+        }
+    } catch (error) {
+        saveBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+        saveBtn.style.backgroundColor = 'var(--error-color)';
+        
+        setTimeout(() => {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Save Preferences';
+            saveBtn.style.backgroundColor = '';
+        }, 1500);
+    }
+}
+
+function handleFileInputChange(e, type) {
+    const file = e.target.files[0];
+    const isUpload = type === 'upload';
+    const selectedFileElement = document.getElementById(isUpload ? 'selectedFile' : 'updateSelectedFile');
+    const actionButton = document.getElementById(isUpload ? 'uploadBtn' : 'submitUpdateBtn');
+    
+    if (file) {
+        if (!file.name.endsWith('.html')) {
+            selectedFileElement.textContent = 'Only HTML files are allowed';
+            actionButton.disabled = true;
+            return;
+        }
+        selectedFileElement.textContent = `Selected: ${file.name}`;
+        actionButton.disabled = false;
+    } else {
+        selectedFileElement.textContent = '';
+        actionButton.disabled = true;
+    }
+}
+
+function showUpdateFile(url) {
+    currentUpdateUrl = url;
+    document.getElementById('updateFileModal').classList.add('active');
+    document.getElementById('updateFileInput').value = '';
+    document.getElementById('updateSelectedFile').textContent = '';
+    document.getElementById('updateError').textContent = '';
+    document.getElementById('updateSuccess').textContent = '';
+    document.getElementById('submitUpdateBtn').disabled = true;
     document.querySelector('.overlay').classList.add('active');
-    
-    const verifyEmailText = document.querySelector('#verifyEmailContainer p');
-    if (verifyEmailText) {
-        verifyEmailText.textContent = `We've sent a verification link to ${userEmail}. Please check your inbox and click the link to verify your account.`;
-    }
 }
 
-function hideVerifyEmail() {
-    document.getElementById('verifyEmailContainer').classList.remove('active');
+function hideUpdateModal() {
+    document.getElementById('updateFileModal').classList.remove('active');
     document.querySelector('.overlay').classList.remove('active');
-    
-    if (isVerified) {
-        showApp();
-    } else if (token) {
-        showAuth();
-    }
+    currentUpdateUrl = null;
 }
 
+// Email Verification
 async function resendVerificationLink() {
     const errorElement = document.getElementById('verifyError');
     const successElement = document.getElementById('verifySuccess');
@@ -3385,491 +3822,6 @@ function showForgotPassword() {
     
     document.getElementById('forgotPasswordContainer').style.display = 'block';
 }
-
-async function handlePasswordReset() {
-    const email = document.getElementById('forgotPasswordEmail').value;
-    const errorElement = document.getElementById('forgotPasswordError');
-    const successElement = document.getElementById('forgotPasswordSuccess');
-    const loadingElement = document.getElementById('forgotPasswordLoading');
-    
-    if (!email) {
-        errorElement.textContent = 'Please enter your email';
-        return;
-    }
-
-    try {
-        loadingElement.classList.add('active');
-        errorElement.textContent = '';
-        successElement.textContent = '';
-
-        const formData = new FormData();
-        formData.append('email', email);
-
-        const response = await fetch(`${BASE_URL}/request-password-reset`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email: email })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            successElement.textContent = 'Reset code sent to your email!';
-            document.getElementById('resetStep1').style.display = 'none';
-            document.getElementById('resetStep2').style.display = 'block';
-        } else {
-            errorElement.textContent = data.detail || 'Failed to send reset code';
-        }
-    } catch (error) {
-        errorElement.textContent = 'An error occurred. Please try again.';
-        console.error('Password reset error:', error);
-    } finally {
-        loadingElement.classList.remove('active');
-    }
-}
-
-async function handleResetSubmit() {
-    const email = document.getElementById('forgotPasswordEmail').value;
-    const code = document.getElementById('resetCode').value;
-    const newPassword = document.getElementById('newPassword').value;
-    const confirmPassword = document.getElementById('confirmNewPassword').value;
-    const errorElement = document.getElementById('forgotPasswordError');
-    const successElement = document.getElementById('forgotPasswordSuccess');
-    const loadingElement = document.getElementById('forgotPasswordLoading');
-    
-    if (!code || !newPassword || !confirmPassword) {
-        errorElement.textContent = 'Please fill all fields';
-        return;
-    }
-
-    if (newPassword !== confirmPassword) {
-        errorElement.textContent = 'Passwords do not match';
-        return;
-    }
-
-    try {
-        loadingElement.classList.add('active');
-        errorElement.textContent = '';
-        successElement.textContent = '';
-
-        const response = await fetch(`${BASE_URL}/reset-password`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                email,
-                reset_code: code,
-                new_password: newPassword
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            successElement.textContent = 'Password reset successfully!';
-            setTimeout(() => {
-                switchAuthTab('login');
-            }, 2000);
-        } else {
-            errorElement.textContent = data.detail || 'Failed to reset password';
-        }
-    } catch (error) {
-        errorElement.textContent = 'An error occurred. Please try again.';
-        console.error('Reset submit error:', error);
-    } finally {
-        loadingElement.classList.remove('active');
-    }
-}
-
-function setupPasswordResetListeners() {
-    const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
-    const submitResetBtn = document.getElementById('submitResetBtn');
-    
-    if (forgotPasswordBtn) {
-        forgotPasswordBtn.addEventListener('click', handlePasswordReset);
-    }
-    
-    if (submitResetBtn) {
-        submitResetBtn.addEventListener('click', handleResetSubmit);
-    }
-}
-async function handleRegistrationSuccess(data) {
-    localStorage.setItem('token', data.access_token);
-    localStorage.setItem('userId', data.id);
-    localStorage.setItem('userEmail', data.email);
-    localStorage.setItem('isVerified', 'false');
-
-    token = data.access_token;
-    userId = data.id;
-    userEmail = data.email;
-    isVerified = false;
-
-    showVerifyEmail();
-}
-
-function handleFileInputChange(e, type) {
-    const isUpload = type === 'upload';
-    const file = e.target.files[0];
-    const errorElement = document.getElementById(isUpload ? 'uploadError' : 'editError');
-    const selectedFileElement = document.getElementById(isUpload ? 'selectedFile' : 'editSelectedFile');
-    const actionButton = document.getElementById(isUpload ? 'uploadBtn' : 'updateBtn');
-    
-    if (file) {
-        if (!file.name.endsWith('.html')) {
-            errorElement.textContent = 'Only HTML files are allowed';
-            actionButton.disabled = true;
-            selectedFileElement.textContent = '';
-            return;
-        }
-        selectedFileElement.textContent = `Selected: ${file.name}`;
-        actionButton.disabled = false;
-        errorElement.textContent = '';
-    } else {
-        selectedFileElement.textContent = '';
-        actionButton.disabled = true;
-    }
-}
-
-async function handleFileUpload() {
-    const fileInput = document.getElementById('fileInput');
-    const customUrlInput = document.getElementById('customUrl');
-    const customUrl = customUrlInput.value.trim();
-    
-    if (!fileInput.files.length) {
-        document.getElementById('uploadError').textContent = 'Please select a file';
-        return;
-    }
-    
-    document.getElementById('uploadLoading').classList.add('active');
-    document.getElementById('uploadError').textContent = '';
-    document.getElementById('uploadSuccess').textContent = '';
-    document.getElementById('uploadBtn').disabled = true;
-    
-    try {
-        let uploadUrl = `${BASE_URL}/upload`;
-        if (customUrl) {
-            uploadUrl += `?custom_url=${encodeURIComponent(customUrl)}`;
-        }
-        
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-        
-        const response = await fetch(uploadUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Upload failed: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        document.getElementById('uploadSuccess').textContent = 
-            `File uploaded successfully! Access your file at: ${FRONTEND_URL}/${data.url}`;
-        
-        fileInput.value = '';
-        customUrlInput.value = '';
-        document.getElementById('selectedFile').textContent = '';
-        
-        fetchUserInfo();
-        fetchUserFiles();
-        
-    } catch (error) {
-        console.error('Upload error:', error);
-        document.getElementById('uploadError').textContent = error.message || 'An error occurred during upload. Please try again.';
-    } finally {
-        document.getElementById('uploadLoading').classList.remove('active');
-        document.getElementById('uploadBtn').disabled = false;
-    }
-}
-
-async function handleFileUpdate() {
-    if (!currentUrl) {
-        document.getElementById('editError').textContent = 'No file selected for update';
-        return;
-    }
-    
-    const fileInput = document.getElementById('editFileInput');
-    if (!fileInput.files.length) {
-        document.getElementById('editError').textContent = 'Please select a file';
-        return;
-    }
-    
-    document.getElementById('editLoading').classList.add('active');
-    document.getElementById('editError').textContent = '';
-    document.getElementById('editSuccess').textContent = '';
-    
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    
-    try {
-        const response = await fetch(`${BASE_URL}/update/${currentUrl}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            document.getElementById('editSuccess').textContent = 'File updated successfully!';
-            document.getElementById('editSelectedFile').textContent = '';
-            document.getElementById('editFileInput').value = '';
-            document.getElementById('updateBtn').disabled = true;
-            
-            setTimeout(() => {
-                switchTab('myFiles');
-            }, 1500);
-        } else {
-            document.getElementById('editError').textContent = data.detail || 'Update failed';
-        }
-    } catch (error) {
-        document.getElementById('editError').textContent = 'An error occurred. Please try again.';
-    }
-    
-    document.getElementById('editLoading').classList.remove('active');
-}
-
-async function deleteFile(url) {
-    try {
-        const response = await fetch(`${BASE_URL}/file/${url}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        
-        if (response.ok) {
-            fetchUserFiles();
-            fetchUserInfo();
-        } else {
-            alert('Failed to delete file');
-        }
-    } catch (error) {
-        alert('An error occurred. Please try again.');
-    }
-}
-
-async function fetchUserInfo() {
-    try {
-        const response = await fetch(`${BASE_URL}/me`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            
-            document.getElementById('profileEmail').textContent = data.email;
-            document.getElementById('profileUserId').textContent = data.user_number ? `#${data.user_number}` : 'N/A';
-            document.getElementById('profileUrlCount').textContent = `${data.url_count}/10`;
-
-            // Update preferences checkboxes
-            const preferences = data.display_preferences || {};
-            document.getElementById('showViews').checked = preferences.show_views ?? true;
-            document.getElementById('showUuid').checked = preferences.show_uuid ?? true;
-            document.getElementById('showTags').checked = preferences.show_tags ?? true;
-
-            // Update tags display
-            const tagsContainer = document.getElementById('profileTags');
-            tagsContainer.innerHTML = data.tags?.length ? 
-                data.tags.map(tag => `
-                    <div class="tag">
-                        ${processTagIcon(tag.icon)}
-                        <span>${tag.text}</span>
-                    </div>
-                `).join('') : 
-                '<div class="tag">No tags yet</div>';
-        } else {
-            if (response.status === 401) {
-                logout();
-            }
-        }
-    } catch (error) {
-        console.error('Failed to fetch user info:', error);
-    }
-}
-
-// Add event listener for the save preferences button
-document.addEventListener('DOMContentLoaded', function() {
-    const savePreferencesBtn = document.getElementById('savePreferences');
-    if (savePreferencesBtn) {
-        savePreferencesBtn.addEventListener('click', updateDisplayPreferences);
-    }
-});
-
-async function fetchUserFiles() {
-    try {
-        const response = await fetch(`${BASE_URL}/my-files`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const files = await response.json();
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = files.length ? files.map(file => `
-                <div class="file-item">
-                    <div class="file-info">
-                        <div class="file-name">${file.filename}</div>
-                        <div class="file-url">
-                            <a href="${FRONTEND_URL}/${file.url}" target="_blank">
-                                ${FRONTEND_URL}/${file.url} 👁️
-                            </a>
-                        </div>
-                        <div class="file-stats">Views: ${file.views}</div>
-                        <div class="file-dates">
-                            Created: ${new Date(file.created_at).toLocaleDateString()}
-                            ${file.updated_at ? `<br>Updated: ${new Date(file.updated_at).toLocaleDateString()}` : ''}
-                        </div>
-                    </div>
-                    <div class="file-actions">
-                        <button class="file-action" onclick="showUpdateFile('${file.url}')" title="Update">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="file-action" onclick="deleteFile('${file.url}')" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('') : '<div class="no-files">No files uploaded yet</div>';
-        }
-    } catch (error) {
-        console.error('Error fetching files:', error);
-    }
-}
-
-async function copyToClipboard(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        alert('URL copied to clipboard!');
-    } catch (err) {
-        console.error('Failed to copy:', err);
-    }
-}
-
-
-async function updateDisplayPreferences() {
-    const showViews = document.getElementById('showViews').checked;
-    const showUuid = document.getElementById('showUuid').checked;
-    const showTags = document.getElementById('showTags').checked;
-
-    try {
-        const response = await fetch(`${BASE_URL}/preferences`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                show_views: showViews,
-                show_uuid: showUuid,
-                show_tags: showTags
-            })
-        });
-
-        if (response.ok) {
-            // Add visual feedback
-            const btn = document.getElementById('savePreferences');
-            const originalText = btn.textContent;
-            btn.textContent = 'Saved!';
-            btn.style.backgroundColor = 'var(--accent-color)';
-            
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.style.backgroundColor = '';
-            }, 2000);
-            
-            // Refresh user info to get updated preferences
-            await fetchUserInfo();
-        } else {
-            const data = await response.json();
-            alert(data.detail || 'Failed to update preferences');
-        }
-    } catch (error) {
-        console.error('Error updating preferences:', error);
-        alert('An error occurred while updating preferences');
-    }
-}
-
-function processTagIcon(icon) {
-    if (isImageUrl(icon)) {
-        return `<img src="${icon}" alt="tag icon" style="width: 16px; height: 16px; vertical-align: middle;">`;
-    }
-    if (isSvgCode(icon)) {
-        const viewBoxMatch = icon.match(/viewBox=["']([^"']+)["']/);
-        const viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 24 24";
-        return icon.replace('<svg', `<svg style="width: 16px; height: 16px; vertical-align: middle;" viewBox="${viewBox}"`);
-    }
-    return icon;
-}
-
-function isImageUrl(str) {
-    return str.match(/\.(jpg|jpeg|png|gif|svg)$/i) || 
-           str.startsWith('data:image/') || 
-           str.startsWith('http') && str.match(/\.(jpg|jpeg|png|gif|svg)/i);
-}
-
-function isSvgCode(str) {
-    return str.trim().startsWith('<svg') && str.includes('</svg>');
-}
-
-function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('isVerified');
-    token = null;
-    userId = null;
-    userEmail = null;
-    isVerified = false;
-    
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('registerEmail').value = '';
-    document.getElementById('registerPassword').value = '';
-    document.getElementById('confirmPassword').value = '';
-    
-    hideVerifyEmail();
-    showAuth();
-    switchAuthTab('login');
-}
-
-function handleLogout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('isVerified');
-    window.location.reload();
-}
-async function handleLoginSuccess(data) {
-    localStorage.setItem('token', data.access_token);
-    localStorage.setItem('userId', data.id);
-    localStorage.setItem('userEmail', data.email);
-    localStorage.setItem('isVerified', data.is_verified);
-
-    token = data.access_token;
-    userId = data.id;
-    userEmail = data.email;
-    isVerified = data.is_verified;
-
-    if (isVerified) {
-        showApp();
-    } else {
-        showVerifyEmail();
-    }
-}
-
 function showHomeTab() {
     switchTab('home');
 }
