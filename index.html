@@ -1516,11 +1516,11 @@ input[type="color"]::-webkit-color-swatch {
         </a>
         
         <nav id="auth-nav">
-            <div class="nav-item active" onclick="handleNavClick('login')">
+            <div class="nav-item active" data-tab="login">
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Login</span>
             </div>
-            <div class="nav-item" onclick="handleNavClick('register')">
+            <div class="nav-item" data-tab="register">
                 <i class="fas fa-user-plus"></i>
                 <span>Register</span>
             </div>
@@ -2080,6 +2080,21 @@ function setupAllEventListeners() {
 
     // Profile section
     document.getElementById('savePreferences')?.addEventListener('click', updateDisplayPreferences);
+    document.querySelectorAll('#auth-nav .nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+        // Remove active class from all items
+        document.querySelectorAll('#auth-nav .nav-item').forEach(nav => {
+            nav.classList.remove('active');
+        });
+        
+        // Add active class to clicked item
+        this.classList.add('active');
+        
+        // Switch to appropriate tab
+        const tab = this.getAttribute('data-tab');
+        switchAuthTab(tab);
+    });
+});
     
 }
 
@@ -3562,14 +3577,18 @@ function switchTab(tab) {
 }
 
 function switchAuthTab(tab) {
+    // Hide all auth containers
     document.querySelectorAll('#authContainer > div').forEach(div => {
         div.style.display = 'none';
     });
     
+    // Show the selected container
     if (tab === 'login') {
         document.getElementById('loginContainer').style.display = 'block';
     } else if (tab === 'register') {
         document.getElementById('registerContainer').style.display = 'block';
+    } else if (tab === 'forgotPassword') {
+        document.getElementById('forgotPasswordContainer').style.display = 'block';
     }
 }
 
