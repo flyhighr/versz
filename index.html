@@ -2069,6 +2069,9 @@ function setupAllEventListeners() {
     document.getElementById('uploadBtn')?.addEventListener('click', handleFileUpload);
     document.getElementById('submitUpdateBtn')?.addEventListener('click', handleFileUpdate);
     document.getElementById('cancelUpdateBtn')?.addEventListener('click', hideUpdateModal);
+    // Add to setupAllEventListeners function
+    document.getElementById('downloadHtml')?.addEventListener('click', downloadTemplate);
+    
 
     // Profile and Preferences
     document.getElementById('savePreferences')?.addEventListener('click', updateDisplayPreferences);
@@ -2096,6 +2099,68 @@ function setupAllEventListeners() {
     });
 });
     
+}
+function downloadTemplate() {
+    try {
+        // Generate the template HTML
+        const template = generateTemplate();
+        
+        // Create a blob from the template
+        const blob = new Blob([template], { type: 'text/html' });
+        
+        // Create a temporary URL for the blob
+        const url = URL.createObjectURL(blob);
+        
+        // Create a temporary anchor element
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Generate filename based on profile name
+        const sanitizedName = editorState.content.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+            
+        a.download = `${sanitizedName}-profile.html`;
+        
+        // Append to body, click, and remove
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+
+        // Show success message
+        const downloadBtn = document.getElementById('downloadHtml');
+        const originalText = downloadBtn.innerHTML;
+        
+        downloadBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
+        downloadBtn.style.backgroundColor = 'var(--success-color)';
+        
+        setTimeout(() => {
+            downloadBtn.innerHTML = originalText;
+            downloadBtn.style.backgroundColor = '';
+        }, 2000);
+
+    } catch (error) {
+        console.error('Download failed:', error);
+        
+        // Show error message
+        const downloadBtn = document.getElementById('downloadHtml');
+        const originalText = downloadBtn.innerHTML;
+        
+        downloadBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Failed';
+        downloadBtn.style.backgroundColor = 'var(--error-color)';
+        
+        setTimeout(() => {
+            downloadBtn.innerHTML = originalText;
+            downloadBtn.style.backgroundColor = '';
+        }, 2000);
+    }
 }
 
 // Authentication Handling Functions
@@ -2666,7 +2731,13 @@ function updateSocialPlatform(index, platform) {
     editorState.socialLinks[index].icon = socialPlatforms[platform].icon;
     updatePreview();
 }
+function updatePreview() {
 
+    clearTimeout(window.previewTimeout);
+    window.previewTimeout = setTimeout(() => {
+        generatePreview();
+    }, 300);
+}
 function updateSocialUrl(index, url) {
     editorState.socialLinks[index].url = url;
     updatePreview();
@@ -3451,13 +3522,35 @@ function handleLogout() {
     window.location.reload();
 }
 // Preview and Template Management
+// In your generateTemplate function, update the preview container HTML:
 function setupPreview() {
     const previewContainer = document.getElementById('editorPreview');
     if (!previewContainer) return;
 
-    const frameContainer = previewContainer.querySelector('.preview-frame-container');
+    // Update preview container HTML
+    previewContainer.innerHTML = `
+        <div class="preview-header">
+            <h3>Preview</h3>
+            <div class="preview-device-selector">
+                ${window.innerWidth > 768 ? `
+                    <button class="preview-device-btn active" data-device="desktop">
+                        <i class="fas fa-desktop"></i> Desktop
+                    </button>
+                ` : ''}
+                <button class="preview-device-btn ${window.innerWidth <= 768 ? 'active' : ''}" data-device="mobile">
+                    <i class="fas fa-mobile-alt"></i> Mobile
+                </button>
+            </div>
+        </div>
+        <div class="preview-frame-container ${window.innerWidth <= 768 ? 'mobile' : 'desktop'}">
+            <iframe id="previewFrame" class="preview-frame"></iframe>
+        </div>
+    `;
+
+    // Setup device switching
     const deviceButtons = previewContainer.querySelectorAll('.preview-device-btn');
-    
+    const frameContainer = previewContainer.querySelector('.preview-frame-container');
+
     deviceButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             deviceButtons.forEach(b => b.classList.remove('active'));
@@ -3467,27 +3560,42 @@ function setupPreview() {
         });
     });
 
-    // Show preview container by default
+    // Show preview container
     previewContainer.classList.add('active');
+    
+    // Initial preview generation
+    generatePreview();
 }
 
-function generatePreview() {
+// Add a window resize handler
+window.addEventListener('resize', () => {
     const previewContainer = document.getElementById('editorPreview');
+    if (previewContainer && previewContainer.classList.contains('active')) {
+        setupPreview();
+    }
+});
+
+function generatePreview() {
     const previewFrame = document.getElementById('previewFrame');
-    if (!previewContainer || !previewFrame) return;
+    if (!previewFrame) return;
 
     const template = generateTemplate();
     const blob = new Blob([template], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
     previewFrame.src = url;
-    previewFrame.onload = () => URL.revokeObjectURL(url);
-}
-
-function updatePreview() {
-    if (document.getElementById('editorPreview').classList.contains('active')) {
-        generatePreview();
-    }
+    
+    // Add load event listener to clean up the URL
+    previewFrame.onload = () => {
+        URL.revokeObjectURL(url);
+        
+        // Add viewport meta for mobile preview
+        const frameDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+        const viewport = frameDoc.querySelector('meta[name="viewport"]');
+        if (viewport) {
+            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        }
+    };
 }
 
 // Navigation and Tab Management
