@@ -380,6 +380,208 @@ async def cleanup_old_view_records():
         cutoff_date = datetime.utcnow() - timedelta(days=settings.DEVICE_IDENTIFIER_TTL_DAYS)
         await db.view_records.delete_many({"timestamp": {"$lt": cutoff_date}})
 
+
+def get_email_template(template_type: str, **kwargs) -> str:
+    """
+    Common email template generator with consistent styling
+    """
+    base_style = """
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eeeeee;
+        }
+        .logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin: 0;
+            padding: 0;
+        }
+        .content {
+            padding: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4ecdc4;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            color: #666666;
+            font-size: 14px;
+            border-top: 1px solid #eeeeee;
+            padding-top: 20px;
+        }
+        .highlight {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #0d47a1;
+        }
+        .achievement {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .achievement-icon {
+            font-size: 48px;
+            margin: 10px 0;
+        }
+    """
+
+    templates = {
+        "welcome": f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>{base_style}</style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Welcome to Our Platform!</h1>
+                    </div>
+                    <div class="content">
+                        <p>Dear {kwargs.get('email')},</p>
+                        <p>Welcome to our platform! We're excited to have you join our community.</p>
+                        <div class="highlight">
+                            <p>Here's what you can do with your account:</p>
+                            <ul>
+                                <li>Upload and share HTML files</li>
+                                <li>Track views and engagement</li>
+                                <li>Customize your display preferences</li>
+                            </ul>
+                        </div>
+                        <a href="{kwargs.get('login_url')}" class="button">Get Started</a>
+                    </div>
+                    <div class="footer">
+                        <p>Thank you for choosing our service!</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        """,
+        
+        "password_changed": f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>{base_style}</style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Password Changed Successfully</h1>
+                    </div>
+                    <div class="content">
+                        <p>Dear {kwargs.get('email')},</p>
+                        <p>Your password has been successfully changed.</p>
+                        <div class="highlight">
+                            <p>If you didn't make this change, please contact our support team immediately.</p>
+                        </div>
+                        <p>Time of change: {kwargs.get('timestamp')}</p>
+                    </div>
+                    <div class="footer">
+                        <p>Stay secure!</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        """,
+
+        "view_milestone": f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>{base_style}</style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Congratulations! 🎉</h1>
+                    </div>
+                    <div class="content">
+                        <div class="achievement">
+                            <div class="achievement-icon">🏆</div>
+                            <h2>New Milestone Reached!</h2>
+                            <p>Your page "{kwargs.get('url')}" has reached {kwargs.get('views')} views!</p>
+                        </div>
+                        <p>Keep up the great work! Your content is getting noticed.</p>
+                        <a href="{kwargs.get('stats_url')}" class="button">View Statistics</a>
+                    </div>
+                    <div class="footer">
+                        <p>Thank you for being part of our community!</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        """,
+
+        # Add more email templates as needed
+    }
+
+    return templates.get(template_type, "")
+
+async def check_and_send_view_milestone_email(db: AsyncIOMotorDatabase, url: str, views: int, user_id: str):
+    """Check if a view milestone has been reached and send appropriate email"""
+    milestones = [10, 50, 100, 500, 1000]
+    
+    for milestone in milestones:
+        if views == milestone:
+            user = await db.users.find_one({"id": user_id})
+            if user:
+                email_content = get_email_template(
+                    "view_milestone",
+                    email=user["email"],
+                    url=url,
+                    views=views,
+                    stats_url=f"{settings.API_URL}/stats/{url}"
+                )
+                
+                await send_email_async(
+                    user["email"],
+                    f"Congratulations! Your page reached {views} views! 🎉",
+                    email_content
+                )
+                
+                # Record milestone in database
+                await db.view_milestones.insert_one({
+                    "user_id": user_id,
+                    "url": url,
+                    "milestone": milestone,
+                    "achieved_at": datetime.utcnow()
+                })
+
 # Endpoints
 
 @app.get("/", response_class=HTMLResponse)
@@ -475,6 +677,7 @@ async def register_user(
             }
         }
         
+        # Enhanced verification email template
         verification_email = f"""
         <!DOCTYPE html>
         <html>
@@ -492,43 +695,219 @@ async def register_user(
                 }}
                 .container {{
                     max-width: 600px;
-                    margin: 0 auto;
-                    padding: 40px 20px;
+                    margin: 20px auto;
+                    padding: 40px;
                     background-color: #ffffff;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    border-radius: 10px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                 }}
                 .header {{
                     text-align: center;
-                    padding-bottom: 20px;
-                    border-bottom: 1px solid #eeeeee;
+                    margin-bottom: 30px;
                 }}
-                .content {{
-                    padding: 30px 0;
+                .logo {{
+                    width: 150px;
+                    height: auto;
+                    margin-bottom: 20px;
                 }}
-                .button {{
+                h1 {{
+                    color: #2c3e50;
+                    font-size: 28px;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .welcome-message {{
+                    font-size: 18px;
+                    color: #666;
+                    margin: 20px 0;
+                }}
+                .verification-button {{
                     display: inline-block;
-                    padding: 10px 20px;
+                    padding: 15px 30px;
                     background-color: #4ecdc4;
                     color: white;
                     text-decoration: none;
                     border-radius: 5px;
-                    text-align: center;
+                    font-weight: bold;
                     margin: 20px 0;
+                    transition: background-color 0.3s ease;
+                }}
+                .verification-button:hover {{
+                    background-color: #45b7b0;
+                }}
+                .features {{
+                    background-color: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin: 30px 0;
+                }}
+                .features h3 {{
+                    color: #2c3e50;
+                    margin-top: 0;
+                }}
+                .feature-list {{
+                    list-style-type: none;
+                    padding: 0;
+                }}
+                .feature-list li {{
+                    margin: 10px 0;
+                    padding-left: 25px;
+                    position: relative;
+                }}
+                .feature-list li:before {{
+                    content: "✓";
+                    color: #4ecdc4;
+                    position: absolute;
+                    left: 0;
+                }}
+                .expiry-warning {{
+                    background-color: #fff3cd;
+                    border: 1px solid #ffeeba;
+                    color: #856404;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                    font-size: 14px;
                 }}
                 .footer {{
                     text-align: center;
-                    color: #666666;
-                    font-size: 14px;
-                    border-top: 1px solid #eeeeee;
+                    margin-top: 30px;
                     padding-top: 20px;
+                    border-top: 1px solid #eee;
+                    color: #666;
+                    font-size: 14px;
                 }}
-                .warning {{
-                    color: #856404;
-                    background-color: #fff3cd;
-                    padding: 10px;
-                    border-radius: 4px;
-                    margin-top: 20px;
+                .social-links {{
+                    margin: 20px 0;
+                }}
+                .social-links a {{
+                    color: #4ecdc4;
+                    text-decoration: none;
+                    margin: 0 10px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <img src="https://versz.fun/logo.png" alt="Logo" class="logo">
+                    <h1>Welcome to Versz!</h1>
+                </div>
+                
+                <div class="welcome-message">
+                    Hi {user.email},<br>
+                    Thank you for joining our community! We're excited to have you on board.
+                </div>
+                
+                <div style="text-align: center;">
+                    <a href="{verification_link}" class="verification-button">
+                        Verify Your Email
+                    </a>
+                </div>
+                
+                <div class="features">
+                    <h3>What you'll get access to:</h3>
+                    <ul class="feature-list">
+                        <li>Upload and share HTML files instantly</li>
+                        <li>Track views and engagement analytics</li>
+                        <li>Customize your display preferences</li>
+                        <li>Earn achievements and milestones</li>
+                    </ul>
+                </div>
+                
+                <div class="expiry-warning">
+                    ⚠️ Please note: This verification link will expire in 1 hour. Make sure to verify your email before then.
+                </div>
+                
+                <div class="footer">
+                    <p>Need help? Contact our support team at support@versz.fun</p>
+                    <div class="social-links">
+                        <a href="https://twitter.com/verszfun">Twitter</a> |
+                        <a href="https://discord.gg/versz">Discord</a> |
+                        <a href="https://github.com/versz">GitHub</a>
+                    </div>
+                    <p>© 2024 Versz. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Welcome email template (sent after verification)
+        welcome_email = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f5f5f5;
+                }}
+                .container {{
+                    max-width: 600px;
+                    margin: 20px auto;
+                    padding: 40px;
+                    background-color: #ffffff;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }}
+                .header {{
+                    text-align: center;
+                    margin-bottom: 30px;
+                }}
+                .logo {{
+                    width: 150px;
+                    height: auto;
+                    margin-bottom: 20px;
+                }}
+                h1 {{
+                    color: #2c3e50;
+                    font-size: 28px;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .getting-started {{
+                    background-color: #e8f4fd;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin: 30px 0;
+                }}
+                .getting-started h3 {{
+                    color: #0d47a1;
+                    margin-top: 0;
+                }}
+                .quick-links {{
+                    display: flex;
+                    justify-content: space-between;
+                    flex-wrap: wrap;
+                    margin: 30px 0;
+                }}
+                .quick-link {{
+                    background-color: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 5px;
+                    text-decoration: none;
+                    color: #333;
+                    width: calc(50% - 10px);
+                    margin-bottom: 20px;
+                    text-align: center;
+                    transition: transform 0.3s ease;
+                }}
+                .quick-link:hover {{
+                    transform: translateY(-3px);
+                }}
+                .footer {{
+                    text-align: center;
+                    margin-top: 30px;
+                    padding-top: 20px;
+                    border-top: 1px solid #eee;
+                    color: #666;
                     font-size: 14px;
                 }}
             </style>
@@ -536,18 +915,42 @@ async def register_user(
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>Verify Your Email Address</h1>
+                    <img src="https://raw.githubusercontent.com/flyhighr/versz/6e4edb4783b9f95705dd93424d31e9b587409112/download.svg" alt="Logo" class="logo">
+                    <h1>🎉 Registration Complete! 🎉</h1>
                 </div>
-                <div class="content">
-                    <p>Thank you for registering! Please click the link below to verify your email:</p>
-                    <a href="{verification_link}" class="button">Verify Email</a>
-                    <p>This link will expire in 1 hour.</p>
-                    <div class="warning">
-                        Your registration will be canceled if you don't verify within 1 hour(s).
-                    </div>
+                
+                <p>Dear {user.email},</p>
+                <p>Your account has been successfully created. Welcome to the Versz community!</p>
+                
+                <div class="getting-started">
+                    <h3>🚀 Getting Started</h3>
+                    <p>Here are some things you can do right away:</p>
+                    <ul>
+                        <li>Upload your first HTML file</li>
+                        <li>Customize your profile settings</li>
+                        <li>Explore other users' content</li>
+                        <li>Join our Discord community</li>
+                    </ul>
                 </div>
+                
+                <div class="quick-links">
+                    <a href="https://versz.fun/" class="quick-link">
+                        📊 Dashboard
+                    </a>
+                    <a href="https://versz.fun/help" class="quick-link">
+                        ❓ Help Center
+                    </a>
+                </div>
+                
                 <div class="footer">
-                    <p>This is an automated message, please do not reply to this email.</p>
+                    <p>Need help? Contact our support team at support@versz.fun</p>
+                    <p>Follow us on social media for updates and tips:</p>
+                    <div class="social-links">
+                        <a href="https://twitter.com/verszfun">Twitter</a> |
+                        <a href="https://discord.gg/versz">Discord</a> |
+                        <a href="https://github.com/versz">GitHub</a>
+                    </div>
+                    <p>© 2024 Versz. All rights reserved.</p>
                 </div>
             </div>
         </body>
@@ -562,12 +965,24 @@ async def register_user(
             "expires_at": datetime.utcnow() + timedelta(hours=1)
         })
         
+        # Send verification email
         background_tasks.add_task(
             send_email_async,
             user.email,
-            "Verify Your Email",
+            "Verify Your Email - Versz Registration",
             verification_email
         )
+        
+        # Store welcome email to be sent after verification
+        await db.email_queue.insert_one({
+            "user_id": user_id,
+            "email": user.email,
+            "subject": "Welcome to Versz! 🎉",
+            "content": welcome_email,
+            "type": "welcome",
+            "status": "pending",
+            "created_at": datetime.utcnow()
+        })
         
         return {
             "id": user_id,
@@ -578,6 +993,7 @@ async def register_user(
             "tags": [],
             "display_preferences": DisplayPreferences()
         }
+    
 
 @app.post("/resend-verification")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -936,6 +1352,18 @@ async def reset_password(request: Request, reset_data: UserPasswordChange):
         
         await db.password_reset.delete_one({"email": reset_data.email})
         await user_cache.delete(f"user:{reset_data.email}")
+        password_changed_email = get_email_template(
+            "password_changed",
+            email=reset_data.email,
+            timestamp=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        )
+        
+        await send_email_async(
+            reset_data.email,
+            "Password Changed Successfully",
+            password_changed_email
+        )
+        
         
         return {"message": "Password reset successfully"}
 
@@ -1164,7 +1592,9 @@ async def get_file(request: Request, url: str):
         }
         
         if display_prefs.get("show_views", True):
-            response_data["views"] = views
+            if await should_count_view(db, url, device_hash):
+                response_data["views"] = views
+                await check_and_send_view_milestone_email(db, url, views, file["user_id"])
             
         if display_prefs.get("show_uuid", True):
             response_data["user_id"] = user["id"]
