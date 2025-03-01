@@ -1568,7 +1568,7 @@ async def update_social_link(
         # Update the social link
         social_links[index] = social_link.dict()
         
-                await db.users.update_one(
+        await db.users.update_one(
             {"id": current_user["id"]},
             {"$set": {"social_links": social_links}}
         )
