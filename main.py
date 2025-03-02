@@ -1718,7 +1718,26 @@ async def create_page_preview(
         }
 
 
-@app.get("/preview/{preview_id}")
+from fastapi.responses import JSONResponse
+import json
+
+class CustomJSONResponse(JSONResponse):
+    def render(self, content) -> bytes:
+        def default_serializer(obj):
+            if isinstance(obj, ObjectId):
+                return str(obj)
+            raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+        
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+            default=default_serializer,
+        ).encode("utf-8")
+
+@app.get("/preview/{preview_id}", response_class=CustomJSONResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_page_preview(request: Request, preview_id: str):
     """Get a temporary page preview by its ID"""
@@ -1751,25 +1770,15 @@ async def get_page_preview(request: Request, preview_id: str):
                 detail="Preview expired or not found"
             )
         
-        # Define a function to recursively convert ObjectId to string
-        def convert_object_ids(obj):
-            if isinstance(obj, dict):
-                return {k: convert_object_ids(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_object_ids(item) for item in obj]
-            elif isinstance(obj, ObjectId):
-                return str(obj)
-            else:
-                return obj
         
-        # Convert all ObjectId instances to strings
-        preview = convert_object_ids(preview)
-        
+        # Update cache - we should still convert for the cache
+        if "_id" in preview:
+            preview["_id"] = str(preview["_id"])
+            
         # Update cache
         preview_cache[cache_key] = preview
         
         return preview
-
 
 @app.post("/update-profile")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
