@@ -1193,21 +1193,6 @@
       box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
   }
   
-  /* Add mobile header */
-  .mobile-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-      background-color: var(--darker-bg);
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 99;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
   .mobile-header .logo {
       font-size: 1.5rem;
       font-weight: 700;
@@ -1221,14 +1206,32 @@
       font-size: 1.5rem;
       cursor: pointer;
   }
-  
-  /* Adjust main content to account for mobile header */
-  .main-content {
-      padding-top: 4rem;
-  }
+
 }
 
-/* Hide mobile header on desktop */
+
+/* Mobile header - initially hidden on desktop */
 .mobile-header {
-  display: none;
+    display: none;
+}
+
+/* Show mobile header on mobile devices */
+@media (max-width: 768px) {
+    .mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background-color: var(--darker-bg);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 99;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .main-content {
+        padding-top: 4rem;
+    }
 }

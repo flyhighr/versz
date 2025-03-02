@@ -24,11 +24,21 @@
     text-align: center;
 }
 
+.onboarding-header h1 {
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.onboarding-header p {
+    color: var(--text-muted);
+}
+
 .onboarding-progress {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1rem 2rem 2rem;
+    position: relative;
 }
 
 .progress-step {
@@ -42,172 +52,27 @@
     justify-content: center;
     font-weight: 600;
     position: relative;
-    z-index: 1;
+    z-index: 2;
+    flex-shrink: 0;
 }
 
 .progress-step.active {
     background-color: var(--primary-color);
+    color: white;
 }
 
 .progress-step.completed {
     background-color: var(--success-color);
+    color: white;
 }
 
 .progress-line {
     flex-grow: 1;
     height: 3px;
     background-color: var(--border-color);
-    margin: 0 -5px;
-}
-
-.progress-line.active {
-    background-color: var(--primary-color);
-}
-
-.onboarding-form {
-    padding: 0 2rem 2rem;
-}
-
-.onboarding-step {
-    display: none;
-}
-
-.onboarding-step.active {
-    display: block;
-    animation: fadeIn 0.3s ease;
-}
-
-.step-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: var(--primary-color);
-}
-
-.step-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 2rem;
-}
-
-.avatar-preview {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin: 1rem auto;
-    border: 3px solid var(--border-color);
-}
-
-.avatar-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.onboarding-message {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    border-radius: var(--border-radius);
-    text-align: center;
-    display: none;
-}
-
-.onboarding-message.success {
-    display: block;
-    background-color: rgba(44, 182, 125, 0.2);
-    color: var(--success-color);
-}
-
-.onboarding-message.error {
-    display: block;
-    background-color: rgba(239, 71, 111, 0.2);
-    color: var(--error-color);
-}
-
-/* Responsive */
-@media (max-width: 576px) {
-    .onboarding-container {
-        padding: 1rem;
-    }
-    
-    .onboarding-header,
-    .onboarding-progress,
-    .onboarding-form {
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-    }
-    
-    .step-actions {
-        flex-direction: column-reverse;
-        gap: 1rem;
-    }
-    
-    .step-actions button {
-        width: 100%;
-    }
-}
-
-/* Onboarding Page Styles */
-.onboarding-container {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    background: linear-gradient(135deg, var(--darker-bg), var(--dark-bg));
-}
-
-.onboarding-card {
-    background-color: var(--light-bg);
-    border-radius: var(--card-radius);
-    width: 100%;
-    max-width: 600px;
-    box-shadow: var(--box-shadow);
-    overflow: hidden;
-    transition: var(--transition);
-    animation: fadeIn 0.5s ease;
-}
-
-.onboarding-header {
-    padding: 2rem 2rem 1rem;
-    text-align: center;
-}
-
-.onboarding-progress {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem 2rem 2rem;
-}
-
-.progress-step {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: var(--border-color);
-    color: var(--text-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
+    margin: 0;
     position: relative;
     z-index: 1;
-}
-
-.progress-step.active {
-    background-color: var(--primary-color);
-}
-
-.progress-step.completed {
-    background-color: var(--success-color);
-}
-
-.progress-line {
-    flex-grow: 1;
-    height: 3px;
-    background-color: var(--border-color);
-    margin: 0 -5px;
 }
 
 .progress-line.active {
@@ -227,6 +92,7 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
+    color: var(--text-color);
 }
 
 .form-group input,
@@ -241,14 +107,32 @@
     font-size: 1rem;
 }
 
+.input-icon-wrapper {
+    position: relative;
+}
+
+.input-icon-wrapper i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.input-icon-wrapper input {
+    padding-left: 2.5rem;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
     border-color: var(--primary-color);
     outline: none;
+    box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
 }
 
-.form-group .input-info {
+.form-group small {
+    display: block;
     font-size: 0.875rem;
     color: var(--text-muted);
     margin-top: 0.25rem;
@@ -271,11 +155,6 @@
     color: var(--info-color);
 }
 
-.custom-input {
-    display: none;
-    margin-top: 0.75rem;
-}
-
 .onboarding-step {
     display: none;
 }
@@ -315,10 +194,10 @@
 }
 
 .onboarding-message {
-    margin-top: 1rem;
     padding: 0.75rem;
     border-radius: var(--border-radius);
     text-align: center;
+    margin: 1rem 2rem;
     display: none;
 }
 
@@ -356,11 +235,11 @@
 
 .btn-primary {
     background-color: var(--primary-color);
-    color: var(--text-color);
+    color: white;
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-hover);
+    background-color: #3db8af;
 }
 
 .btn-outline {
@@ -384,6 +263,11 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Custom pronouns field */
+#custom-pronouns {
+    margin-top: 0.75rem;
+}
+
 /* Responsive */
 @media (max-width: 576px) {
     .onboarding-container {
@@ -404,5 +288,20 @@
     
     .step-actions button {
         width: 100%;
+    }
+    
+    .onboarding-message {
+        margin: 1rem 1.5rem;
+    }
+    
+    /* Fix progress steps on mobile */
+    .progress-step {
+        width: 32px;
+        height: 32px;
+        font-size: 0.875rem;
+    }
+    
+    .progress-line {
+        height: 2px;
     }
 }

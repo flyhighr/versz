@@ -7,8 +7,7 @@
 }
 
 .template-info-section,
-.template-config-section,
-.template-preview-section {
+.template-config-section {
     background-color: var(--light-bg);
     border-radius: var(--card-radius);
     overflow: hidden;
@@ -412,47 +411,6 @@ input:checked + .slider:before {
     color: var(--text-muted);
 }
 
-/* Preview section */
-.preview-frame-container {
-    position: relative;
-    background-color: #fff;
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    height: 500px;
-    transition: var(--transition);
-}
-
-.preview-frame-container.mobile-view {
-    max-width: 375px;
-    margin: 0 auto;
-}
-
-#preview-frame {
-    width: 100%;
-    height: 100%;
-    border: none;
-}
-
-.preview-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.btn-icon {
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-}
-
-.btn-icon.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-
 /* Template actions */
 .template-actions {
     display: flex;
@@ -543,26 +501,54 @@ input:checked + .slider:before {
     margin-top: 1.5rem;
 }
 
-/* Responsive styles */
-@media (max-width: 992px) {
-    .preview-frame-container {
-        height: 400px;
-    }
+/* Notification */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: var(--border-radius);
+    background-color: var(--light-bg);
+    color: var(--text-color);
+    box-shadow: var(--box-shadow);
+    z-index: 1001;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
 }
 
-@media (max-width: 768px) {
+.notification.active {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.notification.success {
+    background-color: #4ecdc4;
+    color: white;
+}
+
+.notification.error {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.notification.info {
+    background-color: #38b6ff;
+    color: white;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
     .config-tabs {
         overflow-x: auto;
         padding-bottom: 0.5rem;
     }
-    
+}
+
+@media (max-width: 768px) {
     .config-tab {
         padding: 0.75rem 0.5rem;
         font-size: 0.875rem;
-    }
-    
-    .preview-frame-container {
-        height: 350px;
     }
     
     .form-actions {
@@ -589,10 +575,6 @@ input:checked + .slider:before {
     
     .background-options {
         flex-direction: column;
-    }
-    
-    .preview-frame-container {
-        height: 300px;
     }
     
     .modal-content {
