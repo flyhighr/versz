@@ -1628,23 +1628,26 @@ async def update_profile_page(
         return updated_page
 
 
-@app.put("/update-profile")
+@app.post("/update-profile")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def update_user_profile(
     request: Request,
-    username: str = Body(...),
-    name: str = Body(...),
-    avatar_url: Optional[str] = Body(None),
-    location: Optional[str] = Body(None),
-    age: Optional[int] = Body(None),
-    gender: Optional[str] = Body(None),
-    pronouns: Optional[str] = Body(None),
+    profile_data: dict = Body(...),
     current_user: dict = Depends(get_current_verified_user)
 ):
     """Update user profile information after onboarding"""
     async with get_database() as db:
+        # Extract data from request body
+        username = profile_data.get("username")
+        name = profile_data.get("name")
+        avatar_url = profile_data.get("avatar_url")
+        location = profile_data.get("location")
+        age = profile_data.get("age")
+        gender = profile_data.get("gender")
+        pronouns = profile_data.get("pronouns")
+        
         # Check if username is already taken by another user
-        if username != current_user.get("username"):
+        if username and username != current_user.get("username"):
             existing_user = await db.users.find_one({
                 "username": username,
                 "id": {"$ne": current_user["id"]}
