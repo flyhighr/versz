@@ -873,20 +873,21 @@ async def register_user(
 
 @app.post("/resend-verification")
 @limiter.limit(RateLimits.AUTH_LIMIT)
-async def resend_verification(
+async def resend_verification_email(
     request: Request,
     background_tasks: BackgroundTasks,
-    email: EmailStr = Form(...)
+    email: EmailStr = Body(...)
 ):
+    """Resend verification email to user"""
     async with get_database() as db:
-        # Check both users and pending_users collections
+        # Check if user exists and is not verified
         user = await db.users.find_one({"email": email})
         pending_user = await db.pending_users.find_one({"email": email})
         
         if not user and not pending_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail="Email not found"
             )
         
         if user and user.get("is_verified", False):
@@ -895,23 +896,21 @@ async def resend_verification(
                 detail="Email already verified"
             )
         
-        # Use the appropriate user data
-        user_data = user or pending_user
-        user_id = user_data["id"]
-        
-        # Delete any existing verification tokens
+        # Delete any existing verification token for this email
         await db.verification.delete_one({"email": email})
         
+        # Generate new verification token
         verification_token = secrets.token_urlsafe(32)
-        verification_link = f"https://biolink.site/verify?token={verification_token}"
+        verification_link = f"https://versz.fun/verify?token={verification_token}"
         
+        # Store verification token
         await db.verification.insert_one({
-            "user_id": user_id,
             "email": email,
             "token": verification_token,
             "expires_at": datetime.utcnow() + timedelta(hours=1)
         })
         
+        # Send verification email
         verification_email = f"""
         <!DOCTYPE html>
         <html>
@@ -999,6 +998,7 @@ async def resend_verification(
         )
         
         return {"message": "Verification email sent"}
+
 
 
 @app.get("/verify")
@@ -1626,6 +1626,126 @@ async def update_profile_page(
             updated_page["_id"] = str(updated_page["_id"])
         
         return updated_page
+
+
+@app.put("/update-profile")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def update_user_profile(
+    request: Request,
+    username: str = Body(...),
+    name: str = Body(...),
+    avatar_url: Optional[str] = Body(None),
+    location: Optional[str] = Body(None),
+    age: Optional[int] = Body(None),
+    gender: Optional[str] = Body(None),
+    pronouns: Optional[str] = Body(None),
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Update user profile information after onboarding"""
+    async with get_database() as db:
+        # Check if username is already taken by another user
+        if username != current_user.get("username"):
+            existing_user = await db.users.find_one({
+                "username": username,
+                "id": {"$ne": current_user["id"]}
+            })
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken"
+                )
+        
+        # Validate avatar URL if provided
+        if avatar_url and not await validate_avatar(avatar_url):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar URL or file too large (max 1MB)"
+            )
+        
+        # Update user information
+        update_data = {
+            "username": username,
+            "name": name,
+            "avatar_url": avatar_url,
+            "location": location,
+            "age": age,
+            "gender": gender,
+            "pronouns": pronouns,
+            "onboarding_completed": True
+        }
+        
+        # Remove None values
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+        
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": update_data}
+        )
+        
+        # Create default profile page if user doesn't have any
+        page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
+        
+        if page_count == 0:
+            default_page = {
+                "user_id": current_user["id"],
+                "page_id": str(ObjectId()),
+                "url": username,
+                "title": f"{name}'s Page",
+                "name": name,
+                "avatar_url": avatar_url,
+                "bio": "",
+                "background": {
+                    "type": "solid",
+                    "value": "#ffffff",
+                    "opacity": 1.0
+                },
+                "layout": {
+                    "type": "simple",
+                    "container_style": {
+                        "enabled": True,
+                        "background_color": "#ffffff",
+                        "opacity": 0.8,
+                        "border_radius": 10,
+                        "shadow": True
+                    }
+                },
+                "social_links": [],
+                "songs": [],
+                "show_joined_date": True,
+                "show_views": True,
+                "created_at": datetime.utcnow(),
+                "avatar_animation": "none"
+            }
+            
+            await db.profile_pages.insert_one(default_page)
+            
+            # Initialize views counter
+            await db.views.insert_one({
+                "url": username,
+                "views": 0
+            })
+        
+        # Clear cache
+        await user_cache.delete(f"user:{current_user['email']}")
+        if current_user.get("username"):
+            await user_cache.delete(f"username:{current_user['username']}")
+        
+        # Get updated user
+        updated_user = await db.users.find_one({"id": current_user["id"]})
+        
+        return {
+            "message": "Profile updated successfully",
+            "profile": {
+                "id": updated_user["id"],
+                "username": updated_user.get("username"),
+                "name": updated_user.get("name"),
+                "avatar_url": updated_user.get("avatar_url"),
+                "location": updated_user.get("location"),
+                "age": updated_user.get("age"),
+                "gender": updated_user.get("gender"),
+                "pronouns": updated_user.get("pronouns")
+            }
+        }
 
 
 @app.delete("/pages/{page_id}")
