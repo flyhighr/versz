@@ -63,6 +63,7 @@ class Settings:
     VIEW_COOLDOWN_MINUTES: int = 30
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
     MAX_AVATAR_SIZE: int = 1024 * 1024  # 1MB
+    PREVIEW_EXPIRATION_MINUTES: int = 30  # How long preview pages are valid
     DEFAULT_TAGS = {
         "early_supporter": {
             "icon": """<svg viewBox="0 0 24 24" width="24" height="24">
@@ -80,7 +81,6 @@ class Settings:
     DEFAULT_LAYOUTS = ["simple", "card", "modern", "minimalist", "creative"]
     DEFAULT_EFFECTS = ["typewriter", "fade-in", "bounce", "pulse", "none"]
     DEFAULT_BACKGROUND_TYPES = ["solid", "gradient", "image", "video"]
-    DEFAULT_AVATAR_ANIMATIONS = ["none", "pulse", "bounce", "rotate", "shake"]
 
 
 settings = Settings()
@@ -147,6 +147,7 @@ user_cache = AsyncTTLCache(ttl_seconds=300)
 page_cache = TTLCache(maxsize=1000, ttl=300)
 views_cache = TTLCache(maxsize=1000, ttl=300)
 template_cache = TTLCache(maxsize=100, ttl=600)
+preview_cache = TTLCache(maxsize=100, ttl=300)
 
 
 # Pydantic models
@@ -207,7 +208,7 @@ class ProfilePage(BaseModel):
     name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_animation: Optional[str] = None
+    avatar_decoration: Optional[str] = None  # URL to decoration image (replaces animation)
     background: BackgroundConfig
     layout: PageLayout
     social_links: List[SocialLink] = []
@@ -229,7 +230,7 @@ class PageUpdate(BaseModel):
     name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_animation: Optional[str] = None
+    avatar_decoration: Optional[str] = None  # URL to decoration image
     background: Optional[BackgroundConfig] = None
     layout: Optional[PageLayout] = None
     social_links: Optional[List[SocialLink]] = None
@@ -244,6 +245,10 @@ class PageUpdate(BaseModel):
     pronouns: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+
+
+class PreviewRequest(BaseModel):
+    page_data: ProfilePage
 
 
 class Tag(BaseModel):
@@ -265,7 +270,6 @@ class DisplayPreferences(BaseModel):
     show_age: bool = True
     show_gender: bool = True
     show_pronouns: bool = True
-    default_avatar_animation: str = "none"
     default_layout: str = "simple"
     default_background: BackgroundConfig = BackgroundConfig(
         type="solid", 
@@ -319,6 +323,7 @@ class UserResponse(UserBase):
     username: Optional[str] = None
     name: Optional[str] = None
     avatar_url: Optional[str] = None
+    avatar_decoration: Optional[str] = None  # URL to decoration image
     is_verified: bool
     page_count: int
     joined_at: datetime
@@ -375,6 +380,11 @@ class TemplateResponse(BaseModel):
 class URLCheckResponse(BaseModel):
     url: str
     available: bool
+
+
+class PreviewResponse(BaseModel):
+    preview_id: str
+    expires_at: datetime
 
 
 # Database connection
@@ -638,6 +648,38 @@ async def validate_avatar(avatar_url: str) -> bool:
         return False
 
 
+async def validate_decoration(decoration_url: str) -> bool:
+    """Validate if the avatar decoration URL is valid and the file is appropriate"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.head(decoration_url, follow_redirects=True)
+            
+            if response.status_code != 200:
+                return False
+                
+            content_type = response.headers.get("content-type", "")
+            
+            # Check if it's an image (including PNG with transparency) or a GIF
+            if not (content_type.startswith("image/") or content_type == "image/gif"):
+                return False
+                
+            return True
+    except Exception as e:
+        logger.error(f"Error validating decoration: {str(e)}")
+        return False
+
+
+async def cleanup_expired_previews():
+    """Cleanup function to remove expired preview pages"""
+    async with get_database() as db:
+        expired_time = datetime.utcnow()
+        result = await db.page_previews.delete_many({
+            "expires_at": {"$lt": expired_time}
+        })
+        if result.deleted_count > 0:
+            logger.info(f"Cleaned up {result.deleted_count} expired preview pages")
+
+
 # Endpoints
 @app.get("/", response_class=HTMLResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -749,7 +791,6 @@ async def register_user(
                 "show_age": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_avatar_animation": "none",
                 "default_layout": "simple",
                 "default_background": {
                     "type": "solid",
@@ -859,6 +900,7 @@ async def register_user(
             "username": user.username,
             "name": user.name,
             "avatar_url": None,
+            "avatar_decoration": None,
             "is_verified": False,
             "page_count": 0,
             "joined_at": datetime.utcnow(),
@@ -1000,7 +1042,6 @@ async def resend_verification_email(
         return {"message": "Verification email sent"}
 
 
-
 @app.get("/verify")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def verify_email(request: Request, token: str):
@@ -1041,6 +1082,7 @@ async def verify_email(request: Request, token: str):
             "username": pending_user.get("username"),
             "name": pending_user.get("name"),
             "avatar_url": pending_user.get("avatar_url"),
+            "avatar_decoration": pending_user.get("avatar_decoration"),
             "hashed_password": pending_user["hashed_password"],
             "is_active": True,
             "is_verified": True,
@@ -1055,7 +1097,6 @@ async def verify_email(request: Request, token: str):
                 "show_age": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_avatar_animation": "none",
                 "default_layout": "simple",
                 "default_background": {
                     "type": "solid",
@@ -1110,6 +1151,7 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             "username": user.get("username"),
             "name": user.get("name"),
             "avatar_url": user.get("avatar_url"),
+            "avatar_decoration": user.get("avatar_decoration"),
             "page_count": page_count,
             "joined_at": user.get("joined_at", datetime.utcnow()),
             "tags": user.get("tags", []),
@@ -1122,7 +1164,6 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
                 "show_age": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_avatar_animation": "none",
                 "default_layout": "simple",
                 "default_background": {
                     "type": "solid",
@@ -1310,7 +1351,6 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             "show_age": True,
             "show_gender": True,
             "show_pronouns": True,
-            "default_avatar_animation": "none",
             "default_layout": "simple",
             "default_background": {
                 "type": "solid",
@@ -1325,6 +1365,7 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             "username": current_user.get("username"),
             "name": current_user.get("name"),
             "avatar_url": current_user.get("avatar_url"),
+            "avatar_decoration": current_user.get("avatar_decoration"),
             "is_verified": current_user.get("is_verified", False),
             "page_count": page_count,
             "joined_at": current_user.get("joined_at", datetime.utcnow()),
@@ -1394,6 +1435,7 @@ async def complete_onboarding(
                 "title": f"{onboarding_data.name}'s Page",
                 "name": onboarding_data.name,
                 "avatar_url": onboarding_data.avatar_url,
+                "avatar_decoration": None,
                 "bio": "",
                 "background": {
                     "type": "solid",
@@ -1414,8 +1456,7 @@ async def complete_onboarding(
                 "songs": [],
                 "show_joined_date": True,
                 "show_views": True,
-                "created_at": datetime.utcnow(),
-                "avatar_animation": "none"
+                "created_at": datetime.utcnow()
             }
             
             await db.profile_pages.insert_one(default_page)
@@ -1436,6 +1477,7 @@ async def complete_onboarding(
             "username": updated_user.get("username"),
             "name": updated_user.get("name"),
             "avatar_url": updated_user.get("avatar_url"),
+            "avatar_decoration": updated_user.get("avatar_decoration"),
             "is_verified": updated_user.get("is_verified", False),
             "page_count": page_count,
             "joined_at": updated_user.get("joined_at", datetime.utcnow()),
@@ -1501,6 +1543,13 @@ async def create_profile_page(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid avatar URL or file too large (max 1MB)"
+            )
+            
+        # Validate avatar decoration if provided
+        if page_data.avatar_decoration and not await validate_decoration(page_data.avatar_decoration):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar decoration URL"
             )
         
         # Generate page ID
@@ -1594,6 +1643,13 @@ async def update_profile_page(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid avatar URL or file too large (max 1MB)"
             )
+            
+        # Validate avatar decoration if provided
+        if page_update.avatar_decoration and not await validate_decoration(page_update.avatar_decoration):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar decoration URL"
+            )
         
         # Prepare update data
         update_data = page_update.dict(exclude_unset=True)
@@ -1620,12 +1676,89 @@ async def update_profile_page(
         
         # Get updated page
         updated_page = await db.profile_pages.find_one({"page_id": page_id})
-        
+
         # Convert ObjectId to string
         if "_id" in updated_page:
             updated_page["_id"] = str(updated_page["_id"])
         
         return updated_page
+
+
+@app.post("/preview-page", response_model=PreviewResponse)
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def create_page_preview(
+    request: Request,
+    preview_data: ProfilePage,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Create a temporary preview of a page without saving it permanently"""
+    
+    # Generate preview ID
+    preview_id = str(ObjectId())
+    expires_at = datetime.utcnow() + timedelta(minutes=settings.PREVIEW_EXPIRATION_MINUTES)
+    
+    # Prepare page data for preview
+    preview_dict = preview_data.dict(exclude={"page_id"})
+    preview_dict["preview_id"] = preview_id
+    preview_dict["user_id"] = current_user["id"]
+    preview_dict["created_at"] = datetime.utcnow()
+    preview_dict["expires_at"] = expires_at
+    preview_dict["is_preview"] = True
+    
+    async with get_database() as db:
+        # Insert preview
+        await db.page_previews.insert_one(preview_dict)
+        
+        # Add to cache
+        preview_cache[f"preview:{preview_id}"] = preview_dict
+        
+        return {
+            "preview_id": preview_id,
+            "expires_at": expires_at
+        }
+
+
+@app.get("/preview/{preview_id}")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_page_preview(request: Request, preview_id: str):
+    """Get a temporary page preview by its ID"""
+    
+    # Try to get from cache first
+    cache_key = f"preview:{preview_id}"
+    if cache_key in preview_cache:
+        preview_data = preview_cache[cache_key]
+        
+        # Check if expired
+        if preview_data.get("expires_at", datetime.min) < datetime.utcnow():
+            preview_cache.pop(cache_key, None)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Preview expired or not found"
+            )
+        
+        return preview_data
+    
+    # If not in cache, get from database
+    async with get_database() as db:
+        preview = await db.page_previews.find_one({
+            "preview_id": preview_id,
+            "expires_at": {"$gt": datetime.utcnow()}
+        })
+        
+        if not preview:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Preview expired or not found"
+            )
+        
+        # Convert ObjectId to string
+        if "_id" in preview:
+            preview["_id"] = str(preview["_id"])
+        
+        # Update cache
+        preview_cache[cache_key] = preview
+        
+        return preview
 
 
 @app.post("/update-profile")
@@ -1641,6 +1774,7 @@ async def update_user_profile(
         username = profile_data.get("username")
         name = profile_data.get("name")
         avatar_url = profile_data.get("avatar_url")
+        avatar_decoration = profile_data.get("avatar_decoration")
         location = profile_data.get("location")
         age = profile_data.get("age")
         gender = profile_data.get("gender")
@@ -1664,12 +1798,20 @@ async def update_user_profile(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid avatar URL or file too large (max 1MB)"
             )
+            
+        # Validate avatar decoration if provided
+        if avatar_decoration and not await validate_decoration(avatar_decoration):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar decoration URL"
+            )
         
         # Update user information
         update_data = {
             "username": username,
             "name": name,
             "avatar_url": avatar_url,
+            "avatar_decoration": avatar_decoration,
             "location": location,
             "age": age,
             "gender": gender,
@@ -1696,6 +1838,7 @@ async def update_user_profile(
                 "title": f"{name}'s Page",
                 "name": name,
                 "avatar_url": avatar_url,
+                "avatar_decoration": avatar_decoration,
                 "bio": "",
                 "background": {
                     "type": "solid",
@@ -1716,8 +1859,7 @@ async def update_user_profile(
                 "songs": [],
                 "show_joined_date": True,
                 "show_views": True,
-                "created_at": datetime.utcnow(),
-                "avatar_animation": "none"
+                "created_at": datetime.utcnow()
             }
             
             await db.profile_pages.insert_one(default_page)
@@ -1743,6 +1885,7 @@ async def update_user_profile(
                 "username": updated_user.get("username"),
                 "name": updated_user.get("name"),
                 "avatar_url": updated_user.get("avatar_url"),
+                "avatar_decoration": updated_user.get("avatar_decoration"),
                 "location": updated_user.get("location"),
                 "age": updated_user.get("age"),
                 "gender": updated_user.get("gender"),
@@ -1787,8 +1930,34 @@ async def delete_profile_page(
 
 @app.get("/p/{url}")
 @limiter.limit(RateLimits.READ_LIMIT)
-async def get_public_page(request: Request, url: str):
+async def get_public_page(request: Request, url: str, template_id: Optional[str] = None):
     async with get_database() as db:
+        # If template_id is provided, return the template preview
+        if template_id:
+            template = await db.templates.find_one({"id": template_id})
+            if not template:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Template not found"
+                )
+                
+            # Get user who created the template
+            template_creator = await db.users.find_one({"id": template["created_by"]})
+            
+            # Prepare response data with template preview flag
+            response_data = {
+                "page": template["page_config"],
+                "user": {
+                    "username": template_creator.get("username") if template_creator else "User",
+                    "name": template_creator.get("name") if template_creator else "User",
+                },
+                "is_template_preview": True,
+                "template_id": template_id,
+                "template_name": template["name"]
+            }
+            
+            return response_data
+        
         # Try to find the page by URL
         page = await db.profile_pages.find_one({"url": url})
         
@@ -2126,7 +2295,7 @@ async def update_user_profile(
     async with get_database() as db:
         # Check which fields are being updated
         allowed_fields = [
-            "name", "avatar_url", "location", "age", 
+            "name", "avatar_url", "avatar_decoration", "location", "age", 
             "gender", "pronouns", "bio"
         ]
         
@@ -2154,6 +2323,13 @@ async def update_user_profile(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid avatar URL or file too large (max 1MB)"
             )
+            
+        # Validate avatar decoration if provided
+        if "avatar_decoration" in update_data and not await validate_decoration(update_data["avatar_decoration"]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar decoration URL"
+            )
         
         # Update user
         await db.users.update_one(
@@ -2175,6 +2351,7 @@ async def update_user_profile(
                 "username": updated_user.get("username"),
                 "name": updated_user.get("name"),
                 "avatar_url": updated_user.get("avatar_url"),
+                "avatar_decoration": updated_user.get("avatar_decoration"),
                 "location": updated_user.get("location"),
                 "age": updated_user.get("age"),
                 "gender": updated_user.get("gender"),
@@ -2294,40 +2471,6 @@ async def get_available_effects():
     return {"effects": effects}
 
 
-@app.get("/avatar-animations")
-async def get_avatar_animations():
-    # List of available avatar animations
-    animations = [
-        {
-            "name": "none",
-            "label": "None",
-            "description": "No animation"
-        },
-        {
-            "name": "pulse",
-            "label": "Pulse",
-            "description": "Avatar gently pulses with a subtle glow"
-        },
-        {
-            "name": "bounce",
-            "label": "Bounce",
-            "description": "Avatar bounces up and down slightly"
-        },
-        {
-            "name": "rotate",
-            "label": "Rotate",
-            "description": "Avatar slowly rotates in a circle"
-        },
-        {
-            "name": "shake",
-            "label": "Shake",
-            "description": "Avatar shakes when hovered"
-        }
-    ]
-    
-    return {"animations": animations}
-
-
 @app.get("/background-types")
 async def get_background_types():
     # List of available background types
@@ -2409,6 +2552,7 @@ async def get_user_public_pages(request: Request, username: str):
             "username": username,
             "name": user.get("name"),
             "avatar_url": user.get("avatar_url"),
+            "avatar_decoration": user.get("avatar_decoration"),
             "pages": pages
         }
 
@@ -2448,6 +2592,7 @@ def start_ping_scheduler():
 async def start_cleanup_scheduler():
     while True:
         await cleanup_old_view_records()
+        await cleanup_expired_previews()
         await asyncio.sleep(24 * 60 * 60)  # Run daily
 
 
