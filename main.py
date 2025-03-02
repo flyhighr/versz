@@ -1787,7 +1787,6 @@ async def update_user_profile(
     profile_data: dict = Body(...),
     current_user: dict = Depends(get_current_verified_user)
 ):
-    """Update user profile information after onboarding"""
     async with get_database() as db:
         # Extract data from request body
         username = profile_data.get("username")
@@ -1798,32 +1797,7 @@ async def update_user_profile(
         age = profile_data.get("age")
         gender = profile_data.get("gender")
         pronouns = profile_data.get("pronouns")
-        
-        # Check if username is already taken by another user
-        if username and username != current_user.get("username"):
-            existing_user = await db.users.find_one({
-                "username": username,
-                "id": {"$ne": current_user["id"]}
-            })
-            if existing_user:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Username already taken"
-                )
-        
-        # Validate avatar URL if provided
-        if avatar_url and not await validate_avatar(avatar_url):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar URL or file too large (max 1MB)"
-            )
-            
-        # Validate avatar decoration if provided
-        if avatar_decoration and not await validate_decoration(avatar_decoration):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar decoration URL"
-            )
+        bio = profile_data.get("bio")  # Added bio extraction
         
         # Update user information
         update_data = {
@@ -1835,11 +1809,13 @@ async def update_user_profile(
             "age": age,
             "gender": gender,
             "pronouns": pronouns,
+            "bio": bio,  # Added bio to update_data
             "onboarding_completed": True
         }
         
         # Remove None values
         update_data = {k: v for k, v in update_data.items() if v is not None}
+        
         
         await db.users.update_one(
             {"id": current_user["id"]},
