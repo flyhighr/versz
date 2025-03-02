@@ -333,7 +333,7 @@ class UserResponse(UserBase):
     age: Optional[int] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
-
+    bio: Optional[str] = None  # Add this line to include the bio field
 
 class UserPasswordReset(BaseModel):
     email: EmailStr
@@ -1374,7 +1374,8 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             "location": current_user.get("location"),
             "age": current_user.get("age"),
             "gender": current_user.get("gender"),
-            "pronouns": current_user.get("pronouns")
+            "pronouns": current_user.get("pronouns"),
+            "bio": current_user.get("bio")  # Add this line to include the bio field
         }
 
 
