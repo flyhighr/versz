@@ -165,12 +165,11 @@
         /* Profile Container */
         .profile-container {
             width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
+            max-width: 900px;
+            margin: 30px auto;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
             position: relative;
             z-index: 10;
         }
@@ -184,11 +183,12 @@
             -webkit-backdrop-filter: blur(10px);
             box-shadow: var(--box-shadow);
             margin-bottom: 20px;
-            padding: 25px;
+            padding: 30px;
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 30px;
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .profile-card:hover {
@@ -196,11 +196,31 @@
             transform: translateY(-2px);
         }
 
+        /* Profile Stats */
+        .profile-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-icon {
+            opacity: 0.7;
+        }
+
         /* Avatar Container */
         .avatar-container {
             position: relative;
-            width: 120px;
-            height: 120px;
+            width: 140px;
+            height: 140px;
             flex-shrink: 0;
         }
 
@@ -216,8 +236,8 @@
             position: absolute;
             top: -15px;
             left: -15px;
-            width: 150px;
-            height: 150px;
+            width: 170px;
+            height: 170px;
             pointer-events: none;
             z-index: 2;
         }
@@ -232,7 +252,7 @@
         }
 
         .profile-name {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -252,7 +272,7 @@
             align-items: center;
             gap: 4px;
             background-color: var(--badge-bg);
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 20px;
             font-size: 0.75rem;
             transition: all 0.2s ease;
@@ -271,24 +291,25 @@
         }
 
         .profile-username {
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         .profile-bio {
-            margin-bottom: 15px;
-            line-height: 1.5;
+            margin-bottom: 20px;
+            line-height: 1.6;
             opacity: 0.9;
+            font-size: 1.05rem;
         }
 
         .profile-meta {
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.6);
+            margin-top: 15px;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .meta-item {
@@ -301,13 +322,13 @@
         .social-links {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 12px;
+            margin-top: 20px;
         }
 
         .social-link {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.1);
             display: flex;
@@ -315,12 +336,13 @@
             justify-content: center;
             color: var(--text-light);
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         }
 
         .social-link:hover {
             background-color: var(--primary-color);
             transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
         }
 
         /* Songs Section */
@@ -331,17 +353,23 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             box-shadow: var(--box-shadow);
-            padding: 25px;
+            padding: 30px;
             margin-bottom: 20px;
         }
 
         .section-title {
-            font-size: 1.25rem;
+            font-size: 1.4rem;
             font-weight: 600;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+        }
+
+        .songs-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
         }
 
         .song-item {
@@ -349,19 +377,19 @@
             align-items: center;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 12px;
-            transition: all 0.2s ease;
+            padding: 15px;
+            transition: all 0.3s ease;
         }
 
         .song-item:hover {
             background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .song-cover {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 8px;
             overflow: hidden;
             margin-right: 15px;
@@ -380,7 +408,8 @@
 
         .song-title {
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
+            font-size: 1.05rem;
         }
 
         .song-artist {
@@ -389,25 +418,26 @@
         }
 
         .song-actions {
-            margin-left: 10px;
+            margin-left: 15px;
         }
 
         .play-button {
             background: var(--primary-color);
             color: white;
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             border: none;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         }
 
         .play-button:hover {
             transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
         }
 
         /* Stats Badge */
@@ -426,29 +456,17 @@
             z-index: 100;
         }
 
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .stat-icon {
-            opacity: 0.7;
-        }
-
         /* Responsive Design */
         @media (max-width: 768px) {
             .profile-card {
                 flex-direction: column;
                 align-items: center;
                 text-align: center;
-                padding: 20px 15px;
+                padding: 25px 20px;
             }
 
             .avatar-container {
-                margin-bottom: 15px;
+                margin-bottom: 20px;
             }
 
             .profile-name {
@@ -467,6 +485,10 @@
                 justify-content: center;
             }
 
+            .profile-stats {
+                justify-content: center;
+            }
+
             .stats-badge {
                 left: 50%;
                 transform: translateX(-50%);
@@ -476,15 +498,31 @@
         }
 
         @media (max-width: 480px) {
+            .songs-container {
+                grid-template-columns: 1fr;
+            }
+
             .song-item {
                 flex-direction: column;
                 align-items: center;
                 text-align: center;
-                gap: 10px;
+                gap: 15px;
+                padding: 20px;
             }
 
             .song-cover {
                 margin-right: 0;
+                width: 100px;
+                height: 100px;
+            }
+
+            .song-info {
+                text-align: center;
+            }
+
+            .song-actions {
+                margin-left: 0;
+                margin-top: 10px;
             }
 
             .stats-badge {
@@ -844,6 +882,44 @@
             }
             
             profileInfo.appendChild(profileHeader);
+
+            // Stats display (views and joined date) directly below name in profile card
+            if (data.views !== undefined || (user && user.joined_at)) {
+                const profileStats = document.createElement('div');
+                profileStats.className = 'profile-stats';
+                
+                if (data.views !== undefined) {
+                    const viewsItem = document.createElement('div');
+                    viewsItem.className = 'stat-item';
+                    viewsItem.innerHTML = `<i class="fas fa-eye stat-icon"></i> ${data.views} views`;
+                    profileStats.appendChild(viewsItem);
+                }
+                
+                if (user && user.joined_at) {
+                    const joinedTime = new Date(user.joined_at);
+                    const now = new Date();
+                    const diffTime = Math.abs(now - joinedTime);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    let joinedString;
+                    if (diffDays < 30) {
+                        joinedString = `${diffDays} days ago`;
+                    } else if (diffDays < 365) {
+                        const months = Math.floor(diffDays / 30);
+                        joinedString = `${months} month${months > 1 ? 's' : ''} ago`;
+                    } else {
+                        const years = Math.floor(diffDays / 365);
+                        joinedString = `${years} year${years > 1 ? 's' : ''} ago`;
+                    }
+                    
+                    const joinedItem = document.createElement('div');
+                    joinedItem.className = 'stat-item';
+                    joinedItem.innerHTML = `<i class="fas fa-calendar-alt stat-icon"></i> Joined ${joinedString}`;
+                    profileStats.appendChild(joinedItem);
+                }
+                
+                profileInfo.appendChild(profileStats);
+            }
             
             // Bio
             if (page.bio) {
@@ -945,6 +1021,9 @@
                 sectionTitle.innerHTML = '<i class="fas fa-music"></i> Music';
                 songsSection.appendChild(sectionTitle);
                 
+                const songsContainer = document.createElement('div');
+                songsContainer.className = 'songs-container';
+                
                 page.songs.forEach(song => {
                     const songItem = document.createElement('div');
                     songItem.className = 'song-item';
@@ -990,9 +1069,10 @@
                     songItem.appendChild(songInfo);
                     songItem.appendChild(songActions);
                     
-                    songsSection.appendChild(songItem);
+                    songsContainer.appendChild(songItem);
                 });
                 
+                songsSection.appendChild(songsContainer);
                 container.appendChild(songsSection);
             }
             
@@ -1022,6 +1102,9 @@
                     loading.style.display = 'none';
                 }, 300);
             }
+
+            // Hide the stats badge since we're now showing stats in the profile card
+            document.getElementById('statsBadge').style.display = 'none';
         }
 
         function showError(code, message) {
