@@ -12,14 +12,14 @@ from functools import lru_cache
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any, Union, Literal
+from typing import Optional, List, Dict, Any, Union, Set
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends, Form, Body, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, Field, validator, SecretStr, constr, ValidationError, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, validator, SecretStr, constr, ValidationError, AnyHttpUrl, HttpUrl
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -34,6 +34,7 @@ import schedule
 import smtplib
 from email.message import EmailMessage
 from cachetools import TTLCache
+
 
 class Settings:
     MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
@@ -52,15 +53,16 @@ class Settings:
     EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD", "")
     EMAIL_FROM: str = os.getenv("EMAIL_FROM", EMAIL_USERNAME)
     BCRYPT_ROUNDS: int = 12 if ENVIRONMENT == "production" else 4
-    MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5MB for avatars and other media
-    MAX_PAGES_PER_USER: int = 5  # Free tier limit
-    CACHE_TTL: int = 300  # 5 minutes
+    MAX_FILE_SIZE: int = 20 * 1024 * 1024  # 20MB
+    MAX_PROFILE_PAGES: int = 5
+    MAX_SOCIAL_LINKS: int = 10
+    MAX_SONGS: int = 5
+    MAX_TEMPLATES: int = 20
     MONGODB_MAX_POOL_SIZE: int = 100
     MONGODB_MIN_POOL_SIZE: int = 10
     VIEW_COOLDOWN_MINUTES: int = 30
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
-    MAX_SOCIAL_LINKS: int = 12
-    MAX_SONGS: int = 12
+    MAX_AVATAR_SIZE: int = 1024 * 1024  # 1MB
     DEFAULT_TAGS = {
         "early_supporter": {
             "icon": """<svg viewBox="0 0 24 24" width="24" height="24">
@@ -75,11 +77,14 @@ class Settings:
             "icon_type": "emoji"
         }
     }
-    VALID_LAYOUTS = ["center", "top", "left", "right", "bottom"]
-    VALID_AVATAR_ANIMATIONS = ["none", "bounce", "pulse", "shake", "rotate"]
-    VALID_TEXT_EFFECTS = ["none", "typewriter", "fade-in", "glow"]
+    DEFAULT_LAYOUTS = ["simple", "card", "modern", "minimalist", "creative"]
+    DEFAULT_EFFECTS = ["typewriter", "fade-in", "bounce", "pulse", "none"]
+    DEFAULT_BACKGROUND_TYPES = ["solid", "gradient", "image", "video"]
+    DEFAULT_AVATAR_ANIMATIONS = ["none", "pulse", "bounce", "rotate", "shake"]
+
 
 settings = Settings()
+
 
 class RateLimits:
     AUTH_LIMIT = "5/minute"
@@ -87,6 +92,7 @@ class RateLimits:
     READ_LIMIT = "30/minute" 
     MODIFY_LIMIT = "15/minute"  
     ADMIN_LIMIT = "60/minute"
+
 
 # Logging configuration
 logging.basicConfig(
@@ -109,6 +115,7 @@ pwd_context = CryptContext(
     truncate_error=False
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 # Custom Async Cache Implementation
 class AsyncTTLCache:
@@ -134,19 +141,23 @@ class AsyncTTLCache:
     async def delete(self, key: str) -> None:
         self.cache.pop(key, None)
 
+
 # Initialize caches
-user_cache = AsyncTTLCache(ttl_seconds=settings.CACHE_TTL)
-page_cache = TTLCache(maxsize=1000, ttl=settings.CACHE_TTL)
-views_cache = TTLCache(maxsize=1000, ttl=settings.CACHE_TTL)
-template_cache = TTLCache(maxsize=100, ttl=settings.CACHE_TTL)
+user_cache = AsyncTTLCache(ttl_seconds=300)
+page_cache = TTLCache(maxsize=1000, ttl=300)
+views_cache = TTLCache(maxsize=1000, ttl=300)
+template_cache = TTLCache(maxsize=100, ttl=600)
+
 
 # Pydantic models
 class Token(BaseModel):
     access_token: str
     token_type: str
 
+
 class TokenData(BaseModel):
     username: Optional[str] = None
+
 
 class SocialLink(BaseModel):
     platform: str
@@ -154,75 +165,121 @@ class SocialLink(BaseModel):
     icon: Optional[str] = None
     display_name: Optional[str] = None
 
+
 class Song(BaseModel):
     title: str
     artist: str
     cover_url: str
     youtube_url: str
 
+
+class BackgroundConfig(BaseModel):
+    type: str = Field(..., description="Type of background: solid, gradient, image, video")
+    value: str = Field(..., description="Color code, gradient spec, or URL to image/video")
+    opacity: float = Field(1.0, ge=0.0, le=1.0)
+
+
 class ContainerStyle(BaseModel):
-    color: Optional[str] = None
+    enabled: bool = True
+    background_color: Optional[str] = None
     gradient: Optional[str] = None
-    opacity: float = Field(default=1.0, ge=0.0, le=1.0)
+    opacity: float = Field(0.8, ge=0.0, le=1.0)
     border_radius: Optional[int] = None
-    show: bool = True
-
-class BackgroundSettings(BaseModel):
-    type: Literal["color", "image", "video"] = "color"
-    value: str = "#ffffff"  # Color code, image URL, or video URL
-    opacity: float = Field(default=1.0, ge=0.0, le=1.0)
-    blur: Optional[int] = None
-
-class TextEffect(BaseModel):
-    type: str = "none"  # none, typewriter, fade-in, glow
-    speed: Optional[float] = None
-    color: Optional[str] = None
-
-class AvatarSettings(BaseModel):
-    url: Optional[str] = None
-    animation: str = "none"  # none, bounce, pulse, shake, rotate
     border_color: Optional[str] = None
-    border_width: int = 0
-    size: str = "medium"  # small, medium, large
+    shadow: Optional[bool] = True
+
 
 class PageLayout(BaseModel):
-    type: str = "center"  # center, top, left, right, bottom
+    type: str = Field(..., description="Layout type: simple, card, modern, etc.")
     container_style: ContainerStyle = ContainerStyle()
-    spacing: int = 10
 
-class PageSettings(BaseModel):
-    id: Optional[str] = None
-    url_slug: str
+
+class TextEffect(BaseModel):
+    name: str
+    speed: Optional[int] = None
+    delay: Optional[int] = None
+
+
+class ProfilePage(BaseModel):
+    page_id: Optional[str] = None
+    url: str
     title: str
-    description: Optional[str] = None
-    layout: PageLayout = PageLayout()
-    background: BackgroundSettings = BackgroundSettings()
-    name_effect: TextEffect = TextEffect()
-    bio_effect: TextEffect = TextEffect()
-    show_views: bool = True
-    show_user_id: bool = True
-    show_join_date: bool = True
-    show_profile_info: bool = True
-    is_main_page: bool = False
-
-class ProfileInfo(BaseModel):
     name: Optional[str] = None
     bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    avatar_animation: Optional[str] = None
+    background: BackgroundConfig
+    layout: PageLayout
+    social_links: List[SocialLink] = []
+    songs: List[Song] = []
+    show_joined_date: bool = True
+    show_views: bool = True
+    name_effect: Optional[TextEffect] = None
+    bio_effect: Optional[TextEffect] = None
     location: Optional[str] = None
     age: Optional[int] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
-    avatar: AvatarSettings = AvatarSettings()
-    show_location: bool = False
-    show_age: bool = False
-    show_gender: bool = False
-    show_pronouns: bool = False
+    custom_css: Optional[str] = None
+    custom_js: Optional[str] = None
+
+
+class PageUpdate(BaseModel):
+    title: Optional[str] = None
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    avatar_animation: Optional[str] = None
+    background: Optional[BackgroundConfig] = None
+    layout: Optional[PageLayout] = None
+    social_links: Optional[List[SocialLink]] = None
+    songs: Optional[List[Song]] = None
+    show_joined_date: Optional[bool] = None
+    show_views: Optional[bool] = None
+    name_effect: Optional[TextEffect] = None
+    bio_effect: Optional[TextEffect] = None
+    location: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    pronouns: Optional[str] = None
+    custom_css: Optional[str] = None
+    custom_js: Optional[str] = None
+
+
+class Tag(BaseModel):
+    name: str
+    icon: str
+    text: str
+    icon_type: str = Field(
+        default="emoji",
+        description="Type of icon: 'emoji', 'svg', or 'image'"
+    )
+
+
+class DisplayPreferences(BaseModel):
+    show_views: bool = True
+    show_uuid: bool = True
+    show_tags: bool = True
+    show_joined_date: bool = True
+    show_location: bool = True
+    show_age: bool = True
+    show_gender: bool = True
+    show_pronouns: bool = True
+    default_avatar_animation: str = "none"
+    default_layout: str = "simple"
+    default_background: BackgroundConfig = BackgroundConfig(
+        type="solid", 
+        value="#ffffff"
+    )
+
 
 class UserBase(BaseModel):
     email: EmailStr
 
+
 class UserCreate(UserBase):
     password: constr(min_length=8, max_length=64)  # type: ignore
+    username: Optional[str] = None
     name: Optional[str] = None
     
     @validator('password')
@@ -235,74 +292,90 @@ class UserCreate(UserBase):
             raise ValueError('Password must contain at least one number')
         return v
 
-class Tag(BaseModel):
-    name: str
-    icon: str
-    text: str
-    icon_type: str = Field(
-        default="emoji",
-        description="Type of icon: 'emoji', 'svg', or 'image'"
-    )
 
-class DisplayPreferences(BaseModel):
-    enable_music_player: bool = True
-    show_views: bool = True
-    show_user_id: bool = True
-    show_join_date: bool = True
-    show_tags: bool = True
-    show_profile_info: bool = True
-    default_page_layout: str = "center"
+class UserOnboarding(BaseModel):
+    name: str
+    avatar_url: Optional[str] = None
+    username: str
+    location: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    pronouns: Optional[str] = None
+    
+    @validator('username')
+    def validate_username(cls, v):
+        if not v.isalnum() and not all(c.isalnum() or c == '_' for c in v):
+            raise ValueError('Username can only contain alphanumeric characters and underscores')
+        return v
+
 
 class UserLogin(UserBase):
     password: str
 
+
 class UserResponse(UserBase):
     id: str
     user_number: int
+    username: Optional[str] = None
     name: Optional[str] = None
+    avatar_url: Optional[str] = None
     is_verified: bool
     page_count: int
-    created_at: datetime
+    joined_at: datetime
     tags: List[Tag] = []
     display_preferences: DisplayPreferences
-    profile_info: ProfileInfo
+    location: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    pronouns: Optional[str] = None
+
 
 class UserPasswordReset(BaseModel):
     email: EmailStr
+
 
 class UserPasswordChange(BaseModel):
     email: EmailStr
     reset_code: str
     new_password: constr(min_length=8, max_length=64)  # type: ignore
 
+
 class ViewRecord(BaseModel):
-    page_id: str
+    url: str
     device_hash: str
     timestamp: datetime
     ip_address: str
     user_agent: str
 
-class TemplateCreate(BaseModel):
+
+class Template(BaseModel):
+    id: Optional[str] = None
     name: str
-    description: Optional[str] = None
-    page_settings: PageSettings
+    description: str
+    preview_image: str
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    use_count: int = 0
+    page_config: ProfilePage
     tags: List[str] = []
-    is_public: bool = True
+
 
 class TemplateResponse(BaseModel):
     id: str
     name: str
-    description: Optional[str] = None
-    page_settings: PageSettings
+    description: str
+    preview_image: str
     created_by: str
-    uses_count: int
+    created_by_username: Optional[str] = None
     created_at: datetime
+    use_count: int
     tags: List[str] = []
-    is_public: bool = True
 
-class UrlCheckResponse(BaseModel):
-    is_available: bool
-    suggestion: Optional[str] = None
+
+class URLCheckResponse(BaseModel):
+    url: str
+    available: bool
+
 
 # Database connection
 @asynccontextmanager
@@ -320,10 +393,12 @@ async def get_database() -> AsyncIOMotorDatabase:
     finally:
         client.close()
 
+
 # FastAPI initialization
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="BioLink API", version="2.0.0")
+app = FastAPI(title="BioLink API", version="1.0.0")
 app.state.limiter = limiter
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -333,6 +408,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Utility functions
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -340,8 +416,10 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     to_encode.update({"exp": expire, "iat": datetime.utcnow()})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
+
 async def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
 
 def get_password_hash(password: str) -> str:
     try:
@@ -350,6 +428,7 @@ def get_password_hash(password: str) -> str:
         logger.error(f"Password hashing error: {str(e)}")
         raise ValueError("Error creating password hash")
         
+
 async def send_email_async(to_email: str, subject: str, html_content: str) -> bool:
     try:
         msg = MIMEMultipart()
@@ -376,6 +455,7 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
         logger.error(f"Error sending email to {to_email}: {str(e)}")
         return False
 
+
 async def get_user(email: str) -> Optional[Dict[str, Any]]:
     cache_key = f"user:{email}"
     cached_user = await user_cache.get(cache_key)
@@ -385,11 +465,22 @@ async def get_user(email: str) -> Optional[Dict[str, Any]]:
     async with get_database() as db:
         user = await db.users.find_one({"email": email})
         if user:
-            # Convert ObjectId to string
-            if "_id" in user:
-                user["_id"] = str(user["_id"])
             await user_cache.set(cache_key, user)
         return user
+
+
+async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
+    cache_key = f"username:{username}"
+    cached_user = await user_cache.get(cache_key)
+    if cached_user is not None:
+        return cached_user
+    
+    async with get_database() as db:
+        user = await db.users.find_one({"username": username})
+        if user:
+            await user_cache.set(cache_key, user)
+        return user
+
 
 async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
     try:
@@ -411,6 +502,7 @@ async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any
         logger.error(f"Authentication error: {str(e)}")
         return None
 
+
 async def get_next_user_number(db: AsyncIOMotorDatabase) -> int:
     result = await db.users.find_one(
         filter={},
@@ -419,32 +511,15 @@ async def get_next_user_number(db: AsyncIOMotorDatabase) -> int:
     )
     return (result["user_number"] + 1) if result else 1
 
-async def is_url_slug_available(db: AsyncIOMotorDatabase, url_slug: str) -> bool:
-    # Check if URL is already taken by any page
-    existing_page = await db.pages.find_one({"url_slug": url_slug})
-    if existing_page:
+
+async def is_url_available(db: AsyncIOMotorDatabase, url: str) -> bool:
+    # Check if URL is taken by a page or a user
+    if await db.profile_pages.find_one({"url": url}):
         return False
-    
-    # Check against reserved words
-    reserved_words = ["verify", "privacy", "terms", "login", "register", "admin", 
-                      "dashboard", "settings", "account", "profile", "api", "templates"]
-    if url_slug.lower() in reserved_words:
+    if await db.users.find_one({"username": url}):
         return False
-    
     return True
 
-async def suggest_url_slug(db: AsyncIOMotorDatabase, base_slug: str) -> str:
-    # Try adding numbers to the end until we find an available one
-    counter = 1
-    while counter < 100:  # Limit to prevent infinite loop
-        suggestion = f"{base_slug}{counter}"
-        if await is_url_slug_available(db, suggestion):
-            return suggestion
-        counter += 1
-    
-    # If all numbered suggestions are taken, add random characters
-    random_suffix = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(4))
-    return f"{base_slug}-{random_suffix}"
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -466,6 +541,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user
 
+
 async def get_current_verified_user(current_user: dict = Depends(get_current_user)):
     if not current_user.get("is_verified", False):
         raise HTTPException(
@@ -474,6 +550,7 @@ async def get_current_verified_user(current_user: dict = Depends(get_current_use
         )
     return current_user
 
+
 async def generate_device_identifier(request: Request) -> str:
     ip = request.client.host
     user_agent = request.headers.get("user-agent", "")
@@ -481,10 +558,11 @@ async def generate_device_identifier(request: Request) -> str:
     identifier = f"{ip}:{user_agent}:{accept_language}"
     return hashlib.sha256(identifier.encode()).hexdigest()
 
-async def should_count_view(db: AsyncIOMotorDatabase, page_id: str, device_hash: str) -> bool:
+
+async def should_count_view(db: AsyncIOMotorDatabase, url: str, device_hash: str) -> bool:
     last_view = await db.view_records.find_one(
         {
-            "page_id": page_id,
+            "url": url,
             "device_hash": device_hash
         },
         sort=[("timestamp", -1)]
@@ -498,32 +576,69 @@ async def should_count_view(db: AsyncIOMotorDatabase, page_id: str, device_hash:
     
     return time_since_last_view > timedelta(minutes=settings.VIEW_COOLDOWN_MINUTES)
 
+
 async def cleanup_old_view_records():
     async with get_database() as db:
         cutoff_date = datetime.utcnow() - timedelta(days=settings.DEVICE_IDENTIFIER_TTL_DAYS)
         await db.view_records.delete_many({"timestamp": {"$lt": cutoff_date}})
 
-async def get_template_by_id(db: AsyncIOMotorDatabase, template_id: str) -> Optional[Dict[str, Any]]:
-    if not ObjectId.is_valid(template_id):
-        return None
-    
-    template = await db.templates.find_one({"_id": ObjectId(template_id)})
-    if template:
-        template["id"] = str(template["_id"])
-        return template
-    return None
 
-async def increment_template_usage(db: AsyncIOMotorDatabase, template_id: str):
-    if not ObjectId.is_valid(template_id):
-        return
-    
-    await db.templates.update_one(
-        {"_id": ObjectId(template_id)},
-        {"$inc": {"uses_count": 1}}
-    )
+async def increment_page_views(db: AsyncIOMotorDatabase, url: str, device_hash: str) -> int:
+    """Increment the view count for a page if the view should be counted"""
+    if await should_count_view(db, url, device_hash):
+        view_record = ViewRecord(
+            url=url,
+            device_hash=device_hash,
+            timestamp=datetime.utcnow(),
+            ip_address="",  # Will be set by the caller
+            user_agent=""   # Will be set by the caller
+        )
+        
+        await db.view_records.insert_one(view_record.dict())
+        
+        result = await db.views.find_one_and_update(
+            {"url": url},
+            {"$inc": {"views": 1}},
+            upsert=True,
+            return_document=True
+        )
+        
+        views = result["views"] if result else 0
+        views_cache[f"views:{url}"] = views
+        return views
+    else:
+        views_doc = await db.views.find_one({"url": url})
+        views = views_doc["views"] if views_doc else 0
+        return views
+
+
+async def validate_avatar(avatar_url: str) -> bool:
+    """Validate if the avatar URL is valid and the file is appropriate"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.head(avatar_url, follow_redirects=True)
+            
+            if response.status_code != 200:
+                return False
+                
+            content_type = response.headers.get("content-type", "")
+            content_length = int(response.headers.get("content-length", "0"))
+            
+            # Check if it's an image or a gif
+            if not (content_type.startswith("image/") or content_type == "image/gif"):
+                return False
+                
+            # Check if it's under the size limit
+            if content_length > settings.MAX_AVATAR_SIZE:
+                return False
+                
+            return True
+    except Exception as e:
+        logger.error(f"Error validating avatar: {str(e)}")
+        return False
+
 
 # Endpoints
-
 @app.get("/", response_class=HTMLResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def root(request: Request):
@@ -532,11 +647,12 @@ async def root(request: Request):
         <head><title>BioLink API</title></head>
         <body>
             <h1>Welcome to the BioLink API</h1>
-            <p>Please refer to the documentation for available endpoints.</p>
+            <p>Create and customize your profile pages with our API.</p>
         </body>
     </html>
     """
-    
+
+
 @app.get("/health")
 @limiter.limit(RateLimits.ADMIN_LIMIT)
 async def health_check(request: Request):
@@ -554,17 +670,20 @@ async def health_check(request: Request):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Service unhealthy"
         )
-            
+
+
 @app.post("/register", response_model=UserResponse)
 @limiter.limit("5/minute")
 async def register_user(
     request: Request,
     background_tasks: BackgroundTasks,
-    user_data: UserCreate
+    email: str = Body(...),
+    password: str = Body(...),
+    username: Optional[str] = Body(None),
+    name: Optional[str] = Body(None)
 ) -> Dict[str, Any]:
     try:
-        # Validate the user data
-        user = UserCreate(email=user_data.email, password=user_data.password, name=user_data.name)
+        user = UserCreate(email=email, password=password, username=username, name=name)
     except ValidationError as ve:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -574,6 +693,7 @@ async def register_user(
     async with get_database() as db:
         user_number = await get_next_user_number(db)
         
+        # Check if email is already registered
         existing_user = await db.users.find_one({"email": user.email})
         if existing_user:
             raise HTTPException(
@@ -581,6 +701,16 @@ async def register_user(
                 detail="Email already registered"
             )
         
+        # Check if username is already taken
+        if user.username:
+            existing_username = await db.users.find_one({"username": user.username})
+            if existing_username:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken"
+                )
+        
+        # Check pending registrations
         existing_pending = await db.pending_users.find_one({"email": user.email})
         if existing_pending:
             if existing_pending["expires_at"] < datetime.utcnow():
@@ -598,30 +728,34 @@ async def register_user(
         user_id = str(user_number)
         
         verification_token = secrets.token_urlsafe(32)
-        verification_link = f"{settings.API_URL}/verify?token={verification_token}"
-        
-        # Create default profile info
-        profile_info = ProfileInfo(
-            name=user.name,
-            avatar=AvatarSettings()
-        ).dict()
-        
-        # Create default display preferences
-        display_preferences = DisplayPreferences().dict()
+        verification_link = f"https://biolink.site/verify?token={verification_token}"
         
         pending_user_data = {
             "id": user_id,
             "user_number": user_number,
             "email": user.email,
+            "username": user.username,
             "name": user.name,
             "hashed_password": get_password_hash(user.password),
             "created_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(hours=settings.PENDING_REGISTRATION_EXPIRE_HOURS),
+            "expires_at": datetime.utcnow() + timedelta(hours=1),
             "tags": [],
-            "profile_info": profile_info,
-            "display_preferences": display_preferences,
-            "social_links": [],
-            "songs": []
+            "display_preferences": {
+                "show_views": True,
+                "show_uuid": True,
+                "show_tags": True,
+                "show_joined_date": True,
+                "show_location": True,
+                "show_age": True,
+                "show_gender": True,
+                "show_pronouns": True,
+                "default_avatar_animation": "none",
+                "default_layout": "simple",
+                "default_background": {
+                    "type": "solid",
+                    "value": "#ffffff"
+                }
+            }
         }
         
         verification_email = f"""
@@ -690,9 +824,9 @@ async def register_user(
                 <div class="content">
                     <p>Thank you for registering! Please click the link below to verify your email:</p>
                     <a href="{verification_link}" class="button">Verify Email</a>
-                    <p>This link will expire in {settings.PENDING_REGISTRATION_EXPIRE_HOURS} hour(s).</p>
+                    <p>This link will expire in 1 hour.</p>
                     <div class="warning">
-                        Your registration will be canceled if you don't verify within {settings.PENDING_REGISTRATION_EXPIRE_HOURS} hour(s).
+                        Your registration will be canceled if you don't verify within 1 hour(s).
                     </div>
                 </div>
                 <div class="footer">
@@ -708,7 +842,7 @@ async def register_user(
             "user_id": user_id,
             "email": user.email,
             "token": verification_token,
-            "expires_at": datetime.utcnow() + timedelta(hours=settings.PENDING_REGISTRATION_EXPIRE_HOURS)
+            "expires_at": datetime.utcnow() + timedelta(hours=1)
         })
         
         background_tasks.add_task(
@@ -722,14 +856,20 @@ async def register_user(
             "id": user_id,
             "user_number": user_number,
             "email": user.email,
+            "username": user.username,
             "name": user.name,
+            "avatar_url": None,
             "is_verified": False,
             "page_count": 0,
-            "created_at": datetime.utcnow(),
+            "joined_at": datetime.utcnow(),
             "tags": [],
             "display_preferences": DisplayPreferences(),
-            "profile_info": ProfileInfo(name=user.name)
+            "location": None,
+            "age": None,
+            "gender": None,
+            "pronouns": None
         }
+
 
 @app.post("/resend-verification")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -763,13 +903,13 @@ async def resend_verification(
         await db.verification.delete_one({"email": email})
         
         verification_token = secrets.token_urlsafe(32)
-        verification_link = f"{settings.API_URL}/verify?token={verification_token}"
+        verification_link = f"https://biolink.site/verify?token={verification_token}"
         
         await db.verification.insert_one({
             "user_id": user_id,
             "email": email,
             "token": verification_token,
-            "expires_at": datetime.utcnow() + timedelta(hours=settings.PENDING_REGISTRATION_EXPIRE_HOURS)
+            "expires_at": datetime.utcnow() + timedelta(hours=1)
         })
         
         verification_email = f"""
@@ -838,9 +978,9 @@ async def resend_verification(
                 <div class="content">
                     <p>Here's your new verification link:</p>
                     <a href="{verification_link}" class="button">Verify Email</a>
-                    <p>This link will expire in {settings.PENDING_REGISTRATION_EXPIRE_HOURS} hour(s).</p>
+                    <p>This link will expire in 1 hour.</p>
                     <div class="warning">
-                        Please verify your email within {settings.PENDING_REGISTRATION_EXPIRE_HOURS} hour(s) to complete the registration process.
+                        Please verify your email within 1 hour to complete the registration process.
                     </div>
                 </div>
                 <div class="footer">
@@ -860,6 +1000,7 @@ async def resend_verification(
         
         return {"message": "Verification email sent"}
 
+
 @app.get("/verify")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def verify_email(request: Request, token: str):
@@ -876,71 +1017,64 @@ async def verify_email(request: Request, token: str):
             
         pending_user = await db.pending_users.find_one({"email": verification["email"]})
         if not pending_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Registration expired or not found"
-            )
+            # Check if the user is already in the main users collection
+            user = await db.users.find_one({"email": verification["email"]})
+            if user:
+                # Just update the verified status if the user exists
+                await db.users.update_one(
+                    {"email": verification["email"]},
+                    {"$set": {"is_verified": True}}
+                )
+                await db.verification.delete_one({"email": verification["email"]})
+                await user_cache.delete(f"user:{verification['email']}")
+                return {"message": "Email verified successfully"}
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Registration expired or not found"
+                )
             
         user_data = {
             "id": pending_user["id"],
             "user_number": pending_user["user_number"],
             "email": verification["email"],
+            "username": pending_user.get("username"),
             "name": pending_user.get("name"),
+            "avatar_url": pending_user.get("avatar_url"),
             "hashed_password": pending_user["hashed_password"],
             "is_active": True,
             "is_verified": True,
-            "created_at": pending_user["created_at"],
+            "joined_at": pending_user["created_at"],
             "tags": pending_user.get("tags", []),
-            "profile_info": pending_user.get("profile_info", {}),
-            "display_preferences": pending_user.get("display_preferences", {}),
-            "social_links": pending_user.get("social_links", []),
-            "songs": pending_user.get("songs", [])
+            "display_preferences": pending_user.get("display_preferences", {
+                "show_views": True,
+                "show_uuid": True,
+                "show_tags": True,
+                "show_joined_date": True,
+                "show_location": True,
+                "show_age": True,
+                "show_gender": True,
+                "show_pronouns": True,
+                "default_avatar_animation": "none",
+                "default_layout": "simple",
+                "default_background": {
+                    "type": "solid",
+                    "value": "#ffffff"
+                }
+            }),
+            "location": pending_user.get("location"),
+            "age": pending_user.get("age"),
+            "gender": pending_user.get("gender"),
+            "pronouns": pending_user.get("pronouns")
         }
         
         await db.users.insert_one(user_data)
-        
-        # Create a default main page for the user
-        default_page = {
-            "user_id": user_data["id"],
-            "url_slug": f"user{user_data['user_number']}",
-            "title": f"{user_data.get('name', 'My')} Bio Link",
-            "description": "My personal bio link page",
-            "layout": {
-                "type": "center",
-                "container_style": {
-                    "color": "#ffffff",
-                    "opacity": 0.9,
-                    "border_radius": 10,
-                    "show": True
-                },
-                "spacing": 10
-            },
-            "background": {
-                "type": "color",
-                "value": "#f0f2f5",
-                "opacity": 1.0
-            },
-            "name_effect": {
-                "type": "none"
-            },
-            "bio_effect": {
-                "type": "none"
-            },
-            "show_views": True,
-            "show_user_id": True,
-            "show_join_date": True,
-            "show_profile_info": True,
-            "is_main_page": True,
-            "created_at": datetime.utcnow(),
-            "views": 0
-        }
-        
-        await db.pages.insert_one(default_page)
         await db.pending_users.delete_one({"email": verification["email"]})
         await db.verification.delete_one({"email": verification["email"]})
         await user_cache.delete(f"user:{verification['email']}")
         
         return {"message": "Email verified successfully"}
+
 
 @app.post("/token")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -962,8 +1096,9 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             expires_delta=access_token_expires
         )
         
+        # Count pages
         async with get_database() as db:
-            page_count = await db.pages.count_documents({"user_id": user["id"]})
+            page_count = await db.profile_pages.count_documents({"user_id": user["id"]})
         
         return {
             "access_token": access_token,
@@ -972,19 +1107,32 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             "id": user["id"],
             "user_number": user.get("user_number"),
             "email": user["email"],
+            "username": user.get("username"),
             "name": user.get("name"),
+            "avatar_url": user.get("avatar_url"),
             "page_count": page_count,
+            "joined_at": user.get("joined_at", datetime.utcnow()),
             "tags": user.get("tags", []),
             "display_preferences": user.get("display_preferences", {
-                "enable_music_player": True,
                 "show_views": True,
-                "show_user_id": True,
-                "show_join_date": True,
+                "show_uuid": True,
                 "show_tags": True,
-                "show_profile_info": True,
-                "default_page_layout": "center"
+                "show_joined_date": True,
+                "show_location": True,
+                "show_age": True,
+                "show_gender": True,
+                "show_pronouns": True,
+                "default_avatar_animation": "none",
+                "default_layout": "simple",
+                "default_background": {
+                    "type": "solid",
+                    "value": "#ffffff"
+                }
             }),
-            "profile_info": user.get("profile_info", {})
+            "location": user.get("location"),
+            "age": user.get("age"),
+            "gender": user.get("gender"),
+            "pronouns": user.get("pronouns")
         }
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
@@ -992,7 +1140,8 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "An error occurred during login. Please try again."}
         )
-        
+
+
 @app.post("/request-password-reset")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def request_password_reset(
@@ -1117,6 +1266,7 @@ async def request_password_reset(
         
         return {"message": "Password reset email sent"}
 
+
 @app.post("/reset-password")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def reset_password(request: Request, reset_data: UserPasswordChange):
@@ -1144,147 +1294,492 @@ async def reset_password(request: Request, reset_data: UserPasswordChange):
         
         return {"message": "Password reset successfully"}
 
-@app.get("/me")
+
+@app.get("/me", response_model=UserResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def read_users_me(request: Request, current_user: dict = Depends(get_current_user)):
     async with get_database() as db:
-        page_count = await db.pages.count_documents({"user_id": current_user["id"]})
+        page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
+        
+        display_prefs = current_user.get("display_preferences", {
+            "show_views": True,
+            "show_uuid": True,
+            "show_tags": True,
+            "show_joined_date": True,
+            "show_location": True,
+            "show_age": True,
+            "show_gender": True,
+            "show_pronouns": True,
+            "default_avatar_animation": "none",
+            "default_layout": "simple",
+            "default_background": {
+                "type": "solid",
+                "value": "#ffffff"
+            }
+        })
         
         return {
             "id": current_user["id"],
             "user_number": current_user.get("user_number"),
             "email": current_user["email"],
+            "username": current_user.get("username"),
             "name": current_user.get("name"),
+            "avatar_url": current_user.get("avatar_url"),
             "is_verified": current_user.get("is_verified", False),
             "page_count": page_count,
-            "created_at": current_user.get("created_at", datetime.utcnow()),
+            "joined_at": current_user.get("joined_at", datetime.utcnow()),
             "tags": current_user.get("tags", []),
-            "profile_info": current_user.get("profile_info", {}),
-            "display_preferences": current_user.get("display_preferences", {
-                "enable_music_player": True,
-                "show_views": True,
-                "show_user_id": True,
-                "show_join_date": True,
-                "show_tags": True,
-                "show_profile_info": True,
-                "default_page_layout": "center"
-            })
+            "display_preferences": display_prefs,
+            "location": current_user.get("location"),
+            "age": current_user.get("age"),
+            "gender": current_user.get("gender"),
+            "pronouns": current_user.get("pronouns")
         }
 
-@app.get("/check-url/{url_slug}")
-@limiter.limit(RateLimits.READ_LIMIT)
-async def check_url_availability(request: Request, url_slug: str):
-    async with get_database() as db:
-        is_available = await is_url_slug_available(db, url_slug)
-        
-        response = {"is_available": is_available}
-        
-        if not is_available:
-            suggestion = await suggest_url_slug(db, url_slug)
-            response["suggestion"] = suggestion
-        
-        return response
 
-@app.put("/profile")
+@app.put("/onboarding", response_model=UserResponse)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
-async def update_profile(
+async def complete_onboarding(
     request: Request,
-    profile_info: ProfileInfo,
+    onboarding_data: UserOnboarding,
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"profile_info": profile_info.dict()}}
-        )
-        await user_cache.delete(f"user:{current_user['email']}")
-        return {"message": "Profile information updated successfully"}
-
-@app.put("/avatar")
-@limiter.limit(RateLimits.UPLOAD_LIMIT)
-async def update_avatar(
-    request: Request,
-    file: UploadFile,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    # Check file type
-    allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif']
-    file_ext = os.path.splitext(file.filename)[1].lower()
-    
-    if file_ext not in allowed_extensions:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Only {', '.join(allowed_extensions)} files are allowed"
-        )
-    
-    # Read and validate file size
-    content = await file.read()
-    if len(content) > settings.MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File too large. Maximum size is {settings.MAX_FILE_SIZE / (1024 * 1024)}MB"
-        )
-    
-    # For GIFs, check they are under 1MB
-    if file_ext == '.gif' and len(content) > 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="GIF files must be under 1MB"
-        )
-    
-    # Create a unique filename
-    timestamp = int(datetime.utcnow().timestamp())
-    filename = f"avatar_{current_user['id']}_{timestamp}{file_ext}"
-    
-    # Store the file in the database
-    async with get_database() as db:
-        await db.avatars.insert_one({
-            "user_id": current_user["id"],
-            "filename": filename,
-            "content": Binary(content),
-            "content_type": file.content_type,
-            "uploaded_at": datetime.utcnow()
-        })
+        # Check if username is already taken by another user
+        if onboarding_data.username:
+            existing_user = await db.users.find_one({
+                "username": onboarding_data.username,
+                "id": {"$ne": current_user["id"]}
+            })
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken"
+                )
         
-        # Update user's profile with avatar URL
-        avatar_url = f"/api/avatar/{filename}"
-        
-        # Get current profile info
-        user = await db.users.find_one({"id": current_user["id"]})
-        profile_info = user.get("profile_info", {})
-        
-        # Update avatar URL
-        if "avatar" not in profile_info:
-            profile_info["avatar"] = {}
-        
-        profile_info["avatar"]["url"] = avatar_url
-        
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"profile_info": profile_info}}
-        )
-        
-        await user_cache.delete(f"user:{current_user['email']}")
-        
-        return {
-            "message": "Avatar updated successfully",
-            "avatar_url": avatar_url
-        }
-
-@app.get("/api/avatar/{filename}")
-async def get_avatar(request: Request, filename: str):
-    async with get_database() as db:
-        avatar = await db.avatars.find_one({"filename": filename})
-        if not avatar:
+        # Validate avatar URL if provided
+        if onboarding_data.avatar_url and not await validate_avatar(onboarding_data.avatar_url):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Avatar not found"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar URL or file too large (max 1MB)"
             )
         
-        return JSONResponse(
-            content=avatar["content"],
-            media_type=avatar["content_type"]
+        # Update user information
+        update_data = {
+            "username": onboarding_data.username,
+            "name": onboarding_data.name,
+            "avatar_url": onboarding_data.avatar_url,
+            "location": onboarding_data.location,
+            "age": onboarding_data.age,
+            "gender": onboarding_data.gender,
+            "pronouns": onboarding_data.pronouns,
+            "onboarding_completed": True
+        }
+        
+        # Remove None values
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+        
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": update_data}
         )
+        
+        # Create default profile page if user doesn't have any
+        page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
+        
+        if page_count == 0:
+            default_page = {
+                "user_id": current_user["id"],
+                "url": onboarding_data.username,
+                "title": f"{onboarding_data.name}'s Page",
+                "name": onboarding_data.name,
+                "avatar_url": onboarding_data.avatar_url,
+                "bio": "",
+                "background": {
+                    "type": "solid",
+                    "value": "#ffffff",
+                    "opacity": 1.0
+                },
+                "layout": {
+                    "type": "simple",
+                    "container_style": {
+                        "enabled": True,
+                        "background_color": "#ffffff",
+                        "opacity": 0.8,
+                        "border_radius": 10,
+                        "shadow": True
+                    }
+                },
+                "social_links": [],
+                "songs": [],
+                "show_joined_date": True,
+                "show_views": True,
+                "created_at": datetime.utcnow(),
+                "avatar_animation": "none"
+            }
+            
+            await db.profile_pages.insert_one(default_page)
+            
+        # Clear cache
+        await user_cache.delete(f"user:{current_user['email']}")
+        if current_user.get("username"):
+            await user_cache.delete(f"username:{current_user['username']}")
+        
+        # Get updated user
+        updated_user = await db.users.find_one({"id": current_user["id"]})
+        page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
+        
+        return {
+            "id": updated_user["id"],
+            "user_number": updated_user.get("user_number"),
+            "email": updated_user["email"],
+            "username": updated_user.get("username"),
+            "name": updated_user.get("name"),
+            "avatar_url": updated_user.get("avatar_url"),
+            "is_verified": updated_user.get("is_verified", False),
+            "page_count": page_count,
+            "joined_at": updated_user.get("joined_at", datetime.utcnow()),
+            "tags": updated_user.get("tags", []),
+            "display_preferences": updated_user.get("display_preferences", DisplayPreferences().dict()),
+            "location": updated_user.get("location"),
+            "age": updated_user.get("age"),
+            "gender": updated_user.get("gender"),
+            "pronouns": updated_user.get("pronouns")
+        }
+
+
+@app.get("/check-url")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def check_url_availability(request: Request, url: str):
+    RESERVED_WORDS = [
+        "api", "admin", "login", "register", "verify", "reset", "password",
+        "dashboard", "profile", "settings", "terms", "privacy", "about",
+        "contact", "help", "support", "templates", "explore", "discover",
+        "trending", "popular", "new", "featured", "me", "user", "users",
+        "account", "accounts", "auth", "billing", "upgrade", "premium"
+    ]
+    
+    # Check for reserved words
+    if url.lower() in RESERVED_WORDS:
+        return {"url": url, "available": False}
+    
+    # Check for valid characters
+    if not url.isalnum() and not all(c.isalnum() or c == '_' for c in url):
+        return {"url": url, "available": False}
+    
+    # Check database
+    async with get_database() as db:
+        available = await is_url_available(db, url)
+        return {"url": url, "available": available}
+
+
+@app.post("/pages", response_model=ProfilePage)
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def create_profile_page(
+    request: Request,
+    page_data: ProfilePage,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    async with get_database() as db:
+        # Check if user has reached max pages
+        page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
+        if page_count >= settings.MAX_PROFILE_PAGES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"You have reached the maximum limit of {settings.MAX_PROFILE_PAGES} profile pages"
+            )
+        
+        # Check URL availability
+        if not await is_url_available(db, page_data.url):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="URL already taken"
+            )
+        
+        # Validate avatar URL if provided
+        if page_data.avatar_url and not await validate_avatar(page_data.avatar_url):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar URL or file too large (max 1MB)"
+            )
+        
+        # Generate page ID
+        page_id = str(ObjectId())
+        
+        # Prepare page data for insertion
+        page_dict = page_data.dict(exclude={"page_id"})
+        page_dict["page_id"] = page_id
+        page_dict["user_id"] = current_user["id"]
+        page_dict["created_at"] = datetime.utcnow()
+        
+        # Initialize views counter
+        await db.views.insert_one({
+            "url": page_data.url,
+            "views": 0
+        })
+        
+        # Insert page
+        await db.profile_pages.insert_one(page_dict)
+        
+        return {**page_data.dict(), "page_id": page_id}
+
+
+@app.get("/pages", response_model=List[ProfilePage])
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_user_pages(
+    request: Request,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    async with get_database() as db:
+        pages = []
+        async for page in db.profile_pages.find({"user_id": current_user["id"]}):
+            # Convert ObjectId to string
+            if "_id" in page:
+                page["_id"] = str(page["_id"])
+            pages.append(page)
+        
+        return pages
+
+
+@app.get("/pages/{page_id}", response_model=ProfilePage)
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_page_by_id(
+    request: Request,
+    page_id: str,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    async with get_database() as db:
+        page = await db.profile_pages.find_one({
+            "page_id": page_id,
+            "user_id": current_user["id"]
+        })
+        
+        if not page:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Page not found"
+            )
+        
+        # Convert ObjectId to string
+        if "_id" in page:
+            page["_id"] = str(page["_id"])
+        
+        return page
+
+
+@app.put("/pages/{page_id}", response_model=ProfilePage)
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def update_profile_page(
+    request: Request,
+    page_id: str,
+    page_update: PageUpdate,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    async with get_database() as db:
+        # Check if the page exists and belongs to the user
+        existing_page = await db.profile_pages.find_one({
+            "page_id": page_id,
+            "user_id": current_user["id"]
+        })
+        
+        if not existing_page:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Page not found or you don't have permission to update it"
+            )
+        
+        # Validate avatar URL if provided
+        if page_update.avatar_url and not await validate_avatar(page_update.avatar_url):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar URL or file too large (max 1MB)"
+            )
+        
+        # Prepare update data
+        update_data = page_update.dict(exclude_unset=True)
+        
+        # If URL is being updated, check availability
+        if "url" in update_data and update_data["url"] != existing_page["url"]:
+            if not await is_url_available(db, update_data["url"]):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="URL already taken"
+                )
+            
+            # Update views collection with new URL
+            await db.views.update_one(
+                {"url": existing_page["url"]},
+                {"$set": {"url": update_data["url"]}}
+            )
+        
+        # Update the page
+        await db.profile_pages.update_one(
+            {"page_id": page_id},
+            {"$set": {**update_data, "updated_at": datetime.utcnow()}}
+        )
+        
+        # Get updated page
+        updated_page = await db.profile_pages.find_one({"page_id": page_id})
+        
+        # Convert ObjectId to string
+        if "_id" in updated_page:
+            updated_page["_id"] = str(updated_page["_id"])
+        
+        return updated_page
+
+
+@app.delete("/pages/{page_id}")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def delete_profile_page(
+    request: Request,
+    page_id: str,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    async with get_database() as db:
+        # Check if the page exists and belongs to the user
+        existing_page = await db.profile_pages.find_one({
+            "page_id": page_id,
+            "user_id": current_user["id"]
+        })
+        
+        if not existing_page:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Page not found or you don't have permission to delete it"
+            )
+        
+        # Delete the page
+        await db.profile_pages.delete_one({"page_id": page_id})
+        
+        # Delete view counter
+        await db.views.delete_one({"url": existing_page["url"]})
+        
+        # Clear cache
+        views_cache.pop(f"views:{existing_page['url']}", None)
+        
+        return {"message": "Page deleted successfully"}
+
+
+@app.get("/p/{url}")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_public_page(request: Request, url: str):
+    async with get_database() as db:
+        # Try to find the page by URL
+        page = await db.profile_pages.find_one({"url": url})
+        
+        if not page:
+            # Check if it's a username
+            user = await db.users.find_one({"username": url})
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Page not found"
+                )
+            
+            # Find the user's default page
+            page = await db.profile_pages.find_one({
+                "user_id": user["id"],
+                "url": url
+            })
+            
+            if not page:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Page not found"
+                )
+        
+        # Get the user who owns this page
+        user = await db.users.find_one({"id": page["user_id"]})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Handle views if enabled
+        device_hash = await generate_device_identifier(request)
+        views = 0
+        
+        if page.get("show_views", True):
+            view_record = ViewRecord(
+                url=url,
+                device_hash=device_hash,
+                timestamp=datetime.utcnow(),
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent", "")
+            )
+            
+            # Check if this view should be counted
+            if await should_count_view(db, url, device_hash):
+                await db.view_records.insert_one(view_record.dict())
+                
+                result = await db.views.find_one_and_update(
+                    {"url": url},
+                    {"$inc": {"views": 1}},
+                    upsert=True,
+                    return_document=True
+                )
+                
+                views = result["views"] if result else 0
+                views_cache[f"views:{url}"] = views
+            else:
+                views_doc = await db.views.find_one({"url": url})
+                views = views_doc["views"] if views_doc else 0
+        
+        # Prepare response data
+        # Convert ObjectId to string
+        if "_id" in page:
+            page["_id"] = str(page["_id"])
+        
+        response_data = {
+            "page": page,
+            "user": {
+                "username": user.get("username"),
+                "name": user.get("name"),
+                "joined_at": user.get("joined_at"),
+                "tags": user.get("tags", [])
+            },
+            "views": views
+        }
+        
+        # Filter user data based on display preferences
+        display_prefs = user.get("display_preferences", {})
+        
+        if not display_prefs.get("show_joined_date", True):
+            response_data["user"].pop("joined_at", None)
+        
+        if not display_prefs.get("show_tags", True):
+            response_data["user"].pop("tags", None)
+        
+        # Add user profile data if the preferences allow
+        if display_prefs.get("show_location", True) and "location" in user:
+            response_data["user"]["location"] = user["location"]
+            
+        if display_prefs.get("show_age", True) and "age" in user:
+            response_data["user"]["age"] = user["age"]
+            
+        if display_prefs.get("show_gender", True) and "gender" in user:
+            response_data["user"]["gender"] = user["gender"]
+            
+        if display_prefs.get("show_pronouns", True) and "pronouns" in user:
+            response_data["user"]["pronouns"] = user["pronouns"]
+            
+        return response_data
+
+
+@app.get("/views/{url}")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_views(request: Request, url: str):
+    cache_key = f"views:{url}"
+    if cache_key in views_cache:
+        return {"views": views_cache[cache_key]}
+    
+    async with get_database() as db:
+        views_doc = await db.views.find_one({"url": url})
+        views = views_doc["views"] if views_doc else 0
+        views_cache[cache_key] = views
+        return {"views": views}
+
 
 @app.put("/preferences")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
@@ -1299,797 +1794,499 @@ async def update_display_preferences(
             {"$set": {"display_preferences": preferences.dict()}}
         )
         await user_cache.delete(f"user:{current_user['email']}")
+        if "username" in current_user and current_user["username"]:
+            await user_cache.delete(f"username:{current_user['username']}")
+        
         return {"message": "Display preferences updated successfully"}
 
-@app.post("/pages")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def create_page(
-    request: Request,
-    page_settings: PageSettings,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        # Check page limit
-        page_count = await db.pages.count_documents({"user_id": current_user["id"]})
-        if page_count >= settings.MAX_PAGES_PER_USER:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"You have reached the maximum limit of {settings.MAX_PAGES_PER_USER} pages"
-            )
-        
-        # Check if URL slug is available
-        if not await is_url_slug_available(db, page_settings.url_slug):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="URL slug is already taken"
-            )
-        
-        # If this is marked as the main page, unmark any existing main page
-        if page_settings.is_main_page:
-            await db.pages.update_many(
-                {"user_id": current_user["id"], "is_main_page": True},
-                {"$set": {"is_main_page": False}}
-            )
-        
-        # Prepare the page data
-        page_data = page_settings.dict()
-        page_data["user_id"] = current_user["id"]
-        page_data["created_at"] = datetime.utcnow()
-        page_data["views"] = 0
-        
-        # Insert the page
-        result = await db.pages.insert_one(page_data)
-        
-        # Return the created page with its ID
-        created_page = await db.pages.find_one({"_id": result.inserted_id})
-        created_page["id"] = str(created_page.pop("_id"))
-        
-        return created_page
 
-@app.get("/pages")
-@limiter.limit(RateLimits.READ_LIMIT)
-async def get_user_pages(
-    request: Request, 
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        cursor = db.pages.find({"user_id": current_user["id"]})
-        pages = []
-        
-        async for page in cursor:
-            page["id"] = str(page.pop("_id"))
-            pages.append(page)
-            
-        return pages
-
-@app.get("/pages/{page_id}")
-@limiter.limit(RateLimits.READ_LIMIT)
-async def get_page_by_id(
-    request: Request,
-    page_id: str,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        if not ObjectId.is_valid(page_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid page ID format"
-            )
-            
-        page = await db.pages.find_one({"_id": ObjectId(page_id)})
-        
-        if not page:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Page not found"
-            )
-            
-        if page["user_id"] != current_user["id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to access this page"
-            )
-            
-        page["id"] = str(page.pop("_id"))
-        return page
-
-@app.put("/pages/{page_id}")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def update_page(
-    request: Request,
-    page_id: str,
-    page_settings: PageSettings,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        if not ObjectId.is_valid(page_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid page ID format"
-            )
-            
-        existing_page = await db.pages.find_one({"_id": ObjectId(page_id)})
-        
-        if not existing_page:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Page not found"
-            )
-            
-        if existing_page["user_id"] != current_user["id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to update this page"
-            )
-        
-        # If URL slug has changed, check if the new one is available
-        if page_settings.url_slug != existing_page["url_slug"]:
-            if not await is_url_slug_available(db, page_settings.url_slug):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="URL slug is already taken"
-                )
-        
-        # If this is marked as the main page, unmark any existing main page
-        if page_settings.is_main_page and not existing_page.get("is_main_page", False):
-            await db.pages.update_many(
-                {"user_id": current_user["id"], "is_main_page": True},
-                {"$set": {"is_main_page": False}}
-            )
-        
-        # Prepare the update data
-        update_data = page_settings.dict(exclude={"id"})
-        update_data["updated_at"] = datetime.utcnow()
-        
-        # Update the page
-        await db.pages.update_one(
-            {"_id": ObjectId(page_id)},
-            {"$set": update_data}
-        )
-        
-        # Get and return the updated page
-        updated_page = await db.pages.find_one({"_id": ObjectId(page_id)})
-        updated_page["id"] = str(updated_page.pop("_id"))
-        
-        return updated_page
-
-@app.delete("/pages/{page_id}")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def delete_page(
-    request: Request,
-    page_id: str,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        if not ObjectId.is_valid(page_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid page ID format"
-            )
-            
-        page = await db.pages.find_one({"_id": ObjectId(page_id)})
-        
-        if not page:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Page not found"
-            )
-            
-        if page["user_id"] != current_user["id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to delete this page"
-            )
-        
-        # Check if this is the user's only page
-        page_count = await db.pages.count_documents({"user_id": current_user["id"]})
-        if page_count <= 1:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete the only page. Users must have at least one page."
-            )
-        
-        # If we're deleting the main page, set another page as the main page
-        if page.get("is_main_page", False):
-            other_page = await db.pages.find_one(
-                {"user_id": current_user["id"], "_id": {"$ne": ObjectId(page_id)}}
-            )
-            if other_page:
-                await db.pages.update_one(
-                    {"_id": other_page["_id"]},
-                    {"$set": {"is_main_page": True}}
-                )
-        
-        # Delete the page
-        await db.pages.delete_one({"_id": ObjectId(page_id)})
-        
-        return {"message": "Page deleted successfully"}
-
-@app.post("/social-links")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def add_social_link(
-    request: Request,
-    social_link: SocialLink,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        # Check if user has reached the maximum number of social links
-        user = await db.users.find_one({"id": current_user["id"]})
-        social_links = user.get("social_links", [])
-        
-        if len(social_links) >= settings.MAX_SOCIAL_LINKS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"You have reached the maximum limit of {settings.MAX_SOCIAL_LINKS} social links"
-            )
-        
-        # Add the new social link
-        social_links.append(social_link.dict())
-        
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"social_links": social_links}}
-        )
-        
-        await user_cache.delete(f"user:{current_user['email']}")
-        
-        return {"message": "Social link added successfully"}
-
-@app.get("/social-links")
-@limiter.limit(RateLimits.READ_LIMIT)
-async def get_social_links(
-    request: Request,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        user = await db.users.find_one({"id": current_user["id"]})
-        return user.get("social_links", [])
-
-@app.put("/social-links/{index}")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def update_social_link(
-    request: Request,
-    index: int,
-    social_link: SocialLink,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        # Get current social links
-        user = await db.users.find_one({"id": current_user["id"]})
-        social_links = user.get("social_links", [])
-        
-        # Check if the index is valid
-        if index < 0 or index >= len(social_links):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid social link index"
-            )
-        
-        # Update the social link
-        social_links[index] = social_link.dict()
-        
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"social_links": social_links}}
-        )
-        
-        await user_cache.delete(f"user:{current_user['email']}")
-        
-        return {"message": "Social link updated successfully"}
-
-@app.delete("/social-links/{index}")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def delete_social_link(
-    request: Request,
-    index: int,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        # Get current social links
-        user = await db.users.find_one({"id": current_user["id"]})
-        social_links = user.get("social_links", [])
-        
-        # Check if the index is valid
-        if index < 0 or index >= len(social_links):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid social link index"
-            )
-        
-        # Remove the social link
-        social_links.pop(index)
-        
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"social_links": social_links}}
-        )
-        
-        await user_cache.delete(f"user:{current_user['email']}")
-        
-        return {"message": "Social link deleted successfully"}
-
-@app.post("/songs")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def add_song(
-    request: Request,
-    song: Song,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        # Check if user has reached the maximum number of songs
-        user = await db.users.find_one({"id": current_user["id"]})
-        songs = user.get("songs", [])
-        
-        if len(songs) >= settings.MAX_SONGS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"You have reached the maximum limit of {settings.MAX_SONGS} songs"
-            )
-        
-        # Add the new song
-        songs.append(song.dict())
-        
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"songs": songs}}
-        )
-        
-        await user_cache.delete(f"user:{current_user['email']}")
-        
-        return {"message": "Song added successfully"}
-
-@app.get("/songs")
-@limiter.limit(RateLimits.READ_LIMIT)
-async def get_songs(
-    request: Request,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        user = await db.users.find_one({"id": current_user["id"]})
-        return user.get("songs", [])
-
-@app.put("/songs/{index}")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def update_song(
-    request: Request,
-    index: int,
-    song: Song,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        # Get current songs
-        user = await db.users.find_one({"id": current_user["id"]})
-        songs = user.get("songs", [])
-        
-        # Check if the index is valid
-        if index < 0 or index >= len(songs):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid song index"
-            )
-        
-        # Update the song
-        songs[index] = song.dict()
-        
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"songs": songs}}
-        )
-        
-        await user_cache.delete(f"user:{current_user['email']}")
-        
-        return {"message": "Song updated successfully"}
-
-@app.delete("/songs/{index}")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def delete_song(
-    request: Request,
-    index: int,
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        # Get current songs
-        user = await db.users.find_one({"id": current_user["id"]})
-        songs = user.get("songs", [])
-        
-        # Check if the index is valid
-        if index < 0 or index >= len(songs):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid song index"
-            )
-        
-        # Remove the song
-        songs.pop(index)
-        
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"songs": songs}}
-        )
-        
-        await user_cache.delete(f"user:{current_user['email']}")
-        
-        return {"message": "Song deleted successfully"}
-
-@app.post("/templates")
+@app.post("/templates", response_model=TemplateResponse)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def create_template(
     request: Request,
-    template: TemplateCreate,
+    template_data: Template,
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
-        # Prepare the template data
-        template_data = template.dict()
-        template_data["created_by"] = current_user["id"]
-        template_data["created_at"] = datetime.utcnow()
-        template_data["uses_count"] = 0
+        # Check template quota
+        template_count = await db.templates.count_documents({"created_by": current_user["id"]})
+        if template_count >= settings.MAX_TEMPLATES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"You have reached the maximum limit of {settings.MAX_TEMPLATES} templates"
+            )
         
-        # Insert the template
-        result = await db.templates.insert_one(template_data)
+        # Generate template ID
+        template_id = str(ObjectId())
         
-        # Return the created template with its ID
-        created_template = await db.templates.find_one({"_id": result.inserted_id})
-        created_template["id"] = str(created_template.pop("_id"))
+        # Prepare template data
+        template_dict = template_data.dict(exclude={"id"})
+        template_dict["id"] = template_id
+        template_dict["created_by"] = current_user["id"]
+        template_dict["created_at"] = datetime.utcnow()
+        template_dict["use_count"] = 0
         
-        return created_template
+        # Insert template
+        await db.templates.insert_one(template_dict)
+        
+        # Get username for response
+        template_response = {
+            **template_dict,
+            "created_by_username": current_user.get("username")
+        }
+        
+        return template_response
 
-@app.get("/templates")
+
+@app.get("/templates", response_model=List[TemplateResponse])
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_templates(
     request: Request,
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=50),
-    search: Optional[str] = None,
-    tags: Optional[str] = None,
-    sort_by: Optional[str] = "popular"  # popular, newest, oldest
+    sort_by: str = Query("use_count", regex="^(use_count|created_at)$"),
+    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    tag: Optional[str] = Query(None)
 ):
     async with get_database() as db:
-        # Build the query
-        query = {"is_public": True}
+        # Prepare filter
+        filter_query = {}
+        if tag:
+            filter_query["tags"] = tag
         
-        if search:
-            query["$or"] = [
-                {"name": {"$regex": search, "$options": "i"}},
-                {"description": {"$regex": search, "$options": "i"}}
-            ]
+        # Prepare sort
+        sort_direction = -1 if sort_order == "desc" else 1
+        sort_params = [(sort_by, sort_direction)]
         
-        if tags:
-            tag_list = tags.split(",")
-            query["tags"] = {"$in": tag_list}
-        
-        # Determine sort order
-        sort_options = {
-            "popular": [("uses_count", -1)],
-            "newest": [("created_at", -1)],
-            "oldest": [("created_at", 1)]
-        }
-        sort_order = sort_options.get(sort_by, sort_options["popular"])
-        
-        # Calculate pagination
+        # Calculate skip
         skip = (page - 1) * limit
         
-        # Get total count for pagination
-        total_count = await db.templates.count_documents(query)
-        
-        # Get templates
-        cursor = db.templates.find(query).sort(sort_order).skip(skip).limit(limit)
-        
+        # Query templates
         templates = []
+        cursor = db.templates.find(filter_query).sort(sort_params).skip(skip).limit(limit)
+        
+        # Process templates and add username
         async for template in cursor:
-            template["id"] = str(template.pop("_id"))
-            templates.append(template)
+            # Get username of template creator
+            user = await db.users.find_one({"id": template["created_by"]})
+            username = user.get("username") if user else None
+            
+            # Format template
+            template["id"] = str(template["id"])
+            if "_id" in template:
+                template["_id"] = str(template["_id"])
+            
+            templates.append({
+                **template,
+                "created_by_username": username
+            })
         
-        # Calculate pagination metadata
-        total_pages = (total_count + limit - 1) // limit
+        # Get total count for pagination
+        total_count = await db.templates.count_documents(filter_query)
         
-        return {
-            "templates": templates,
-            "pagination": {
-                "current_page": page,
-                "total_pages": total_pages,
-                "total_count": total_count,
-                "has_next": page < total_pages,
-                "has_prev": page > 1
-            }
-        }
+        return templates
 
-@app.get("/templates/{template_id}")
+
+@app.get("/templates/{template_id}", response_model=TemplateResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_template(request: Request, template_id: str):
+    # Check cache
+    cache_key = f"template:{template_id}"
+    if cache_key in template_cache:
+        return template_cache[cache_key]
+    
     async with get_database() as db:
-        if not ObjectId.is_valid(template_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid template ID format"
-            )
-            
-        template = await get_template_by_id(db, template_id)
+        template = await db.templates.find_one({"id": template_id})
         
         if not template:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Template not found"
             )
-            
-        return template
+        
+        # Get username of template creator
+        user = await db.users.find_one({"id": template["created_by"]})
+        username = user.get("username") if user else None
+        
+        # Format template
+        if "_id" in template:
+            template["_id"] = str(template["_id"])
+        
+        template_response = {
+            **template,
+            "created_by_username": username
+        }
+        
+        # Cache result
+        template_cache[cache_key] = template_response
+        
+        return template_response
 
-@app.post("/apply-template/{template_id}")
+
+@app.post("/use-template/{template_id}")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
-async def apply_template(
+async def use_template(
     request: Request,
     template_id: str,
-    page_id: Optional[str] = None,
+    url: str = Body(...),
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
-        if not ObjectId.is_valid(template_id):
+        # Check URL availability
+        if not await is_url_available(db, url):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid template ID format"
+                detail="URL already taken"
             )
-            
-        template = await get_template_by_id(db, template_id)
         
+        # Check page quota
+        page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
+        if page_count >= settings.MAX_PROFILE_PAGES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"You have reached the maximum limit of {settings.MAX_PROFILE_PAGES} profile pages"
+            )
+        
+        # Get template
+        template = await db.templates.find_one({"id": template_id})
         if not template:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Template not found"
             )
         
-        # Get the page settings from the template
-        page_settings = template["page_settings"]
+        # Generate page ID
+        page_id = str(ObjectId())
         
-        if page_id:
-            # Update existing page
-            if not ObjectId.is_valid(page_id):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid page ID format"
-                )
-                
-            existing_page = await db.pages.find_one({"_id": ObjectId(page_id)})
-            
-            if not existing_page:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Page not found"
-                )
-                
-            if existing_page["user_id"] != current_user["id"]:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Not authorized to update this page"
-                )
-            
-            # Keep the original URL slug and title
-            page_settings["url_slug"] = existing_page["url_slug"]
-            page_settings["title"] = existing_page["title"]
-            
-            # Update the page with template settings
-            await db.pages.update_one(
-                {"_id": ObjectId(page_id)},
-                {"$set": {
-                    "layout": page_settings["layout"],
-                    "background": page_settings["background"],
-                    "name_effect": page_settings["name_effect"],
-                    "bio_effect": page_settings["bio_effect"],
-                    "updated_at": datetime.utcnow()
-                }}
-            )
-            
-            response_page = await db.pages.find_one({"_id": ObjectId(page_id)})
-            response_page["id"] = str(response_page.pop("_id"))
-            
-        else:
-            # Create a new page with template settings
-            # Check page limit
-            page_count = await db.pages.count_documents({"user_id": current_user["id"]})
-            if page_count >= settings.MAX_PAGES_PER_USER:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"You have reached the maximum limit of {settings.MAX_PAGES_PER_USER} pages"
-                )
-            
-            # Generate a unique URL slug based on template name
-            base_slug = template["name"].lower().replace(" ", "-")
-            url_slug = base_slug
-            
-            # Make sure the URL slug is available
-            if not await is_url_slug_available(db, url_slug):
-                url_slug = await suggest_url_slug(db, base_slug)
-            
-            # Prepare the page data
-            page_data = {
-                "user_id": current_user["id"],
-                "url_slug": url_slug,
-                "title": f"{template['name']} Page",
-                "description": template.get("description", ""),
-                "layout": page_settings["layout"],
-                "background": page_settings["background"],
-                "name_effect": page_settings["name_effect"],
-                "bio_effect": page_settings["bio_effect"],
-                "show_views": page_settings.get("show_views", True),
-                "show_user_id": page_settings.get("show_user_id", True),
-                "show_join_date": page_settings.get("show_join_date", True),
-                "show_profile_info": page_settings.get("show_profile_info", True),
-                "is_main_page": False,
-                "created_at": datetime.utcnow(),
-                "views": 0
-            }
-            
-            # Insert the page
-            result = await db.pages.insert_one(page_data)
-            
-            response_page = await db.pages.find_one({"_id": result.inserted_id})
-            response_page["id"] = str(response_page.pop("_id"))
+        # Create page from template
+        page_config = template["page_config"]
+        page_config["url"] = url
+        page_config["page_id"] = page_id
+        page_config["user_id"] = current_user["id"]
+        page_config["created_at"] = datetime.utcnow()
+        page_config["created_from_template"] = template_id
         
-        # Increment the template usage count
-        await increment_template_usage(db, template_id)
+        # Initialize views
+        await db.views.insert_one({
+            "url": url,
+            "views": 0
+        })
+        
+        # Insert page
+        await db.profile_pages.insert_one(page_config)
+        
+        # Increment template use count
+        await db.templates.update_one(
+            {"id": template_id},
+            {"$inc": {"use_count": 1}}
+        )
+        
+        # Clear template cache
+        template_cache.pop(f"template:{template_id}", None)
         
         return {
-            "message": "Template applied successfully",
-            "page": response_page
+            "message": "Page created from template",
+            "page_id": page_id,
+            "url": url
         }
 
-@app.get("/u/{url_slug}")
-@limiter.limit(RateLimits.READ_LIMIT)
-async def get_page_by_url(
+
+@app.put("/profile")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def update_user_profile(
     request: Request,
-    url_slug: str,
-    include_views: bool = True
+    profile_data: dict = Body(...),
+    current_user: dict = Depends(get_current_verified_user)
 ):
-    # Try to get from cache first
-    cache_key = f"page:{url_slug}"
-    cached_page = page_cache.get(cache_key)
-    
-    if cached_page:
-        return cached_page
-    
     async with get_database() as db:
-        page = await db.pages.find_one({"url_slug": url_slug})
+        # Check which fields are being updated
+        allowed_fields = [
+            "name", "avatar_url", "location", "age", 
+            "gender", "pronouns", "bio"
+        ]
         
-        if not page:
+        update_data = {k: v for k, v in profile_data.items() if k in allowed_fields}
+        
+        # Validate username if it's being changed
+        if "username" in profile_data and profile_data["username"] != current_user.get("username"):
+            # Check username availability
+            existing_user = await db.users.find_one({
+                "username": profile_data["username"],
+                "id": {"$ne": current_user["id"]}
+            })
+            
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken"
+                )
+            
+            update_data["username"] = profile_data["username"]
+        
+        # Validate avatar URL if provided
+        if "avatar_url" in update_data and not await validate_avatar(update_data["avatar_url"]):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Page not found"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar URL or file too large (max 1MB)"
             )
         
-        # Get the page owner
-        user = await db.users.find_one({"id": page["user_id"]})
+        # Update user
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": update_data}
+        )
         
+        # Clear cache
+        await user_cache.delete(f"user:{current_user['email']}")
+        if "username" in current_user and current_user["username"]:
+            await user_cache.delete(f"username:{current_user['username']}")
+        
+        # Get updated user
+        updated_user = await db.users.find_one({"id": current_user["id"]})
+        
+        return {
+            "message": "Profile updated successfully",
+            "profile": {
+                "username": updated_user.get("username"),
+                "name": updated_user.get("name"),
+                "avatar_url": updated_user.get("avatar_url"),
+                "location": updated_user.get("location"),
+                "age": updated_user.get("age"),
+                "gender": updated_user.get("gender"),
+                "pronouns": updated_user.get("pronouns"),
+                "bio": updated_user.get("bio")
+            }
+        }
+
+
+@app.get("/social-platforms")
+async def get_social_platforms():
+    # List of supported social media platforms with their icons
+    platforms = [
+        {"name": "instagram", "icon": "fab fa-instagram", "url_prefix": "https://instagram.com/"},
+        {"name": "twitter", "icon": "fab fa-twitter", "url_prefix": "https://twitter.com/"},
+        {"name": "facebook", "icon": "fab fa-facebook", "url_prefix": "https://facebook.com/"},
+        {"name": "tiktok", "icon": "fab fa-tiktok", "url_prefix": "https://tiktok.com/@"},
+        {"name": "youtube", "icon": "fab fa-youtube", "url_prefix": "https://youtube.com/"},
+        {"name": "linkedin", "icon": "fab fa-linkedin", "url_prefix": "https://linkedin.com/in/"},
+        {"name": "github", "icon": "fab fa-github", "url_prefix": "https://github.com/"},
+        {"name": "twitch", "icon": "fab fa-twitch", "url_prefix": "https://twitch.tv/"},
+        {"name": "spotify", "icon": "fab fa-spotify", "url_prefix": "https://open.spotify.com/user/"},
+        {"name": "snapchat", "icon": "fab fa-snapchat", "url_prefix": "https://snapchat.com/add/"},
+        {"name": "discord", "icon": "fab fa-discord", "url_prefix": "https://discord.gg/"},
+        {"name": "pinterest", "icon": "fab fa-pinterest", "url_prefix": "https://pinterest.com/"},
+        {"name": "reddit", "icon": "fab fa-reddit", "url_prefix": "https://reddit.com/user/"},
+        {"name": "tumblr", "icon": "fab fa-tumblr", "url_prefix": "https://tumblr.com/"},
+        {"name": "medium", "icon": "fab fa-medium", "url_prefix": "https://medium.com/@"},
+        {"name": "behance", "icon": "fab fa-behance", "url_prefix": "https://behance.net/"},
+        {"name": "dribbble", "icon": "fab fa-dribbble", "url_prefix": "https://dribbble.com/"},
+        {"name": "soundcloud", "icon": "fab fa-soundcloud", "url_prefix": "https://soundcloud.com/"},
+        {"name": "vimeo", "icon": "fab fa-vimeo", "url_prefix": "https://vimeo.com/"},
+        {"name": "telegram", "icon": "fab fa-telegram", "url_prefix": "https://t.me/"},
+        {"name": "whatsapp", "icon": "fab fa-whatsapp", "url_prefix": "https://wa.me/"},
+        {"name": "email", "icon": "fas fa-envelope", "url_prefix": "mailto:"},
+        {"name": "website", "icon": "fas fa-globe", "url_prefix": ""}
+    ]
+    
+    return {"platforms": platforms}
+
+
+@app.get("/layouts")
+async def get_available_layouts():
+    # List of available layouts with their descriptions
+    layouts = [
+        {
+            "type": "simple",
+            "name": "Simple",
+            "description": "A clean, minimal layout with all elements stacked vertically.",
+            "preview_image": "https://example.com/previews/simple.jpg"
+        },
+        {
+            "type": "card",
+            "name": "Card",
+            "description": "Elements are displayed in card-like containers with subtle shadows.",
+            "preview_image": "https://example.com/previews/card.jpg"
+        },
+        {
+            "type": "modern",
+            "name": "Modern",
+            "description": "A sleek, contemporary design with rounded corners and smooth animations.",
+            "preview_image": "https://example.com/previews/modern.jpg"
+        },
+        {
+            "type": "minimalist",
+            "name": "Minimalist",
+            "description": "Ultra-minimal design with focus on typography and whitespace.",
+            "preview_image": "https://example.com/previews/minimalist.jpg"
+        },
+        {
+            "type": "creative",
+            "name": "Creative",
+            "description": "Bold, artistic layout with unique element positioning and creative flourishes.",
+            "preview_image": "https://example.com/previews/creative.jpg"
+        }
+    ]
+    
+    return {"layouts": layouts}
+
+
+@app.get("/effects")
+async def get_available_effects():
+    # List of available text effects
+    effects = [
+        {
+            "name": "typewriter",
+            "label": "Typewriter",
+            "description": "Text appears one character at a time, like being typed.",
+            "config_options": ["speed", "delay"]
+        },
+        {
+            "name": "fade-in",
+            "label": "Fade In",
+            "description": "Text gradually fades into view.",
+            "config_options": ["speed", "delay"]
+        },
+        {
+            "name": "bounce",
+            "label": "Bounce",
+            "description": "Text bounces into position.",
+            "config_options": ["delay"]
+        },
+        {
+            "name": "pulse",
+            "label": "Pulse",
+            "description": "Text pulses with a subtle glow effect.",
+            "config_options": ["speed"]
+        },
+        {
+            "name": "none",
+            "label": "None",
+            "description": "No animation effect.",
+            "config_options": []
+        }
+    ]
+    
+    return {"effects": effects}
+
+
+@app.get("/avatar-animations")
+async def get_avatar_animations():
+    # List of available avatar animations
+    animations = [
+        {
+            "name": "none",
+            "label": "None",
+            "description": "No animation"
+        },
+        {
+            "name": "pulse",
+            "label": "Pulse",
+            "description": "Avatar gently pulses with a subtle glow"
+        },
+        {
+            "name": "bounce",
+            "label": "Bounce",
+            "description": "Avatar bounces up and down slightly"
+        },
+        {
+            "name": "rotate",
+            "label": "Rotate",
+            "description": "Avatar slowly rotates in a circle"
+        },
+        {
+            "name": "shake",
+            "label": "Shake",
+            "description": "Avatar shakes when hovered"
+        }
+    ]
+    
+    return {"animations": animations}
+
+
+@app.get("/background-types")
+async def get_background_types():
+    # List of available background types
+    backgrounds = [
+        {
+            "type": "solid",
+            "label": "Solid Color",
+            "description": "Simple solid color background"
+        },
+        {
+            "type": "gradient",
+            "label": "Gradient",
+            "description": "Smooth gradient between two or more colors"
+        },
+        {
+            "type": "image",
+            "label": "Image",
+            "description": "Custom image background"
+        },
+        {
+            "type": "video",
+            "label": "Video",
+            "description": "Animated video background (uses more resources)"
+        }
+    ]
+    
+    return {"background_types": backgrounds}
+
+
+@app.get("/trending-templates")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_trending_templates(
+    request: Request,
+    limit: int = Query(5, ge=1, le=20)
+):
+    async with get_database() as db:
+        templates = []
+        cursor = db.templates.find().sort("use_count", -1).limit(limit)
+        
+        async for template in cursor:
+            # Get username of template creator
+            user = await db.users.find_one({"id": template["created_by"]})
+            username = user.get("username") if user else None
+            
+            # Format template
+            template["id"] = str(template["id"])
+            if "_id" in template:
+                template["_id"] = str(template["_id"])
+            
+            templates.append({
+                **template,
+                "created_by_username": username
+            })
+        
+        return {"templates": templates}
+
+
+@app.get("/user/{username}/pages")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_user_public_pages(request: Request, username: str):
+    async with get_database() as db:
+        user = await db.users.find_one({"username": username})
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
         
-        # Increment view count if needed
-        if include_views:
-            device_hash = await generate_device_identifier(request)
-            
-            if await should_count_view(db, str(page["_id"]), device_hash):
-                view_record = ViewRecord(
-                    page_id=str(page["_id"]),
-                    device_hash=device_hash,
-                    timestamp=datetime.utcnow(),
-                    ip_address=request.client.host,
-                    user_agent=request.headers.get("user-agent", "")
-                )
-                
-                await db.view_records.insert_one(view_record.dict())
-                
-                await db.pages.update_one(
-                    {"_id": page["_id"]},
-                    {"$inc": {"views": 1}}
-                )
-                
-                page["views"] = page.get("views", 0) + 1
-        
-                # Prepare the response
-        response = {
-            "page": {
-                "id": str(page["_id"]),
-                "url_slug": page["url_slug"],
+        # Get only the public information about the user's pages
+        pages = []
+        async for page in db.profile_pages.find({"user_id": user["id"]}):
+            pages.append({
+                "url": page["url"],
                 "title": page["title"],
-                "description": page.get("description"),
-                "layout": page.get("layout"),
-                "background": page.get("background"),
-                "name_effect": page.get("name_effect"),
-                "bio_effect": page.get("bio_effect"),
-                "views": page.get("views", 0),
-                "created_at": page.get("created_at")
-            },
-            "user": {
-                "id": user["id"],
-                "name": user.get("name"),
-                "profile_info": user.get("profile_info", {}),
-                "social_links": user.get("social_links", []),
-                "songs": user.get("songs", []),
-                "tags": user.get("tags", []),
-                "joined_at": user.get("created_at")
-            },
-            "display": {
-                "show_views": page.get("show_views", True) and user.get("display_preferences", {}).get("show_views", True),
-                "show_user_id": page.get("show_user_id", True) and user.get("display_preferences", {}).get("show_user_id", True),
-                "show_join_date": page.get("show_join_date", True) and user.get("display_preferences", {}).get("show_join_date", True),
-                "show_profile_info": page.get("show_profile_info", True) and user.get("display_preferences", {}).get("show_profile_info", True),
-                "show_tags": user.get("display_preferences", {}).get("show_tags", True),
-                "enable_music_player": user.get("display_preferences", {}).get("enable_music_player", True)
-            }
-        }
-        
-        # Cache the response
-        page_cache[cache_key] = response
-        
-        return response
-
-@app.get("/views/{page_id}")
-@limiter.limit(RateLimits.READ_LIMIT)
-async def get_views(request: Request, page_id: str):
-    cache_key = f"views:{page_id}"
-    if cache_key in views_cache:
-        return {"views": views_cache[cache_key]}
-    
-    async with get_database() as db:
-        if not ObjectId.is_valid(page_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid page ID format"
-            )
-            
-        page = await db.pages.find_one({"_id": ObjectId(page_id)})
-        views = page.get("views", 0) if page else 0
-        views_cache[cache_key] = views
-        return {"views": views}
-
-@app.get("/template-stats")
-@limiter.limit(RateLimits.READ_LIMIT)
-async def get_template_stats(request: Request):
-    async with get_database() as db:
-        # Get top used templates
-        top_templates_cursor = db.templates.find(
-            {"is_public": True}
-        ).sort([("uses_count", -1)]).limit(10)
-        
-        top_templates = []
-        async for template in top_templates_cursor:
-            template["id"] = str(template.pop("_id"))
-            top_templates.append(template)
-        
-        # Get newest templates
-        newest_templates_cursor = db.templates.find(
-            {"is_public": True}
-        ).sort([("created_at", -1)]).limit(5)
-        
-        newest_templates = []
-        async for template in newest_templates_cursor:
-            template["id"] = str(template.pop("_id"))
-            newest_templates.append(template)
-        
-        # Get tag statistics
-        pipeline = [
-            {"$match": {"is_public": True}},
-            {"$unwind": "$tags"},
-            {"$group": {"_id": "$tags", "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}},
-            {"$limit": 20}
-        ]
-        
-        tag_stats_cursor = db.templates.aggregate(pipeline)
-        
-        tag_stats = []
-        async for tag_stat in tag_stats_cursor:
-            tag_stats.append({
-                "tag": tag_stat["_id"],
-                "count": tag_stat["count"]
+                "background": page.get("background", {}).get("type")
             })
         
         return {
-            "top_templates": top_templates,
-            "newest_templates": newest_templates,
-            "tag_stats": tag_stats
+            "username": username,
+            "name": user.get("name"),
+            "avatar_url": user.get("avatar_url"),
+            "pages": pages
         }
+
 
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
@@ -2101,6 +2298,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         }
     )
 
+
 # Health check ping
 async def ping_self():
     async with httpx.AsyncClient() as client:
@@ -2110,8 +2308,10 @@ async def ping_self():
         except Exception as e:
             logger.error(f"Health check ping failed: {str(e)}")
 
+
 def run_ping():
     asyncio.run(ping_self())
+
 
 def start_ping_scheduler():
     schedule.every(settings.PING_INTERVAL).seconds.do(run_ping)
@@ -2119,10 +2319,12 @@ def start_ping_scheduler():
         schedule.run_pending()
         time.sleep(1)
 
+
 async def start_cleanup_scheduler():
     while True:
         await cleanup_old_view_records()
         await asyncio.sleep(24 * 60 * 60)  # Run daily
+
 
 async def cleanup_expired_registrations():
     """Cleanup function to remove expired pending registrations"""
@@ -2137,6 +2339,7 @@ async def cleanup_expired_registrations():
             "expires_at": {"$lt": datetime.utcnow()}
         })
 
+
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(start_cleanup_scheduler())
@@ -2145,15 +2348,16 @@ async def startup_event():
         while True:
             try:
                 await cleanup_expired_registrations()
-                await asyncio.sleep(3600) 
+                await asyncio.sleep(3600)  # Run hourly
             except Exception as e:
                 logger.error(f"Error in periodic registration cleanup: {str(e)}")
-                await asyncio.sleep(60) 
+                await asyncio.sleep(60)  # Retry after a minute if there's an error
     
     asyncio.create_task(periodic_registration_cleanup())
    
 ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
 ping_thread.start()
+
 
 if __name__ == "__main__":
     import uvicorn
