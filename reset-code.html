@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter Reset Code - Versz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <a href="index.html" class="auth-logo">Versz<span class="accent-text">.fun</span></a>
+                <h1>Enter Reset Code</h1>
+                <p>Enter the code sent to your email and set a new password</p>
+            </div>
+            <form id="reset-code-form" class="auth-form">
+                <input type="hidden" id="reset-email-hidden" name="email">
+                <div class="form-group">
+                    <label for="reset-code">Reset Code</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-key"></i>
+                        <input type="text" id="reset-code" name="reset_code" placeholder="Enter code" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="new-password" name="new_password" placeholder="••••••••" required>
+                        <button type="button" class="password-toggle">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="password-requirements">
+                    <p>Password must contain:</p>
+                    <ul>
+                        <li id="new-req-length"><i class="fas fa-times"></i> At least 8 characters</li>
+                        <li id="new-req-uppercase"><i class="fas fa-times"></i> One uppercase letter</li>
+                        <li id="new-req-lowercase"><i class="fas fa-times"></i> One lowercase letter</li>
+                        <li id="new-req-number"><i class="fas fa-times"></i> One number</li>
+                    </ul>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Reset Password</button>
+                <div class="auth-message" id="reset-code-message"></div>
+            </form>
+            <div class="auth-footer">
+                <p>Remember your password? <a href="login.html">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/auth.js"></script>
+</body>
+</html>

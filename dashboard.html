@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Versz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="mobile-header">
+        <a href="dashboard.html" class="logo">Versz<span class="accent-text">.fun</span></a>
+        <button class="menu-toggle" id="mobile-menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h3 id="sidebar-username">Username</h3>
+                    <p id="sidebar-email">user@example.com</p>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item active">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="my-pages.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>My Pages</span>
+                </a>
+                <a href="customize.html" class="nav-item">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Customize</span>
+                </a>
+                <a href="templates.html" class="nav-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Templates</span>
+                </a>
+                <a href="profile.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>My Profile</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" id="logout-btn" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Dashboard</h1>
+                <div class="header-actions">
+                    <a href="create-page.html" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Page
+                    </a>
+                </div>
+            </header>
+
+            <div class="dashboard-overview">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="pages-count">0</h3>
+                            <p>Total Pages</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-views">0</h3>
+                            <p>Total Views</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="joined-date">-</h3>
+                            <p>Joined Date</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="recent-pages">
+                <div class="section-header">
+                    <h2>Recent Pages</h2>
+                    <a href="my-pages.html" class="btn btn-text">View All</a>
+                </div>
+                <div class="pages-grid" id="recent-pages-grid">
+                    <!-- Pages will be loaded dynamically -->
+                    <div class="empty-state" id="no-pages">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>No pages yet</h3>
+                        <p>Create your first page to get started</p>
+                        <a href="create-page.html" class="btn btn-primary">Create Page</a>
+                    </div>
+                </div>
+            </section>
+
+            <section class="quick-actions">
+                <h2>Quick Actions</h2>
+                <div class="actions-grid">
+                    <a href="create-page.html" class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <h3>Create New Page</h3>
+                        <p>Start with a blank page or template</p>
+                    </a>
+                    <a href="templates.html" class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <h3>Browse Templates</h3>
+                        <p>Find the perfect design for your page</p>
+                    </a>
+                    <a href="profile.html" class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-user-edit"></i>
+                        </div>
+                        <h3>Update Profile</h3>
+                        <p>Edit your personal information</p>
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

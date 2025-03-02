@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Template - Versz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/create-template.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
+                <button class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h3 id="sidebar-username">Username</h3>
+                    <p id="sidebar-email">user@example.com</p>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="my-pages.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>My Pages</span>
+                </a>
+                <a href="customize.html" class="nav-item">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Customize</span>
+                </a>
+                <a href="templates.html" class="nav-item active">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Templates</span>
+                </a>
+                <a href="profile.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>My Profile</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" id="logout-btn" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Create Template</h1>
+                <div class="header-actions">
+                    <a href="templates.html" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i> Back to Templates
+                    </a>
+                </div>
+            </header>
+
+            <div class="template-container">
+                <div class="template-info-section">
+                    <div class="section-header">
+                        <h2>Template Information</h2>
+                    </div>
+                    <div class="section-content">
+                        <form id="template-info-form">
+                            <div class="form-group">
+                                <label for="template-name">Template Name</label>
+                                <input type="text" id="template-name" name="name" placeholder="My Awesome Template" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="template-description">Description</label>
+                                <textarea id="template-description" name="description" placeholder="Describe your template..." rows="3" required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="template-preview">Preview Image URL</label>
+                                <input type="url" id="template-preview" name="preview_image" placeholder="https://example.com/preview.jpg" required>
+                                <div class="preview-container">
+                                    <img id="preview-image" src="img/template-placeholder.jpg" alt="Template Preview">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Tags</label>
+                                <div class="tags-input-container">
+                                    <div class="selected-tags" id="selected-tags">
+                                        <!-- Selected tags will be added here -->
+                                    </div>
+                                    <input type="text" id="tag-input" placeholder="Add a tag...">
+                                </div>
+                                <div class="tag-suggestions">
+                                    <span class="tag-suggestion" data-tag="portfolio">portfolio</span>
+                                    <span class="tag-suggestion" data-tag="personal">personal</span>
+                                    <span class="tag-suggestion" data-tag="business">business</span>
+                                    <span class="tag-suggestion" data-tag="creative">creative</span>
+                                    <span class="tag-suggestion" data-tag="minimal">minimal</span>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="template-config-section">
+                    <div class="section-header">
+                        <h2>Template Configuration</h2>
+                    </div>
+                    <div class="section-content">
+                        <div class="config-tabs">
+                            <button class="config-tab active" data-tab="basics">Basics</button>
+                            <button class="config-tab" data-tab="appearance">Appearance</button>
+                            <button class="config-tab" data-tab="content">Content</button>
+                            <button class="config-tab" data-tab="social">Social Links</button>
+                            <button class="config-tab" data-tab="advanced">Advanced</button>
+                        </div>
+
+                        <div class="config-content active" id="basics-content">
+                            <div class="form-group">
+                                <label for="template-title">Default Page Title</label>
+                                <input type="text" id="template-title" name="title" placeholder="My Page">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="template-name-display">Default Display Name</label>
+                                <input type="text" id="template-name-display" name="name" placeholder="Your Name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="template-bio">Default Bio</label>
+                                <textarea id="template-bio" name="bio" placeholder="Tell visitors about yourself" rows="4"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="template-avatar-url">Default Avatar URL</label>
+                                <input type="url" id="template-avatar-url" name="avatar_url" placeholder="https://example.com/avatar.jpg">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="template-avatar-animation">Avatar Animation</label>
+                                <select id="template-avatar-animation" name="avatar_animation">
+                                    <option value="none">None</option>
+                                    <option value="pulse">Pulse</option>
+                                    <option value="bounce">Bounce</option>
+                                    <option value="rotate">Rotate</option>
+                                    <option value="shake">Shake</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="config-content" id="appearance-content">
+                            <div class="form-group">
+                                <label for="template-layout">Layout Style</label>
+                                <select id="template-layout" name="layout_type">
+                                    <option value="simple">Simple</option>
+                                    <option value="card">Card</option>
+                                    <option value="modern">Modern</option>
+                                    <option value="minimalist">Minimalist</option>
+                                    <option value="creative">Creative</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Background Type</label>
+                                <div class="background-options">
+                                    <div class="background-option active" data-type="solid">
+                                        <div class="bg-icon"><i class="fas fa-square"></i></div>
+                                        <span>Solid Color</span>
+                                    </div>
+                                    <div class="background-option" data-type="gradient">
+                                        <div class="bg-icon"><i class="fas fa-gradient"></i></div>
+                                        <span>Gradient</span>
+                                    </div>
+                                    <div class="background-option" data-type="image">
+                                        <div class="bg-icon"><i class="fas fa-image"></i></div>
+                                        <span>Image</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="background-settings" id="solid-settings">
+                                    <label for="bg-color">Background Color</label>
+                                    <input type="color" id="bg-color" name="bg_color" value="#ffffff">
+                                </div>
+                                
+                                <div class="background-settings" id="gradient-settings" style="display: none;">
+                                    <label for="gradient-start">Gradient Start</label>
+                                    <input type="color" id="gradient-start" name="gradient_start" value="#4ecdc4">
+                                    
+                                    <label for="gradient-end">Gradient End</label>
+                                    <input type="color" id="gradient-end" name="gradient_end" value="#556270">
+                                    
+                                    <label for="gradient-direction">Direction</label>
+                                    <select id="gradient-direction" name="gradient_direction">
+                                        <option value="to right">Horizontal</option>
+                                        <option value="to bottom">Vertical</option>
+                                        <option value="to bottom right">Diagonal</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="background-settings" id="image-settings" style="display: none;">
+                                    <label for="bg-image-url">Background Image URL</label>
+                                    <input type="url" id="bg-image-url" name="bg_image_url" placeholder="https://example.com/image.jpg">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bg-opacity">Background Opacity</label>
+                                <input type="range" id="bg-opacity" name="bg_opacity" min="0" max="1" step="0.1" value="1">
+                                <div class="range-value">
+                                    <span id="opacity-value">1.0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Container Style</label>
+                                <div class="switch-group">
+                                    <label for="container-enabled">Enable Container</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="container-enabled" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                
+                                <div id="container-settings">
+                                    <label for="container-bg">Container Background</label>
+                                    <input type="color" id="container-bg" name="container_bg" value="#ffffff">
+                                    
+                                    <label for="container-opacity">Container Opacity</label>
+                                    <input type="range" id="container-opacity" name="container_opacity" min="0" max="1" step="0.1" value="0.8">
+                                    <div class="range-value">
+                                        <span id="container-opacity-value">0.8</span>
+                                    </div>
+                                    
+                                    <label for="container-radius">Border Radius</label>
+                                    <input type="range" id="container-radius" name="container_radius" min="0" max="30" step="1" value="10">
+                                    <div class="range-value">
+                                        <span id="radius-value">10px</span>
+                                    </div>
+                                    
+                                    <div class="switch-group">
+                                        <label for="container-shadow">Enable Shadow</label>
+                                        <label class="switch">
+                                            <input type="checkbox" id="container-shadow" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-content" id="content-content">
+                            <div class="form-group">
+                                <label for="name-effect">Name Text Effect</label>
+                                <select id="name-effect" name="name_effect">
+                                    <option value="none">None</option>
+                                    <option value="typewriter">Typewriter</option>
+                                    <option value="fade-in">Fade In</option>
+                                    <option value="bounce">Bounce</option>
+                                    <option value="pulse">Pulse</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bio-effect">Bio Text Effect</label>
+                                <select id="bio-effect" name="bio_effect">
+                                    <option value="none">None</option>
+                                    <option value="typewriter">Typewriter</option>
+                                    <option value="fade-in">Fade In</option>
+                                    <option value="bounce">Bounce</option>
+                                    <option value="pulse">Pulse</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="switch-group">
+                                    <label for="show-joined-date">Show Joined Date</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="show-joined-date" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="switch-group">
+                                    <label for="show-views">Show Page Views</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="show-views" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Default Music</label>
+                                <button type="button" id="add-song-btn" class="btn btn-outline btn-sm">
+                                    <i class="fas fa-plus"></i> Add Song
+                                </button>
+                                
+                                <div id="songs-container" class="songs-container">
+                                    <!-- Songs will be added dynamically -->
+                                    <div class="empty-songs">
+                                        <p>No songs added yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-content" id="social-content">
+                            <div class="form-group">
+                                <label>Default Social Links</label>
+                                <button type="button" id="add-social-btn" class="btn btn-outline btn-sm">
+                                    <i class="fas fa-plus"></i> Add Social Link
+                                </button>
+                                
+                                <div id="social-links-container" class="social-links-container">
+                                    <!-- Social links will be added dynamically -->
+                                    <div class="empty-social">
+                                        <p>No social links added yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-content" id="advanced-content">
+                            <div class="form-group">
+                                <label for="custom-css">Custom CSS</label>
+                                <textarea id="custom-css" name="custom_css" placeholder="Add your custom CSS here" rows="6"></textarea>
+                                <small>Advanced users only. Add custom CSS to further customize your template.</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="custom-js">Custom JavaScript</label>
+                                <textarea id="custom-js" name="custom_js" placeholder="Add your custom JavaScript here" rows="6"></textarea>
+                                <small>Advanced users only. Add custom JavaScript to add interactive elements.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-preview-section">
+                    <div class="section-header">
+                        <h2>Preview</h2>
+                        <div class="preview-actions">
+                            <button type="button" id="preview-mobile-btn" class="btn btn-sm btn-icon">
+                                <i class="fas fa-mobile-alt"></i>
+                            </button>
+                            <button type="button" id="preview-desktop-btn" class="btn btn-sm btn-icon active">
+                                <i class="fas fa-desktop"></i>
+                            </button>
+                            <button type="button" id="refresh-preview-btn" class="btn btn-sm btn-icon">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preview-frame-container">
+                        <iframe id="preview-frame" src="about:blank" title="Template Preview"></iframe>
+                    </div>
+                </div>
+
+                <div class="template-actions">
+                    <button type="button" id="cancel-template-btn" class="btn btn-outline">Cancel</button>
+                    <button type="button" id="save-template-btn" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Template
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Social Link Modal -->
+    <div class="modal" id="add-social-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Social Link</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="social-link-form">
+                    <div class="form-group">
+                        <label for="social-platform">Platform</label>
+                        <select id="social-platform" name="platform" required>
+                            <option value="">Select Platform</option>
+                            <!-- Platforms will be loaded dynamically -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="social-url">URL</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-link"></i>
+                            <input type="url" id="social-url" name="url" placeholder="https://..." required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="social-display-name">Display Name (Optional)</label>
+                        <input type="text" id="social-display-name" name="display_name" placeholder="@username">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add Link</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Song Modal -->
+    <div class="modal" id="add-song-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Song</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="song-form">
+                    <div class="form-group">
+                        <label for="song-title">Song Title</label>
+                        <input type="text" id="song-title" name="title" placeholder="Enter song title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="song-artist">Artist</label>
+                        <input type="text" id="song-artist" name="artist" placeholder="Enter artist name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="song-cover">Cover Image URL</label>
+                        <input type="url" id="song-cover" name="cover_url" placeholder="https://example.com/cover.jpg" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="song-youtube">YouTube URL</label>
+                        <input type="url" id="song-youtube" name="youtube_url" placeholder="https://youtube.com/watch?v=..." required>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add Song</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/create-template.js"></script>
+</body>
+</html>
+                        

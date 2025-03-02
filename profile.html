@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Versz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="mobile-header">
+        <a href="dashboard.html" class="logo">Versz<span class="accent-text">.fun</span></a>
+        <button class="menu-toggle" id="mobile-menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h3 id="sidebar-username">Username</h3>
+                    <p id="sidebar-email">user@example.com</p>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="my-pages.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>My Pages</span>
+                </a>
+                <a href="customize.html" class="nav-item">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Customize</span>
+                </a>
+                <a href="templates.html" class="nav-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Templates</span>
+                </a>
+                <a href="profile.html" class="nav-item active">
+                    <i class="fas fa-user"></i>
+                    <span>My Profile</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" id="logout-btn" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>My Profile</h1>
+                <div class="header-actions">
+                    <a href="#" id="view-public-profile" class="btn btn-outline" target="_blank">
+                        <i class="fas fa-external-link-alt"></i> View Public Profile
+                    </a>
+                </div>
+            </header>
+
+            <div class="profile-container">
+                <div class="profile-sections">
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h2>Personal Information</h2>
+                            <button type="button" id="edit-personal-btn" class="btn btn-sm">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        <div class="profile-info-card">
+                            <div class="profile-avatar-container">
+                                <div class="profile-avatar">
+                                    <img id="profile-avatar" src="img/default-avatar.png" alt="Your Avatar">
+                                </div>
+                                <div class="avatar-upload" id="avatar-upload" style="display: none;">
+                                    <label for="avatar-url">Avatar URL</label>
+                                    <input type="url" id="avatar-url" name="avatar_url" placeholder="https://example.com/avatar.jpg">
+                                    <button type="button" id="update-avatar-btn" class="btn btn-sm">Update</button>
+                                </div>
+                            </div>
+                            <div class="profile-details">
+                                <div class="profile-field">
+                                    <div class="field-label">Username</div>
+                                    <div class="field-value" id="profile-username">username</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <input type="text" id="edit-username" name="username">
+                                        <div class="input-status" id="username-status"></div>
+                                    </div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="field-label">Name</div>
+                                    <div class="field-value" id="profile-name">Your Name</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <input type="text" id="edit-name" name="name">
+                                    </div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="field-label">Email</div>
+                                    <div class="field-value" id="profile-email">your@email.com</div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="field-label">Joined</div>
+                                    <div class="field-value" id="profile-joined">January 1, 2023</div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="field-label">Location</div>
+                                    <div class="field-value" id="profile-location">Not specified</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <input type="text" id="edit-location" name="location" placeholder="Your location">
+                                    </div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="field-label">Bio</div>
+                                    <div class="field-value" id="profile-bio">No bio provided</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <textarea id="edit-bio" name="bio" rows="3" placeholder="Tell us about yourself"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="edit-actions" id="personal-edit-actions" style="display: none;">
+                            <button type="button" id="cancel-personal-btn" class="btn btn-outline">Cancel</button>
+                            <button type="button" id="save-personal-btn" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h2>Additional Information</h2>
+                            <button type="button" id="edit-additional-btn" class="btn btn-sm">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        <div class="profile-info-card">
+                            <div class="profile-details">
+                                <div class="profile-field">
+                                    <div class="field-label">Age</div>
+                                    <div class="field-value" id="profile-age">Not specified</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <input type="number" id="edit-age" name="age" min="13" max="120">
+                                    </div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="field-label">Gender</div>
+                                    <div class="field-value" id="profile-gender">Not specified</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <select id="edit-gender" name="gender">
+                                            <option value="">Prefer not to say</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="non-binary">Non-binary</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="field-label">Pronouns</div>
+                                    <div class="field-value" id="profile-pronouns">Not specified</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <select id="edit-pronouns" name="pronouns">
+                                            <option value="">Prefer not to say</option>
+                                            <option value="he/him">He/Him</option>
+                                            <option value="she/her">She/Her</option>
+                                            <option value="they/them">They/Them</option>
+                                            <option value="custom">Custom</option>
+                                        </select>
+                                        <input type="text" id="custom-pronouns" name="custom_pronouns" placeholder="Enter custom pronouns" style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="edit-actions" id="additional-edit-actions" style="display: none;">
+                            <button type="button" id="cancel-additional-btn" class="btn btn-outline">Cancel</button>
+                            <button type="button" id="save-additional-btn" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h2>Display Preferences</h2>
+                            <button type="button" id="edit-preferences-btn" class="btn btn-sm">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        <div class="profile-info-card">
+                            <div class="preferences-grid">
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Views</div>
+                                    <div class="preference-value" id="pref-show-views">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-views" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Joined Date</div>
+                                    <div class="preference-value" id="pref-show-joined">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-joined" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Tags</div>
+                                    <div class="preference-value" id="pref-show-tags">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-tags" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Location</div>
+                                    <div class="preference-value" id="pref-show-location">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-location" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Age</div>
+                                    <div class="preference-value" id="pref-show-age">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-age" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Gender</div>
+                                    <div class="preference-value" id="pref-show-gender">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-gender" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Pronouns</div>
+                                    <div class="preference-value" id="pref-show-pronouns">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-pronouns" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Default Layout</div>
+                                    <div class="preference-value" id="pref-default-layout">Simple</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <select id="edit-default-layout">
+                                            <option value="simple">Simple</option>
+                                            <option value="card">Card</option>
+                                            <option value="modern">Modern</option>
+                                            <option value="minimalist">Minimalist</option>
+                                            <option value="creative">Creative</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Default Avatar Animation</div>
+                                    <div class="preference-value" id="pref-default-animation">None</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <select id="edit-default-animation">
+                                            <option value="none">None</option>
+                                            <option value="pulse">Pulse</option>
+                                            <option value="bounce">Bounce</option>
+                                            <option value="rotate">Rotate</option>
+                                            <option value="shake">Shake</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="edit-actions" id="preferences-edit-actions" style="display: none;">
+                            <button type="button" id="cancel-preferences-btn" class="btn btn-outline">Cancel</button>
+                            <button type="button" id="save-preferences-btn" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h2>Account</h2>
+                        </div>
+                        <div class="profile-info-card">
+                            <div class="account-actions">
+                                <button type="button" id="change-password-btn" class="btn btn-outline">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                                <button type="button" id="resend-verification-btn" class="btn btn-outline" style="display: none;">
+                                    <i class="fas fa-envelope"></i> Resend Verification Email
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-sidebar">
+                    <div class="profile-card">
+                        <div class="card-header">
+                            <h3>User Tags</h3>
+                        </div>
+                        <div class="tags-container" id="user-tags">
+                            <!-- Tags will be loaded dynamically -->
+                            <div class="empty-tags">
+                                <p>No tags assigned yet</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-card">
+                        <div class="card-header">
+                            <h3>Account Stats</h3>
+                        </div>
+                        <div class="stats-container">
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="stat-details">
+                                    <div class="stat-value" id="stat-pages">0</div>
+                                    <div class="stat-label">Pages Created</div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="fas fa-eye"></i>
+                                </div>
+                                <div class="stat-details">
+                                    <div class="stat-value" id="stat-views">0</div>
+                                    <div class="stat-label">Total Views</div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <div class="stat-details">
+                                    <div class="stat-value" id="stat-templates">0</div>
+                                    <div class="stat-label">Templates Used</div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div class="stat-details">
+                                    <div class="stat-value" id="stat-status">Active</div>
+                                    <div class="stat-label">Account Status</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal" id="change-password-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Change Password</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label for="current-password">Current Password</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="current-password" name="current_password" required>
+                            <button type="button" class="password-toggle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">New Password</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="new-password" name="new_password" required>
+                            <button type="button" class="password-toggle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm New Password</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="confirm-password" name="confirm_password" required>
+                            <button type="button" class="password-toggle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="password-requirements">
+                        <p>Password must contain:</p>
+                        <ul>
+                            <li id="pw-req-length"><i class="fas fa-times"></i> At least 8 characters</li>
+                            <li id="pw-req-uppercase"><i class="fas fa-times"></i> One uppercase letter</li>
+                            <li id="pw-req-lowercase"><i class="fas fa-times"></i> One lowercase letter</li>
+                            <li id="pw-req-number"><i class="fas fa-times"></i> One number</li>
+                        </ul>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </div>
+                    <div class="auth-message" id="password-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/profile.js"></script>
+</body>
+</html>

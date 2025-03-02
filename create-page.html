@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Page - Versz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/create-page.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header class="mobile-header">
+        <a href="dashboard.html" class="logo">Versz<span class="accent-text">.fun</span></a>
+        <button class="menu-toggle" id="mobile-menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
+                <button class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h3 id="sidebar-username">Username</h3>
+                    <p id="sidebar-email">user@example.com</p>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="my-pages.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>My Pages</span>
+                </a>
+                <a href="customize.html" class="nav-item">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Customize</span>
+                </a>
+                <a href="templates.html" class="nav-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Templates</span>
+                </a>
+                <a href="profile.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>My Profile</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" id="logout-btn" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Create New Page</h1>
+                <div class="header-actions">
+                    <a href="my-pages.html" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i> Back to Pages
+                    </a>
+                </div>
+            </header>
+
+            <div class="create-page-container">
+                <div class="creation-options">
+                    <div class="option-tabs">
+                        <button class="option-tab active" data-tab="blank">Start from Blank</button>
+                        <button class="option-tab" data-tab="template">Use a Template</button>
+                    </div>
+
+                    <div class="option-content active" id="blank-content">
+                        <h2>Create a blank page</h2>
+                        <p>Start with a clean slate and customize everything to your liking.</p>
+                        
+                        <form id="create-blank-form" class="create-page-form">
+                            <div class="form-group">
+                                <label for="page-title">Page Title</label>
+                                <input type="text" id="page-title" name="title" placeholder="My Awesome Page" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="page-url">Custom URL</label>
+                                <div class="url-input-group">
+                                    <span class="url-prefix">versz.fun/p/</span>
+                                    <input type="text" id="page-url" name="url" placeholder="mypage" required>
+                                    <button type="button" id="check-url-btn" class="btn btn-sm">Check</button>
+                                </div>
+                                <div id="url-status" class="input-status"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="page-layout">Layout Style</label>
+                                <select id="page-layout" name="layout_type">
+                                    <option value="simple">Simple</option>
+                                    <option value="card">Card</option>
+                                    <option value="modern">Modern</option>
+                                    <option value="minimalist">Minimalist</option>
+                                    <option value="creative">Creative</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Background Type</label>
+                                <div class="background-options">
+                                    <div class="background-option active" data-type="solid">
+                                        <div class="bg-icon"><i class="fas fa-square"></i></div>
+                                        <span>Solid Color</span>
+                                    </div>
+                                    <div class="background-option" data-type="gradient">
+                                        <div class="bg-icon"><i class="fas fa-gradient"></i></div>
+                                        <span>Gradient</span>
+                                    </div>
+                                    <div class="background-option" data-type="image">
+                                        <div class="bg-icon"><i class="fas fa-image"></i></div>
+                                        <span>Image</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="background-settings" id="solid-settings">
+                                    <label for="bg-color">Background Color</label>
+                                    <input type="color" id="bg-color" name="bg_color" value="#ffffff">
+                                </div>
+                                
+                                <div class="background-settings" id="gradient-settings" style="display: none;">
+                                    <label for="gradient-start">Gradient Start</label>
+                                    <input type="color" id="gradient-start" name="gradient_start" value="#4ecdc4">
+                                    
+                                    <label for="gradient-end">Gradient End</label>
+                                    <input type="color" id="gradient-end" name="gradient_end" value="#556270">
+                                    
+                                    <label for="gradient-direction">Direction</label>
+                                    <select id="gradient-direction" name="gradient_direction">
+                                        <option value="to right">Horizontal</option>
+                                        <option value="to bottom">Vertical</option>
+                                        <option value="to bottom right">Diagonal</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="background-settings" id="image-settings" style="display: none;">
+                                    <label for="bg-image-url">Background Image URL</label>
+                                    <input type="url" id="bg-image-url" name="bg_image_url" placeholder="https://example.com/image.jpg">
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Create Page</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="option-content" id="template-content">
+                        <h2>Choose a template</h2>
+                        <p>Start with a pre-designed template and customize it to fit your needs.</p>
+                        
+                        <div class="template-search">
+                            <input type="text" id="search-templates" placeholder="Search templates...">
+                            <select id="filter-templates">
+                                <option value="all">All Categories</option>
+                                <option value="portfolio">Portfolio</option>
+                                <option value="personal">Personal</option>
+                                <option value="business">Business</option>
+                                <option value="creative">Creative</option>
+                            </select>
+                        </div>
+                        
+                        <div class="templates-grid" id="templates-grid">
+                            <!-- Templates will be loaded dynamically -->
+                            <div class="loading-templates">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading templates...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="template-pagination" id="template-pagination">
+                            <!-- Pagination will be generated dynamically if needed -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Template Preview Modal -->
+    <div class="modal" id="template-preview-modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2 id="preview-template-name">Template Name</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="template-preview">
+                    <img id="preview-template-image" src="" alt="Template Preview">
+                </div>
+                <div class="template-info">
+                    <p id="preview-template-description">Template description goes here.</p>
+                    <div class="template-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-user"></i>
+                            <span id="preview-template-creator">Creator</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-download"></i>
+                            <span id="preview-template-uses">0 uses</span>
+                        </div>
+                    </div>
+                </div>
+                <form id="use-template-form">
+                    <input type="hidden" id="template-id" name="template_id">
+                    <div class="form-group">
+                        <label for="template-page-url">Custom URL</label>
+                        <div class="url-input-group">
+                            <span class="url-prefix">versz.fun/p/</span>
+                            <input type="text" id="template-page-url" name="url" placeholder="mypage" required>
+                            <button type="button" id="template-check-url-btn" class="btn btn-sm">Check</button>
+                        </div>
+                        <div id="template-url-status" class="input-status"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Use This Template</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+
+    <script src="js/create-page.js"></script>
+</body>
+
+</html>

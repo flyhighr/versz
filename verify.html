@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Versz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <a href="index.html" class="auth-logo">Versz<span class="accent-text">.fun</span></a>
+                <h1>Verify Your Email</h1>
+                <p id="verify-message">Verifying your email address...</p>
+            </div>
+            <div class="verification-status">
+                <div id="verify-loading" class="verification-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <div id="verify-success" class="verification-success" style="display: none;">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Your email has been verified successfully!</p>
+                    <a href="login.html" class="btn btn-primary">Continue to Login</a>
+                </div>
+                <div id="verify-error" class="verification-error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p id="error-message">Verification link is invalid or has expired.</p>
+                    <div class="error-actions">
+                        <a href="login.html" class="btn btn-outline">Back to Login</a>
+                        <button id="resend-btn" class="btn btn-primary">Resend Verification</button>
+                    </div>
+                </div>
+            </div>
+            <div class="resend-form" id="resend-form" style="display: none;">
+                <div class="form-group">
+                    <label for="resend-email">Email Address</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="resend-email" name="email" placeholder="your@email.com" required>
+                    </div>
+                </div>
+                <button type="button" id="submit-resend" class="btn btn-primary btn-block">Resend Verification Email</button>
+                <div class="auth-message" id="resend-message"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/verify.js"></script>
+</body>
+</html>

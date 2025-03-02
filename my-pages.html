@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Pages - Versz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
+                <button class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h3 id="sidebar-username">Username</h3>
+                    <p id="sidebar-email">user@example.com</p>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="my-pages.html" class="nav-item active">
+                    <i class="fas fa-file-alt"></i>
+                    <span>My Pages</span>
+                </a>
+                <a href="customize.html" class="nav-item">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Customize</span>
+                </a>
+                <a href="templates.html" class="nav-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Templates</span>
+                </a>
+                <a href="profile.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>My Profile</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" id="logout-btn" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>My Pages</h1>
+                <div class="header-actions">
+                    <a href="create-page.html" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Page
+                    </a>
+                </div>
+            </header>
+
+            <div class="search-filter">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-pages" placeholder="Search pages...">
+                </div>
+                <div class="filter-options">
+                    <select id="sort-pages">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="views">Most Views</option>
+                        <option value="name">Alphabetical</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pages-list" id="pages-list">
+                <!-- Pages will be loaded dynamically -->
+                <div class="empty-state" id="no-pages-found">
+                    <i class="fas fa-search"></i>
+                    <h3>No pages found</h3>
+                    <p>Create your first page to get started</p>
+                    <a href="create-page.html" class="btn btn-primary">Create Page</a>
+                </div>
+            </div>
+
+            <div class="pagination" id="pages-pagination">
+                <!-- Pagination will be generated dynamically if needed -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Page Action Modal -->
+    <div class="modal" id="page-actions-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Page Actions</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="action-buttons">
+                    <a href="#" id="view-page-btn" class="btn btn-outline" target="_blank">
+                        <i class="fas fa-eye"></i> View Page
+                    </a>
+                    <a href="#" id="edit-page-btn" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Edit Page
+                    </a>
+                    <a href="#" id="copy-url-btn" class="btn btn-outline">
+                        <i class="fas fa-copy"></i> Copy URL
+                    </a>
+                    <button id="delete-page-btn" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Page
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="delete-confirm-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete Page</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this page? This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button id="cancel-delete-btn" class="btn btn-outline">Cancel</button>
+                    <button id="confirm-delete-btn" class="btn btn-danger">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/my-pages.js"></script>
+</body>
+</html>
