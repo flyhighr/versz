@@ -388,7 +388,7 @@ async def get_database() -> AsyncIOMotorDatabase:
     )
     try:
         await client.admin.command('ismaster')
-        db = client.biolink_db
+        db = client.Versz_db
         yield db
     finally:
         client.close()
@@ -396,7 +396,7 @@ async def get_database() -> AsyncIOMotorDatabase:
 
 # FastAPI initialization
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="BioLink API", version="1.0.0")
+app = FastAPI(title="Versz API", version="1.0.0")
 app.state.limiter = limiter
 
 
@@ -644,9 +644,9 @@ async def validate_avatar(avatar_url: str) -> bool:
 async def root(request: Request):
     return """
     <html>
-        <head><title>BioLink API</title></head>
+        <head><title>Versz API</title></head>
         <body>
-            <h1>Welcome to the BioLink API</h1>
+            <h1>Welcome to the Versz API</h1>
             <p>Create and customize your profile pages with our API.</p>
         </body>
     </html>
@@ -728,7 +728,7 @@ async def register_user(
         user_id = str(user_number)
         
         verification_token = secrets.token_urlsafe(32)
-        verification_link = f"https://biolink.site/verify?token={verification_token}"
+        verification_link = f"https://versz.fun/verify?token={verification_token}"
         
         pending_user_data = {
             "id": user_id,
