@@ -1751,9 +1751,12 @@ async def get_page_preview(request: Request, preview_id: str):
                 detail="Preview expired or not found"
             )
         
-        # Convert ObjectId to string
+        # Convert MongoDB ObjectId to string to ensure JSON serialization works
         if "_id" in preview:
             preview["_id"] = str(preview["_id"])
+            
+        # Convert any other ObjectId that might be in the document
+        preview = json.loads(json.dumps(preview, default=lambda o: str(o) if isinstance(o, ObjectId) else o))
         
         # Update cache
         preview_cache[cache_key] = preview
