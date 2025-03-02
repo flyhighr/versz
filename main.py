@@ -1755,27 +1755,29 @@ async def delete_profile_page(
     page_id: str,
     current_user: dict = Depends(get_current_verified_user)
 ):
+    """Delete a user's profile page"""
     async with get_database() as db:
-        # Check if the page exists and belongs to the user
-        existing_page = await db.profile_pages.find_one({
+        # Check if page exists and belongs to user
+        page = await db.profile_pages.find_one({
             "page_id": page_id,
             "user_id": current_user["id"]
         })
         
-        if not existing_page:
+        if not page:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Page not found or you don't have permission to delete it"
             )
         
-        # Delete the page
+        # Delete page
         await db.profile_pages.delete_one({"page_id": page_id})
         
-        # Delete view counter
-        await db.views.delete_one({"url": existing_page["url"]})
+        # Delete associated views
+        await db.views.delete_one({"url": page["url"]})
         
         # Clear cache
-        views_cache.pop(f"views:{existing_page['url']}", None)
+        if f"views:{page['url']}" in views_cache:
+            views_cache.pop(f"views:{page['url']}")
         
         return {"message": "Page deleted successfully"}
 
