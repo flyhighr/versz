@@ -1751,17 +1751,18 @@ async def get_page_preview(request: Request, preview_id: str):
                 detail="Preview expired or not found"
             )
         
-        # Convert MongoDB ObjectId to string and handle circular references
-        def convert_object_ids(data):
-            if isinstance(data, dict):
-                return {k: convert_object_ids(v) for k, v in data.items()}
-            elif isinstance(data, list):
-                return [convert_object_ids(item) for item in data]
-            elif isinstance(data, ObjectId):
-                return str(data)
+        # Define a function to recursively convert ObjectId to string
+        def convert_object_ids(obj):
+            if isinstance(obj, dict):
+                return {k: convert_object_ids(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_object_ids(item) for item in obj]
+            elif isinstance(obj, ObjectId):
+                return str(obj)
             else:
-                return data
+                return obj
         
+        # Convert all ObjectId instances to strings
         preview = convert_object_ids(preview)
         
         # Update cache
