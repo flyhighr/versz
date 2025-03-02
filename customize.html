@@ -13,12 +13,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <header class="mobile-header">
+        <a href="dashboard.html" class="logo">Versz<span class="accent-text">.fun</span></a>
+        <button class="menu-toggle" id="mobile-menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
     <div class="dashboard-container">
         <aside class="sidebar">
             <div class="sidebar-header">
                 <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
-                <button class="sidebar-toggle">
-                    <i class="fas fa-bars"></i>
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="sidebar-user">
@@ -68,9 +74,14 @@
                         <option value="">Select a page to edit</option>
                         <!-- Pages will be loaded dynamically -->
                     </select>
-                    <a href="#" id="view-page-btn" class="btn btn-outline" target="_blank" style="display: none;">
-                        <i class="fas fa-eye"></i> View Page
-                    </a>
+                    <div class="action-buttons">
+                        <button id="preview-page-btn" class="btn btn-outline" style="display: none;">
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
+                        <a href="#" id="view-page-btn" class="btn btn-outline" target="_blank" style="display: none;">
+                            <i class="fas fa-external-link-alt"></i> View Page
+                        </a>
+                    </div>
                 </div>
             </header>
 
@@ -100,7 +111,7 @@
                             <div class="form-group">
                                 <label for="edit-url">Custom URL</label>
                                 <div class="url-input-group">
-                                    <span class="url-prefix">versz.fun/p/</span>
+                                    <span class="url-prefix">versz.fun/</span>
                                     <input type="text" id="edit-url" name="url" placeholder="mypage">
                                     <button type="button" id="edit-check-url-btn" class="btn btn-sm">Check</button>
                                 </div>
@@ -120,20 +131,18 @@
                             <div class="form-group">
                                 <label for="edit-avatar-url">Avatar URL</label>
                                 <input type="url" id="edit-avatar-url" name="avatar_url" placeholder="https://example.com/avatar.jpg">
-                                <div class="avatar-preview">
-                                    <img id="avatar-preview-img" src="img/default-avatar.png" alt="Avatar Preview">
+                                <div class="avatar-preview-container">
+                                    <div class="avatar-preview">
+                                        <img id="avatar-preview-img" src="img/default-avatar.png" alt="Avatar Preview">
+                                        <img id="avatar-decoration-preview" src="" alt="" style="display: none;">
+                                    </div>
                                 </div>
                             </div>
                             
                             <div class="form-group">
-                                <label for="edit-avatar-animation">Avatar Animation</label>
-                                <select id="edit-avatar-animation" name="avatar_animation">
-                                    <option value="none">None</option>
-                                    <option value="pulse">Pulse</option>
-                                    <option value="bounce">Bounce</option>
-                                    <option value="rotate">Rotate</option>
-                                    <option value="shake">Shake</option>
-                                </select>
+                                <label for="edit-avatar-decoration">Avatar Decoration URL</label>
+                                <input type="url" id="edit-avatar-decoration" name="avatar_decoration" placeholder="https://example.com/decoration.png">
+                                <p class="input-help">Upload a transparent PNG or GIF that will be displayed over your avatar</p>
                             </div>
                         </div>
 
@@ -328,21 +337,32 @@
 
                     <div class="editor-preview">
                         <div class="preview-header">
-                            <h3>Live Preview</h3>
-                            <div class="preview-actions">
-                                <button type="button" id="preview-mobile-btn" class="btn btn-sm btn-icon">
-                                    <i class="fas fa-mobile-alt"></i>
-                                </button>
-                                <button type="button" id="preview-desktop-btn" class="btn btn-sm btn-icon active">
-                                    <i class="fas fa-desktop"></i>
-                                </button>
-                                <button type="button" id="refresh-preview-btn" class="btn btn-sm btn-icon">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
-                            </div>
+                            <h3>Your Changes</h3>
+                            <p class="preview-description">Click the Preview button above to see how your page will look.</p>
                         </div>
-                        <div class="preview-frame-container">
-                            <iframe id="preview-frame" src="about:blank" title="Page Preview"></iframe>
+                        <div class="changes-summary">
+                            <div class="change-list">
+                                <div class="change-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Changes will be saved when you click "Save Changes"</span>
+                                </div>
+                                <div class="change-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>Use the Preview button to see your page before saving</span>
+                                </div>
+                                <div class="change-item">
+                                    <i class="fas fa-eye"></i>
+                                    <span>Preview opens in a new tab so you can continue editing</span>
+                                </div>
+                            </div>
+                            <div class="tips-section">
+                                <h4>Tips</h4>
+                                <ul>
+                                    <li>Upload your avatar decoration as a transparent PNG or GIF</li>
+                                    <li>Make sure your background images are high quality</li>
+                                    <li>Test your page on both desktop and mobile devices</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -182,7 +182,7 @@
                                             <option value="they/them">They/Them</option>
                                             <option value="custom">Custom</option>
                                         </select>
-                                        <input type="text" id="custom-pronouns" name="custom_pronouns" placeholder="Enter custom pronouns" style="display: none;">
+                                        <input type="text" id="custom-pronouns" name="custom_pronouns" placeholder="Enter custom pronouns" style="display: none; margin-top: 0.5rem;">
                                     </div>
                                 </div>
                             </div>
@@ -282,19 +282,6 @@
                                             <option value="modern">Modern</option>
                                             <option value="minimalist">Minimalist</option>
                                             <option value="creative">Creative</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="preference-item">
-                                    <div class="preference-label">Default Avatar Animation</div>
-                                    <div class="preference-value" id="pref-default-animation">None</div>
-                                    <div class="preference-edit" style="display: none;">
-                                        <select id="edit-default-animation">
-                                            <option value="none">None</option>
-                                            <option value="pulse">Pulse</option>
-                                            <option value="bounce">Bounce</option>
-                                            <option value="rotate">Rotate</option>
-                                            <option value="shake">Shake</option>
                                         </select>
                                     </div>
                                 </div>
@@ -440,6 +427,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Notification element -->
+    <div class="notification"></div>
 
     <script src="js/profile.js"></script>
 </body>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Versz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <a href="index.html" class="auth-logo">Versz<span class="accent-text">.fun</span></a>
+                <h1>Verify Your Email</h1>
+                <p>Please check your inbox for the verification email</p>
+            </div>
+            <div class="verification-status">
+                <div class="verification-prompt">
+                    <i class="fas fa-envelope-open-text" style="font-size: 4rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                    <p>We've sent a verification email to <strong id="user-email">your email address</strong>. Please click the link in the email to complete your registration.</p>
+                    <p style="margin-top: 1rem;">If you don't see the email, check your spam folder or request a new verification email.</p>
+                </div>
+                <div class="error-actions" style="margin-top: 2rem;">
+                    <a href="login.html" class="btn btn-outline">Back to Login</a>
+                    <button id="resend-btn" class="btn btn-primary">Resend Verification</button>
+                </div>
+            </div>
+            <div class="resend-form" id="resend-form" style="display: none;">
+                <div class="form-group">
+                    <label for="resend-email">Email Address</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="resend-email" name="email" placeholder="your@email.com" required>
+                    </div>
+                </div>
+                <button type="button" id="submit-resend" class="btn btn-primary btn-block">Resend Verification Email</button>
+                <div class="auth-message" id="resend-message"></div>
+            </div>
+            <div class="auth-footer">
+                <p>Already verified? <a href="login.html">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/verify-prompt.js"></script>
+</body>
+</html>

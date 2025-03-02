@@ -13,12 +13,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <header class="mobile-header">
+        <a href="dashboard.html" class="logo">Versz<span class="accent-text">.fun</span></a>
+        <button class="menu-toggle" id="mobile-menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
     <div class="dashboard-container">
         <aside class="sidebar">
             <div class="sidebar-header">
                 <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
-                <button class="sidebar-toggle">
-                    <i class="fas fa-bars"></i>
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="sidebar-user">
@@ -351,26 +357,6 @@
                     </div>
                 </div>
 
-                <div class="template-preview-section">
-                    <div class="section-header">
-                        <h2>Preview</h2>
-                        <div class="preview-actions">
-                            <button type="button" id="preview-mobile-btn" class="btn btn-sm btn-icon">
-                                <i class="fas fa-mobile-alt"></i>
-                            </button>
-                            <button type="button" id="preview-desktop-btn" class="btn btn-sm btn-icon active">
-                                <i class="fas fa-desktop"></i>
-                            </button>
-                            <button type="button" id="refresh-preview-btn" class="btn btn-sm btn-icon">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="preview-frame-container">
-                        <iframe id="preview-frame" src="about:blank" title="Template Preview"></iframe>
-                    </div>
-                </div>
-
                 <div class="template-actions">
                     <button type="button" id="cancel-template-btn" class="btn btn-outline">Cancel</button>
                     <button type="button" id="save-template-btn" class="btn btn-primary">
@@ -456,7 +442,9 @@
         </div>
     </div>
 
+    <!-- Notification -->
+    <div class="notification" style="display: none;"></div>
+
     <script src="js/create-template.js"></script>
 </body>
 </html>
-                        
