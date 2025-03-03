@@ -165,7 +165,7 @@
         /* Profile Container */
         .profile-container {
             width: 100%;
-            max-width: 900px;
+            max-width: 800px;
             margin: 30px auto;
             padding: 20px;
             display: flex;
@@ -379,6 +379,7 @@
             border-radius: 12px;
             padding: 15px;
             transition: all 0.3s ease;
+            cursor: pointer;
         }
 
         .song-item:hover {
@@ -456,6 +457,108 @@
             z-index: 100;
         }
 
+        /* Music Player */
+        .music-player-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .music-player {
+            width: 90%;
+            max-width: 800px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .music-player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+
+        .music-player-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .close-player {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .close-player:hover {
+            opacity: 1;
+        }
+
+        .music-player-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .music-player-iframe {
+            width: 100%;
+            height: 450px;
+            border: none;
+        }
+
+        .music-player-info {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 15px;
+            gap: 15px;
+        }
+
+        .music-player-cover {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .music-player-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .music-player-details {
+            flex: 1;
+        }
+
+        .music-player-song {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .music-player-artist {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .profile-card {
@@ -495,6 +598,10 @@
                 width: 90%;
                 justify-content: center;
             }
+
+            .music-player-iframe {
+                height: 250px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -503,30 +610,21 @@
             }
 
             .song-item {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-                gap: 15px;
-                padding: 20px;
+                padding: 12px;
             }
 
             .song-cover {
-                margin-right: 0;
-                width: 100px;
-                height: 100px;
-            }
-
-            .song-info {
-                text-align: center;
-            }
-
-            .song-actions {
-                margin-left: 0;
-                margin-top: 10px;
+                width: 60px;
+                height: 60px;
             }
 
             .stats-badge {
                 display: none;
+            }
+
+            .music-player-info {
+                flex-direction: column;
+                text-align: center;
             }
         }
 
@@ -535,6 +633,23 @@
             color: var(--error-color);
             font-size: 1.2rem;
             margin-top: 1rem;
+        }
+
+        /* Typewriter animation */
+        @keyframes typewriter {
+            from {
+                width: 0;
+            }
+            to {
+                width: 100%;
+            }
+        }
+
+        .typewriter-text {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            animation: typewriter 2s steps(40, end);
         }
     </style>
 </head>
@@ -572,6 +687,27 @@
         <div id="joinedDate" class="stat-item">
             <i class="fas fa-calendar-alt stat-icon"></i>
             <span id="joinedDateText">Joined 6 months ago</span>
+        </div>
+    </div>
+
+    <div id="musicPlayerOverlay" class="music-player-overlay">
+        <div class="music-player">
+            <div class="music-player-header">
+                <div class="music-player-title">Now Playing</div>
+                <button class="close-player" onclick="closeMusicPlayer()">×</button>
+            </div>
+            <div class="music-player-content">
+                <iframe id="musicPlayerIframe" class="music-player-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                <div class="music-player-info">
+                    <div class="music-player-cover">
+                        <img id="musicPlayerCover" src="" alt="Song Cover">
+                    </div>
+                    <div class="music-player-details">
+                        <div id="musicPlayerSong" class="music-player-song">Song Title</div>
+                        <div id="musicPlayerArtist" class="music-player-artist">Artist</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -681,6 +817,118 @@
             }
         }
 
+        function getYoutubeEmbedUrl(url) {
+            // Handle different YouTube URL formats
+            let videoId = '';
+            
+            if (url.includes('youtube.com/watch')) {
+                const urlParams = new URLSearchParams(new URL(url).search);
+                videoId = urlParams.get('v');
+            } else if (url.includes('youtu.be/')) {
+                videoId = url.split('youtu.be/')[1].split('?')[0];
+            } else if (url.includes('youtube.com/embed/')) {
+                videoId = url.split('youtube.com/embed/')[1].split('?')[0];
+            }
+            
+            if (videoId) {
+                return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+            }
+            
+            return null;
+        }
+
+        function isDirectMediaUrl(url) {
+            const mediaExtensions = ['.mp3', '.mp4', '.wav', '.ogg', '.webm'];
+            return mediaExtensions.some(ext => url.toLowerCase().endsWith(ext));
+        }
+
+        function openMusicPlayer(song) {
+            const overlay = document.getElementById('musicPlayerOverlay');
+            const iframe = document.getElementById('musicPlayerIframe');
+            const cover = document.getElementById('musicPlayerCover');
+            const songTitle = document.getElementById('musicPlayerSong');
+            const artist = document.getElementById('musicPlayerArtist');
+            
+            // Set song info
+            songTitle.textContent = song.title;
+            artist.textContent = song.artist;
+            cover.src = song.cover_url;
+            cover.onerror = () => {
+                cover.src = 'https://via.placeholder.com/80?text=Music';
+            };
+            
+            // Set iframe source based on URL type
+            if (song.youtube_url) {
+                const youtubeEmbed = getYoutubeEmbedUrl(song.youtube_url);
+                if (youtubeEmbed) {
+                    iframe.src = youtubeEmbed;
+                } else if (isDirectMediaUrl(song.youtube_url)) {
+                    // If it's a direct media URL, create a video/audio player
+                    const playerContainer = document.querySelector('.music-player-content');
+                    const isVideo = ['.mp4', '.webm'].some(ext => song.youtube_url.toLowerCase().endsWith(ext));
+                    
+                    // Remove existing iframe
+                    if (iframe) {
+                        iframe.remove();
+                    }
+                    
+                    // Create new media element
+                    if (isVideo) {
+                        const videoElement = document.createElement('video');
+                        videoElement.id = 'musicPlayerIframe';
+                        videoElement.className = 'music-player-iframe';
+                        videoElement.controls = true;
+                        videoElement.autoplay = true;
+                        
+                        const sourceElement = document.createElement('source');
+                        sourceElement.src = song.youtube_url;
+                        sourceElement.type = `video/${song.youtube_url.split('.').pop()}`;
+                        
+                        videoElement.appendChild(sourceElement);
+                        playerContainer.insertBefore(videoElement, playerContainer.firstChild);
+                    } else {
+                        const audioElement = document.createElement('audio');
+                        audioElement.id = 'musicPlayerIframe';
+                        audioElement.className = 'music-player-iframe';
+                        audioElement.controls = true;
+                        audioElement.autoplay = true;
+                        audioElement.style.height = 'auto';
+                        
+                        const sourceElement = document.createElement('source');
+                        sourceElement.src = song.youtube_url;
+                        sourceElement.type = `audio/${song.youtube_url.split('.').pop()}`;
+                        
+                        audioElement.appendChild(sourceElement);
+                        playerContainer.insertBefore(audioElement, playerContainer.firstChild);
+                    }
+                } else {
+                    // Fallback to opening in new tab
+                    window.open(song.youtube_url, '_blank');
+                    return;
+                }
+            } else {
+                // If no URL provided
+                iframe.src = '';
+                return;
+            }
+            
+            // Show player
+            overlay.style.display = 'flex';
+        }
+
+        function closeMusicPlayer() {
+            const overlay = document.getElementById('musicPlayerOverlay');
+            const iframe = document.getElementById('musicPlayerIframe');
+            
+            // Stop playback
+            if (iframe) {
+                iframe.src = '';
+            }
+            
+            // Hide player
+            overlay.style.display = 'none';
+        }
+
         async function loadContent() {
             const path = window.location.pathname.substring(1);
             const urlParams = new URLSearchParams(window.location.search);
@@ -706,33 +954,61 @@
                 }
 
                 let url;
+                let data;
+                
                 if (previewId) {
                     url = `${API_URL}/preview/${previewId}`;
+                    const response = await fetchWithTimeout(url);
+                    
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            showError(429, 'Rate limit exceeded');
+                            return;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    data = await response.json();
+                    
+                    // For preview data, we need to format it properly
+                    if (data) {
+                        // Handle case where preview data might be in a different format
+                        // Make sure we have a consistent structure
+                        data = {
+                            page: data,
+                            is_preview: true
+                        };
+                    }
                 } else if (path) {
                     url = `${API_URL}/p/${path}${templateId ? `?template_id=${templateId}` : ''}`;
+                    const response = await fetchWithTimeout(url);
+                    
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            showError(429, 'Rate limit exceeded');
+                            return;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    data = await response.json();
                 } else {
                     showError(404, 'Invalid URL');
                     return;
                 }
-
-                const response = await fetchWithTimeout(url);
-
-                if (!response.ok) {
-                    if (response.status === 429) {
-                        showError(429, 'Rate limit exceeded');
-                        return;
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                
+                if (!data) {
+                    showError(404, 'Data not found');
+                    return;
                 }
 
-                const data = await response.json();
                 cache.set(cacheKey, data);
                 await renderContent(data);
                 updateStatsBadge(data);
                 setupPreviewBanner(data);
             } catch (err) {
                 console.error('Loading error:', err);
-                showError(404, 'Page not found');
+                showError(404, 'Page not found or failed to load');
             }
         }
 
@@ -756,7 +1032,7 @@
                 exitPreviewBtn.onclick = () => {
                     window.location.href = '/templates.html';
                 };
-            } else if (data.is_preview) {
+            } else if (data.is_preview || (data.page && data.page.is_preview)) {
                 previewType.textContent = 'Page Preview';
                 previewName.textContent = data.page?.title || 'Preview';
                 previewBanner.style.display = 'flex';
@@ -770,14 +1046,30 @@
             }
         }
 
+        function applyNameEffect(element, effect) {
+            if (!element || !effect) return;
+            
+            if (effect.name === 'typewriter') {
+                element.classList.add('typewriter-text');
+                if (effect.speed) {
+                    element.style.animationDuration = `${effect.speed}s`;
+                }
+                if (effect.delay) {
+                    element.style.animationDelay = `${effect.delay}s`;
+                }
+            }
+            // Add other effects as needed
+        }
+
         async function renderContent(data) {
             const appContent = document.getElementById('appContent');
-            if (!data || !data.page) {
+            if (!data || (!data.page && !data.is_preview)) {
                 showError(404, 'Page data not found');
                 return;
             }
             
-            const page = data.page;
+            // Handle case where data might be directly the page object for previews
+            const page = data.page || data;
             const user = data.user || {};
             
             document.title = page.title || user.name || "Profile Page";
@@ -858,6 +1150,11 @@
                 nameSpan.textContent = page.name || user.name;
                 nameContainer.appendChild(nameSpan);
                 
+                // Apply name effect if specified
+                if (page.name_effect) {
+                    applyNameEffect(nameSpan, page.name_effect);
+                }
+                
                 // Add badges/tags
                 if (user.tags && user.tags.length > 0) {
                     const badgesContainer = document.createElement('div');
@@ -926,6 +1223,12 @@
                 const bio = document.createElement('div');
                 bio.className = 'profile-bio';
                 bio.textContent = page.bio;
+                
+                // Apply bio effect if specified
+                if (page.bio_effect) {
+                    applyNameEffect(bio, page.bio_effect);
+                }
+                
                 profileInfo.appendChild(bio);
             }
             
@@ -1027,6 +1330,7 @@
                 page.songs.forEach(song => {
                     const songItem = document.createElement('div');
                     songItem.className = 'song-item';
+                    songItem.addEventListener('click', () => openMusicPlayer(song));
                     
                     const songCover = document.createElement('div');
                     songCover.className = 'song-cover';
@@ -1058,10 +1362,7 @@
                     const playButton = document.createElement('button');
                     playButton.className = 'play-button';
                     playButton.innerHTML = '<i class="fas fa-play"></i>';
-                    playButton.title = 'Play on YouTube';
-                    playButton.addEventListener('click', () => {
-                        window.open(song.youtube_url, '_blank');
-                    });
+                    playButton.title = 'Play';
                     
                     songActions.appendChild(playButton);
                     
