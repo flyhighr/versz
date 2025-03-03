@@ -3,50 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading...</title>
+    <title>Profile Page</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lulu&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary-color: #4ecdc4;
-            --secondary-color: #ff6b6b;
-            --bg-dark: #0f0f0f;
-            --text-light: rgba(255, 255, 255, 0.9);
-            --card-bg: rgba(20, 20, 20, 0.75);
-            --card-hover: rgba(35, 35, 35, 0.85);
-            --badge-bg: rgba(78, 205, 196, 0.2);
-            --badge-hover: rgba(78, 205, 196, 0.3);
-            --error-color: #ff6b6b;
-            --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        @font-face {
+            font-family: 'Lulu';
+            src: url('https://fonts.googleapis.com/css2?family=Lulu&display=swap');
+            font-weight: normal;
+            font-style: normal;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Lulu', sans-serif;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
+            background-color: #ffffff;
+            color: #000000;
+            padding: 20px;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
+        /* Loading spinner */
         .loading {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--bg-dark);
+            background: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -57,8 +48,8 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid var(--primary-color);
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top: 3px solid #000;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -68,35 +59,37 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Error container */
         .error-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--bg-dark);
-            color: #fff;
+            background: #ffffff;
+            color: #000;
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
             padding: 20px;
+            z-index: 999;
         }
 
         .error-container h1 {
             font-size: 4rem;
             margin-bottom: 1rem;
-            color: var(--error-color);
+            color: #ff0000;
         }
 
         .error-container p {
-            color: #a0a0a0;
+            color: #666;
             margin-bottom: 2rem;
         }
 
         .back-btn {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            background: #000;
             color: #fff;
             padding: 0.8rem 2rem;
             border: none;
@@ -111,6 +104,7 @@
             transform: translateY(-1px);
         }
 
+        /* Preview banner */
         .preview-banner {
             position: fixed;
             top: 0;
@@ -139,7 +133,7 @@
         }
 
         .preview-banner button {
-            background: var(--primary-color);
+            background: #000;
             color: white;
             border: none;
             border-radius: 4px;
@@ -150,7 +144,7 @@
         }
 
         .preview-banner button:hover {
-            background: #3dbbb3;
+            background: #333;
             transform: translateY(-1px);
         }
 
@@ -162,239 +156,178 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        /* Profile Container */
-        .profile-container {
-            width: 100%;
-            max-width: 800px;
-            margin: 30px auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            z-index: 10;
-        }
-
-        /* Profile Card */
-        .profile-card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: var(--box-shadow);
-            margin-bottom: 20px;
-            padding: 30px;
+        /* Profile header section */
+        .profile-header {
             display: flex;
             align-items: center;
-            gap: 30px;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .profile-card:hover {
-            background-color: var(--card-hover);
-            transform: translateY(-2px);
-        }
-
-        /* Profile Stats */
-        .profile-stats {
-            display: flex;
-            gap: 15px;
-            margin-top: 10px;
             margin-bottom: 15px;
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .stat-icon {
-            opacity: 0.7;
-        }
-
-        /* Avatar Container */
-        .avatar-container {
             position: relative;
-            width: 140px;
-            height: 140px;
-            flex-shrink: 0;
         }
 
         .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #000;
+            margin-right: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .avatar img {
             width: 100%;
             height: 100%;
-            border-radius: 50%;
             object-fit: cover;
-            border: 3px solid var(--primary-color);
         }
 
         .avatar-decoration {
             position: absolute;
-            top: -15px;
-            left: -15px;
-            width: 170px;
-            height: 170px;
+            top: -10px;
+            left: -10px;
+            width: 100px;
+            height: 100px;
             pointer-events: none;
             z-index: 2;
         }
 
-        /* Profile Info */
         .profile-info {
             flex: 1;
         }
 
-        .profile-header {
-            margin-bottom: 15px;
-        }
-
         .profile-name {
-            font-size: 2.2rem;
-            font-weight: 700;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 10px;
+        }
+
+        .username {
+            font-size: 16px;
+            color: #666;
             margin-bottom: 5px;
         }
 
-        .badges {
+        /* Tags section */
+        .tags-container {
             display: flex;
-            gap: 5px;
             flex-wrap: wrap;
+            margin-top: 5px;
+            gap: 5px;
         }
 
-        .badge {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background-color: var(--badge-bg);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            transition: all 0.2s ease;
-        }
-
-        .badge:hover {
-            background-color: var(--badge-hover);
-        }
-
-        .badge-icon {
-            width: 16px;
-            height: 16px;
+        .tag {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
         }
 
-        .profile-username {
-            font-size: 1.1rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 15px;
+        .tag-cyan {
+            background-color: #40E0D0;
         }
 
-        .profile-bio {
+        .tag-black {
+            background-color: #000000;
+        }
+
+        .tag-purple {
+            background-color: #BA55D3;
+        }
+
+        .joined-date {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Profile content container */
+        .profile-container {
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            padding: 20px;
             margin-bottom: 20px;
-            line-height: 1.6;
-            opacity: 0.9;
-            font-size: 1.05rem;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        .profile-meta {
+        .bio {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .profile-details {
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
-            margin-top: 15px;
-            font-size: 0.95rem;
-            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 20px;
+            font-size: 14px;
         }
 
-        .meta-item {
+        .detail-item {
             display: flex;
             align-items: center;
-            gap: 5px;
         }
 
-        /* Social Links */
+        /* Social links */
         .social-links {
             display: flex;
+            gap: 10px;
+            margin-top: 15px;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 20px;
         }
 
-        .social-link {
+        .social-icon {
             width: 40px;
             height: 40px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-light);
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .social-link:hover {
-            background-color: var(--primary-color);
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
-        }
-
-        /* Songs Section */
-        .songs-section {
-            background-color: var(--card-bg);
-            border-radius: 16px;
+            border-radius: 8px;
             overflow: hidden;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: var(--box-shadow);
-            padding: 30px;
+            transition: transform 0.2s;
+        }
+
+        .social-icon:hover {
+            transform: translateY(-3px);
+        }
+
+        .social-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Songs section */
+        .songs-section {
             margin-bottom: 20px;
         }
 
         .section-title {
-            font-size: 1.4rem;
+            font-size: 18px;
             font-weight: 600;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .songs-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
         }
 
         .song-item {
             display: flex;
             align-items: center;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 15px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .song-item:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
         }
 
         .song-cover {
-            width: 70px;
-            height: 70px;
-            border-radius: 8px;
-            overflow: hidden;
+            width: 60px;
+            height: 60px;
             margin-right: 15px;
-            flex-shrink: 0;
+            border-radius: 5px;
+            overflow: hidden;
         }
 
         .song-cover img {
@@ -408,37 +341,45 @@
         }
 
         .song-title {
-            font-weight: 600;
-            margin-bottom: 6px;
-            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 3px;
         }
 
         .song-artist {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .song-actions {
-            margin-left: 15px;
+            font-size: 14px;
+            color: #666;
         }
 
         .play-button {
-            background: var(--primary-color);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            background: none;
+            border: none;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
 
-        .play-button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
+        .play-icon {
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-left: 20px solid #000;
+            border-bottom: 10px solid transparent;
+        }
+
+        .pause-icon {
+            width: 15px;
+            height: 15px;
+            background: #000;
+        }
+
+        /* Views counter */
+        .views-counter {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
         }
 
         /* Stats Badge */
@@ -455,9 +396,25 @@
             align-items: center;
             gap: 15px;
             z-index: 100;
+            color: white;
         }
 
-        /* Music Player */
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-icon {
+            opacity: 0.7;
+        }
+
+        /* Audio player */
+        .audio-player {
+            display: none;
+        }
+
+        /* Music Player Overlay */
         .music-player-overlay {
             position: fixed;
             top: 0;
@@ -476,11 +433,12 @@
         .music-player {
             width: 90%;
             max-width: 500px;
-            background-color: var(--card-bg);
+            background-color: #fff;
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             position: relative;
+            color: #000;
         }
 
         .music-player-header {
@@ -488,7 +446,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 15px 20px;
-            background-color: rgba(0, 0, 0, 0.3);
+            background-color: #f0f0f0;
         }
 
         .music-player-title {
@@ -499,7 +457,7 @@
         .close-player {
             background: none;
             border: none;
-            color: white;
+            color: #000;
             font-size: 1.5rem;
             cursor: pointer;
             opacity: 0.7;
@@ -550,7 +508,7 @@
 
         .music-player-artist {
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: #666;
         }
 
         .music-player-controls {
@@ -563,8 +521,8 @@
         }
 
         .player-button {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+            background: rgba(0, 0, 0, 0.1);
+            color: #000;
             width: 50px;
             height: 50px;
             border-radius: 50%;
@@ -577,17 +535,18 @@
         }
 
         .player-button:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
         }
 
         .player-button.play-pause {
             width: 60px;
             height: 60px;
-            background: var(--primary-color);
+            background: #000;
+            color: #fff;
         }
 
         .player-button.play-pause:hover {
-            background: #3dbbb3;
+            background: #333;
             transform: scale(1.05);
         }
 
@@ -599,7 +558,7 @@
         .progress-container {
             width: 100%;
             height: 5px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.1);
             border-radius: 5px;
             cursor: pointer;
             margin-bottom: 10px;
@@ -607,7 +566,7 @@
 
         .progress-bar {
             height: 100%;
-            background: var(--primary-color);
+            background: #000;
             border-radius: 5px;
             width: 0%;
             transition: width 0.1s linear;
@@ -617,97 +576,7 @@
             display: flex;
             justify-content: space-between;
             font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .custom-audio-player {
-            display: none;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .profile-card {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-                padding: 25px 20px;
-            }
-
-            .avatar-container {
-                margin-bottom: 20px;
-            }
-
-            .profile-name {
-                justify-content: center;
-            }
-
-            .badges {
-                justify-content: center;
-            }
-
-            .profile-meta {
-                justify-content: center;
-            }
-
-            .social-links {
-                justify-content: center;
-            }
-
-            .profile-stats {
-                justify-content: center;
-            }
-
-            .stats-badge {
-                left: 50%;
-                transform: translateX(-50%);
-                width: 90%;
-                justify-content: center;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .songs-container {
-                grid-template-columns: 1fr;
-            }
-
-            .song-item {
-                padding: 12px;
-            }
-
-            .song-cover {
-                width: 60px;
-                height: 60px;
-            }
-
-            .stats-badge {
-                display: none;
-            }
-
-            .music-player-info {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .music-player-controls {
-                gap: 10px;
-            }
-
-            .player-button {
-                width: 40px;
-                height: 40px;
-            }
-
-            .player-button.play-pause {
-                width: 50px;
-                height: 50px;
-            }
-        }
-
-        /* Rate Limit Error */
-        .rate-limit-error {
-            color: var(--error-color);
-            font-size: 1.2rem;
-            margin-top: 1rem;
+            color: #666;
         }
 
         /* Typewriter animation */
@@ -722,7 +591,7 @@
 
         @keyframes typewriter-cursor {
             from, to { border-right-color: transparent; }
-            50% { border-right-color: var(--text-light); }
+            50% { border-right-color: #000; }
         }
 
         .typewriter-container {
@@ -735,7 +604,7 @@
             overflow: hidden;
             white-space: nowrap;
             margin: 0;
-            border-right: 2px solid var(--text-light);
+            border-right: 2px solid #000;
             animation: 
                 typewriter 2s steps(40, end) 1 forwards,
                 typewriter-cursor 0.75s step-end infinite;
@@ -748,11 +617,121 @@
             animation-delay: 4s;
         }
 
-        /* Title animation */
-        .animate-title {
-            display: inline-block;
-            overflow: hidden;
-            position: relative;
+        /* Background styles */
+        .bg-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            object-fit: cover;
+        }
+
+        .bg-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: -1;
+        }
+
+        /* Media queries for desktop */
+        @media (min-width: 768px) {
+            body {
+                padding: 40px;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+
+            .avatar {
+                width: 120px;
+                height: 120px;
+            }
+
+            .avatar-decoration {
+                width: 140px;
+                height: 140px;
+                top: -10px;
+                left: -10px;
+            }
+
+            .profile-name {
+                font-size: 32px;
+            }
+
+            .username {
+                font-size: 18px;
+            }
+
+            .tag {
+                width: 30px;
+                height: 30px;
+            }
+
+            .profile-container {
+                padding: 30px;
+                border-radius: 20px;
+            }
+
+            .bio {
+                font-size: 18px;
+            }
+
+            .profile-details {
+                font-size: 16px;
+            }
+
+            .social-icon {
+                width: 50px;
+                height: 50px;
+            }
+
+            .section-title {
+                font-size: 22px;
+            }
+
+            .song-item {
+                padding: 15px;
+                transition: transform 0.2s;
+            }
+
+            .song-item:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+
+            .song-cover {
+                width: 80px;
+                height: 80px;
+            }
+
+            .play-button {
+                width: 40px;
+                height: 40px;
+            }
+
+            .play-icon {
+                border-top: 15px solid transparent;
+                border-left: 25px solid #000;
+                border-bottom: 15px solid transparent;
+            }
+
+            .views-counter {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
@@ -780,16 +759,75 @@
         </div>
     </div>
 
-    <div id="appContent"></div>
+    <div id="backgroundContainer"></div>
+
+    <div class="profile-header">
+        <div class="avatar">
+            <img id="avatarImg" src="" alt="Profile Picture">
+            <div id="avatarDecoration" class="avatar-decoration" style="display: none;"></div>
+        </div>
+        <div class="profile-info">
+            <div class="profile-name">
+                <span id="profileName">Fly</span>
+                <div class="tags-container">
+                    <div class="tag tag-cyan"></div>
+                    <div class="tag tag-black"></div>
+                    <div class="tag tag-purple"></div>
+                </div>
+            </div>
+            <div class="username" id="username">@Myhigh</div>
+            <div class="joined-date" id="joinedDate">Joined Date</div>
+        </div>
+    </div>
+
+    <div class="profile-container" id="profileContainer">
+        <div class="bio" id="bio">This is my bio</div>
+        
+        <div class="profile-details">
+            <div class="detail-item" id="ageContainer">
+                <span>Age</span>
+            </div>
+            <div class="detail-item" id="genderContainer">
+                <span>Gender</span>
+            </div>
+            <div class="detail-item" id="otherDetails">
+                <span>Other things..</span>
+            </div>
+        </div>
+
+        <div class="social-links" id="socialLinks">
+            <a href="#" class="social-icon">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Pinterest-logo.png" alt="Pinterest">
+            </a>
+            <a href="#" class="social-icon">
+                <img src="https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Snapchat_logo.svg/1200px-Snapchat_logo.svg.png" alt="Snapchat">
+            </a>
+            <a href="#" class="social-icon">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Logo_of_Twitter.svg/512px-Logo_of_Twitter.svg.png" alt="Twitter">
+            </a>
+            <a href="#" class="social-icon">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/2048px-Spotify_logo_without_text.svg.png" alt="Spotify">
+            </a>
+        </div>
+    </div>
+
+    <div id="songsContainer" class="songs-section" style="display: none;">
+        <div class="section-title">
+            <i class="fas fa-music"></i> Music
+        </div>
+        <div id="songsList"></div>
+    </div>
+
+    <div class="views-counter" id="viewsCounter">Views</div>
 
     <div id="statsBadge" class="stats-badge" style="display: none;">
-        <div id="viewsCounter" class="stat-item">
+        <div id="viewsCounterBadge" class="stat-item">
             <i class="fas fa-eye stat-icon"></i>
-            <span id="viewCount">0</span>
+            <span id="viewCountBadge">0</span>
         </div>
-        <div id="joinedDate" class="stat-item">
+        <div id="joinedDateBadge" class="stat-item">
             <i class="fas fa-calendar-alt stat-icon"></i>
-            <span id="joinedDateText">Joined 6 months ago</span>
+            <span id="joinedDateTextBadge">Joined 6 months ago</span>
         </div>
     </div>
 
@@ -809,9 +847,6 @@
                         <div id="musicPlayerArtist" class="music-player-artist">Artist</div>
                     </div>
                 </div>
-                
-                <!-- Custom audio player -->
-                <audio id="audioPlayer" class="custom-audio-player"></audio>
                 
                 <div class="music-player-progress">
                     <div id="progressContainer" class="progress-container">
@@ -838,7 +873,8 @@
         </div>
     </div>
 
-    <script>
+    <audio id="audioPlayer" class="audio-player"></audio>
+        <script>
         const API_URL = 'https://versz-vs1b.onrender.com';
         const cache = new Map();
         let isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -967,40 +1003,32 @@
 
         function createBadgeElement(tag) {
             const badgeElement = document.createElement('div');
-            badgeElement.className = 'badge';
-            
-            const iconElement = document.createElement('span');
-            iconElement.className = 'badge-icon';
+            badgeElement.className = 'tag';
             
             if (tag.icon_type === 'svg') {
-                iconElement.innerHTML = tag.icon;
+                badgeElement.innerHTML = tag.icon;
             } else if (tag.icon_type === 'image' || tag.icon.startsWith('http')) {
                 const img = document.createElement('img');
                 img.src = tag.icon;
                 img.alt = tag.text;
                 img.style.width = '100%';
                 img.style.height = '100%';
-                iconElement.appendChild(img);
+                badgeElement.appendChild(img);
             } else if (tag.icon_type === 'emoji') {
-                iconElement.textContent = tag.icon;
+                badgeElement.textContent = tag.icon;
             }
             
-            const textElement = document.createElement('span');
-            textElement.textContent = tag.text;
-            
-            badgeElement.appendChild(iconElement);
-            badgeElement.appendChild(textElement);
-            
+            badgeElement.title = tag.text;
             return badgeElement;
         }
 
         function updateStatsBadge(data) {
             const statsBadge = document.getElementById('statsBadge');
-            const viewsCounter = document.getElementById('viewsCounter');
-            const viewCount = document.getElementById('viewCount');
-            const joinedDate = document.getElementById('joinedDate');
-            const joinedDateText = document.getElementById('joinedDateText');
-
+            const viewsCounter = document.getElementById('viewsCounterBadge');
+            const viewCount = document.getElementById('viewCountBadge');
+            const joinedDate = document.getElementById('joinedDateBadge');
+            const joinedDateText = document.getElementById('joinedDateTextBadge');
+        
             if (data.views !== undefined) {
                 viewCount.textContent = data.views;
                 viewsCounter.style.display = 'flex';
@@ -1008,7 +1036,7 @@
             } else {
                 viewsCounter.style.display = 'none';
             }
-
+        
             if (data.user && data.user.joined_at) {
                 const joinedTime = new Date(data.user.joined_at);
                 const now = new Date();
@@ -1017,13 +1045,13 @@
                 
                 let joinedString;
                 if (diffDays < 30) {
-                    joinedString = `Joined ${diffDays} days ago`;
+                    joinedString = `${diffDays} days ago`;
                 } else if (diffDays < 365) {
                     const months = Math.floor(diffDays / 30);
-                    joinedString = `Joined ${months} month${months > 1 ? 's' : ''} ago`;
+                    joinedString = `${months} month${months > 1 ? 's' : ''} ago`;
                 } else {
                     const years = Math.floor(diffDays / 365);
-                    joinedString = `Joined ${years} year${years > 1 ? 's' : ''} ago`;
+                    joinedString = `${years} year${years > 1 ? 's' : ''} ago`;
                 }
                 
                 joinedDateText.textContent = joinedString;
@@ -1032,13 +1060,13 @@
             } else {
                 joinedDate.style.display = 'none';
             }
-
+        
             // Hide stats badge if nothing to show
             if (viewsCounter.style.display === 'none' && joinedDate.style.display === 'none') {
                 statsBadge.style.display = 'none';
             }
         }
-
+        
         function getYoutubeEmbedUrl(url) {
             // Handle different YouTube URL formats
             let videoId = '';
@@ -1058,12 +1086,12 @@
             
             return null;
         }
-
+        
         function isDirectMediaUrl(url) {
             const mediaExtensions = ['.mp3', '.mp4', '.wav', '.ogg', '.webm'];
             return mediaExtensions.some(ext => url.toLowerCase().endsWith(ext));
         }
-
+        
         function loadAndPlaySong(song) {
             if (!song) return;
             
@@ -1126,7 +1154,7 @@
                 isPlaying = false;
             }
         }
-
+        
         function getYoutubeVideoId(url) {
             if (!url) return null;
             
@@ -1143,7 +1171,7 @@
             
             return videoId;
         }
-
+        
         function openMusicPlayer(song) {
             const overlay = document.getElementById('musicPlayerOverlay');
             
@@ -1160,7 +1188,7 @@
             // Show player
             overlay.style.display = 'flex';
         }
-
+        
         function closeMusicPlayer() {
             const overlay = document.getElementById('musicPlayerOverlay');
             const audio = document.getElementById('audioPlayer');
@@ -1178,7 +1206,7 @@
             // Hide player
             overlay.style.display = 'none';
         }
-
+        
         function startTitleAnimation(title) {
             if (!title) return;
             
@@ -1220,7 +1248,7 @@
                 }
             }, 150); // Adjust typing speed here
         }
-
+        
         async function loadContent() {
             const path = window.location.pathname.substring(1);
             const urlParams = new URLSearchParams(window.location.search);
@@ -1305,7 +1333,7 @@
                 showError(404, 'Page not found or failed to load');
             }
         }
-
+        
         function setupPreviewBanner(data) {
             const previewBanner = document.getElementById('previewBanner');
             const previewType = document.getElementById('previewType');
@@ -1344,7 +1372,7 @@
                 previewBanner.style.display = 'none';
             }
         }
-
+        
         function applyNameEffect(element, effect) {
             if (!element || !effect) return;
             
@@ -1372,9 +1400,9 @@
             }
             // Add other effects as needed
         }
-
+        
         async function renderContent(data) {
-            const appContent = document.getElementById('appContent');
+            const loading = document.getElementById('loading');
             if (!data || (!data.page && !data.is_preview)) {
                 showError(404, 'Page data not found');
                 return;
@@ -1387,351 +1415,459 @@
             // Set the page title with animation
             const pageTitle = page.title || user.name || "Profile Page";
             document.title = pageTitle;
-            startTitleAnimation(pageTitle + " | Users Page");
+            startTitleAnimation(pageTitle + "..");
             
-            // Create the main container
-            const container = document.createElement('div');
-            container.className = 'profile-container';
-            
-            // Apply background based on page settings
-            if (page.background) {
-                const bg = page.background;
-                if (bg.type === 'solid') {
-                    document.body.style.backgroundColor = bg.value;
-                    document.body.style.backgroundImage = 'none';
-                } else if (bg.type === 'gradient') {
-                    document.body.style.backgroundImage = bg.value;
-                } else if (bg.type === 'image') {
-                    document.body.style.backgroundImage = `url(${bg.value})`;
-                    document.body.style.backgroundSize = 'cover';
-                }
-                
-                if (bg.opacity < 1) {
-                    const overlay = document.createElement('div');
-                    overlay.style.position = 'fixed';
-                    overlay.style.top = '0';
-                    overlay.style.left = '0';
-                    overlay.style.width = '100%';
-                    overlay.style.height = '100%';
-                    overlay.style.backgroundColor = 'rgba(0,0,0,' + (1 - bg.opacity) + ')';
-                    overlay.style.zIndex = '1';
-                    document.body.appendChild(overlay);
-                }
-            }
-            
-            // Create profile card
-            const profileCard = document.createElement('div');
-            profileCard.className = 'profile-card';
-
-            // Avatar with decoration
+            // Set avatar
             if (page.avatar_url) {
-                const avatarContainer = document.createElement('div');
-                avatarContainer.className = 'avatar-container';
-                
-                const avatar = document.createElement('img');
-                avatar.className = 'avatar';
-                avatar.src = page.avatar_url;
-                avatar.alt = page.name || user.name || 'User';
-                avatar.onerror = () => {
-                    avatar.src = 'https://via.placeholder.com/150?text=User';
+                document.getElementById('avatarImg').src = page.avatar_url;
+                document.getElementById('avatarImg').onerror = function() {
+                    this.src = 'https://via.placeholder.com/150?text=User';
                 };
-                avatarContainer.appendChild(avatar);
-                
-                // Add avatar decoration if available
-                if (page.avatar_decoration) {
-                    const decoration = document.createElement('img');
-                    decoration.className = 'avatar-decoration';
-                    decoration.src = page.avatar_decoration;
-                    decoration.alt = '';
-                    avatarContainer.appendChild(decoration);
-                }
-                
-                profileCard.appendChild(avatarContainer);
             }
             
-            // Profile info
-            const profileInfo = document.createElement('div');
-            profileInfo.className = 'profile-info';
-            
-            const profileHeader = document.createElement('div');
-            profileHeader.className = 'profile-header';
-            
-            // Display name with badges
-            if (page.name || user.name) {
-                const nameContainer = document.createElement('div');
-                nameContainer.className = 'profile-name';
-                
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = page.name || user.name;
-                nameContainer.appendChild(nameSpan);
-                
-                // Apply name effect if specified
-                if (page.name_effect) {
-                    applyNameEffect(nameSpan, page.name_effect);
-                }
-                
-                // Add badges/tags
-                if (user.tags && user.tags.length > 0) {
-                    const badgesContainer = document.createElement('div');
-                    badgesContainer.className = 'badges';
-                    
-                    user.tags.forEach(tag => {
-                        badgesContainer.appendChild(createBadgeElement(tag));
-                    });
-                    
-                    nameContainer.appendChild(badgesContainer);
-                }
-                
-                profileHeader.appendChild(nameContainer);
+            // Set avatar decoration
+            if (page.avatar_decoration) {
+                const decorationElement = document.getElementById('avatarDecoration');
+                decorationElement.style.display = 'block';
+                decorationElement.innerHTML = `<img src="${page.avatar_decoration}" alt="Decoration">`;
+            } else {
+                document.getElementById('avatarDecoration').style.display = 'none';
             }
             
-            // Username
-            if (user.username) {
-                const username = document.createElement('div');
-                username.className = 'profile-username';
-                username.textContent = '@' + user.username;
-                profileHeader.appendChild(username);
+            // Set name and username
+            document.getElementById('profileName').textContent = page.name || user.name || 'User';
+            document.getElementById('username').textContent = user.username ? `@${user.username}` : '@user';
+            
+            // Apply name effect if specified
+            if (page.name_effect) {
+                applyNameEffect(document.getElementById('profileName'), page.name_effect);
             }
             
-            profileInfo.appendChild(profileHeader);
-
-            // Stats display (views and joined date) directly below name in profile card
-            if (data.views !== undefined || (user && user.joined_at)) {
-                const profileStats = document.createElement('div');
-                profileStats.className = 'profile-stats';
+            // Set joined date
+            if (user.joined_at) {
+                const joinedTime = new Date(user.joined_at);
+                const now = new Date();
+                const diffTime = Math.abs(now - joinedTime);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
-                if (data.views !== undefined) {
-                    const viewsItem = document.createElement('div');
-                    viewsItem.className = 'stat-item';
-                    viewsItem.innerHTML = `<i class="fas fa-eye stat-icon"></i> ${data.views} views`;
-                    profileStats.appendChild(viewsItem);
+                let joinedString;
+                if (diffDays < 30) {
+                    joinedString = `Joined ${diffDays} days ago`;
+                } else if (diffDays < 365) {
+                    const months = Math.floor(diffDays / 30);
+                    joinedString = `Joined ${months} month${months > 1 ? 's' : ''} ago`;
+                } else {
+                    const years = Math.floor(diffDays / 365);
+                    joinedString = `Joined ${years} year${years > 1 ? 's' : ''} ago`;
                 }
                 
-                if (user && user.joined_at) {
-                    const joinedTime = new Date(user.joined_at);
-                    const now = new Date();
-                    const diffTime = Math.abs(now - joinedTime);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
-                    let joinedString;
-                    if (diffDays < 30) {
-                        joinedString = `${diffDays} days ago`;
-                    } else if (diffDays < 365) {
-                        const months = Math.floor(diffDays / 30);
-                        joinedString = `${months} month${months > 1 ? 's' : ''} ago`;
-                    } else {
-                        const years = Math.floor(diffDays / 365);
-                        joinedString = `${years} year${years > 1 ? 's' : ''} ago`;
-                    }
-                    
-                    const joinedItem = document.createElement('div');
-                    joinedItem.className = 'stat-item';
-                    joinedItem.innerHTML = `<i class="fas fa-calendar-alt stat-icon"></i> Joined ${joinedString}`;
-                    profileStats.appendChild(joinedItem);
-                }
-                
-                profileInfo.appendChild(profileStats);
+                document.getElementById('joinedDate').textContent = joinedString;
+                document.getElementById('joinedDate').style.display = 'block';
+            } else {
+                document.getElementById('joinedDate').style.display = 'none';
             }
             
-            // Bio
+            // Set bio
             if (page.bio) {
-                const bio = document.createElement('div');
-                bio.className = 'profile-bio';
-                bio.textContent = page.bio;
+                document.getElementById('bio').textContent = page.bio;
+                document.getElementById('bio').style.display = 'block';
                 
                 // Apply bio effect if specified
                 if (page.bio_effect) {
-                    applyNameEffect(bio, page.bio_effect);
+                    applyNameEffect(document.getElementById('bio'), page.bio_effect);
                 }
-                
-                profileInfo.appendChild(bio);
+            } else {
+                document.getElementById('bio').style.display = 'none';
             }
             
-            // Meta information (location, age, gender, pronouns)
-            const metaInfo = document.createElement('div');
-            metaInfo.className = 'profile-meta';
+            // Set user details
+            const ageContainer = document.getElementById('ageContainer');
+            const genderContainer = document.getElementById('genderContainer');
+            const otherDetails = document.getElementById('otherDetails');
             
-            let hasMetaInfo = false;
-            
-            if (user.location) {
-                hasMetaInfo = true;
-                const locationItem = document.createElement('div');
-                locationItem.className = 'meta-item';
-                locationItem.innerHTML = `<i class="fas fa-map-marker-alt stat-icon"></i> ${user.location}`;
-                metaInfo.appendChild(locationItem);
-            }
+            // Reset details
+            ageContainer.textContent = '';
+            genderContainer.textContent = '';
+            otherDetails.textContent = '';
             
             if (user.age) {
-                hasMetaInfo = true;
-                const ageItem = document.createElement('div');
-                ageItem.className = 'meta-item';
-                ageItem.innerHTML = `<i class="fas fa-birthday-cake stat-icon"></i> ${user.age}`;
-                metaInfo.appendChild(ageItem);
+                ageContainer.textContent = `Age: ${user.age}`;
+                ageContainer.style.display = 'block';
+            } else {
+                ageContainer.style.display = 'none';
             }
             
             if (user.gender) {
-                hasMetaInfo = true;
-                const genderItem = document.createElement('div');
-                genderItem.className = 'meta-item';
-                genderItem.innerHTML = `<i class="fas fa-venus-mars stat-icon"></i> ${user.gender}`;
-                metaInfo.appendChild(genderItem);
+                genderContainer.textContent = `Gender: ${user.gender}`;
+                genderContainer.style.display = 'block';
+            } else {
+                genderContainer.style.display = 'none';
             }
             
             if (user.pronouns) {
-                hasMetaInfo = true;
-                const pronounsItem = document.createElement('div');
-                pronounsItem.className = 'meta-item';
-                pronounsItem.innerHTML = `<i class="fas fa-user stat-icon"></i> ${user.pronouns}`;
-                metaInfo.appendChild(pronounsItem);
+                otherDetails.textContent = user.pronouns;
+                otherDetails.style.display = 'block';
+            } else {
+                otherDetails.style.display = 'none';
             }
             
-            if (hasMetaInfo) {
-                profileInfo.appendChild(metaInfo);
+            // Set background
+            setBackground(page.background);
+            
+            // Set container style
+            setContainerStyle(page.layout);
+            
+            // Set social links
+            renderSocialLinks(page.social_links || []);
+            
+            // Set songs
+            renderSongs(page.songs || []);
+            
+            // Set views counter
+            if (data.views !== undefined) {
+                document.getElementById('viewsCounter').textContent = `Views: ${data.views}`;
+                document.getElementById('viewsCounter').style.display = 'block';
+            } else {
+                document.getElementById('viewsCounter').style.display = 'none';
             }
             
-            // Social links
-            if (page.social_links && page.social_links.length > 0) {
-                const socialLinks = document.createElement('div');
-                socialLinks.className = 'social-links';
-                
-                page.social_links.forEach(link => {
-                    let iconClass;
-                    switch(link.platform.toLowerCase()) {
-                        case 'instagram': iconClass = 'fab fa-instagram'; break;
-                        case 'twitter': iconClass = 'fab fa-twitter'; break;
-                        case 'facebook': iconClass = 'fab fa-facebook-f'; break;
-                        case 'youtube': iconClass = 'fab fa-youtube'; break;
-                        case 'tiktok': iconClass = 'fab fa-tiktok'; break;
-                        case 'github': iconClass = 'fab fa-github'; break;
-                        case 'twitch': iconClass = 'fab fa-twitch'; break;
-                        case 'spotify': iconClass = 'fab fa-spotify'; break;
-                        case 'discord': iconClass = 'fab fa-discord'; break;
-                        case 'linkedin': iconClass = 'fab fa-linkedin-in'; break;
-                        case 'reddit': iconClass = 'fab fa-reddit-alien'; break;
-                        case 'email': iconClass = 'fas fa-envelope'; break;
-                        default: iconClass = 'fas fa-link';
-                    }
-                    
-                    const socialLink = document.createElement('a');
-                    socialLink.className = 'social-link';
-                    socialLink.href = link.url;
-                    socialLink.target = '_blank';
-                    socialLink.rel = 'noopener noreferrer';
-                    socialLink.innerHTML = `<i class="${iconClass}"></i>`;
-                    socialLink.title = link.display_name || link.platform;
-                    
-                    socialLinks.appendChild(socialLink);
-                });
-                
-                profileInfo.appendChild(socialLinks);
-            }
-            
-            profileCard.appendChild(profileInfo);
-            container.appendChild(profileCard);
-            
-            // Songs section
-            if (page.songs && page.songs.length > 0) {
-                // Store songs list for player navigation
-                songsList = page.songs;
-                
-                const songsSection = document.createElement('div');
-                songsSection.className = 'songs-section';
-                
-                const sectionTitle = document.createElement('div');
-                sectionTitle.className = 'section-title';
-                sectionTitle.innerHTML = '<i class="fas fa-music"></i> Music';
-                songsSection.appendChild(sectionTitle);
-                
-                const songsContainer = document.createElement('div');
-                songsContainer.className = 'songs-container';
-                
-                page.songs.forEach((song, index) => {
-                    const songItem = document.createElement('div');
-                    songItem.className = 'song-item';
-                    songItem.addEventListener('click', () => {
-                        currentSongIndex = index;
-                        openMusicPlayer(song);
-                    });
-                    
-                    const songCover = document.createElement('div');
-                    songCover.className = 'song-cover';
-                    const coverImg = document.createElement('img');
-                    coverImg.src = song.cover_url;
-                    coverImg.alt = song.title;
-                    coverImg.onerror = () => {
-                        coverImg.src = 'https://via.placeholder.com/60?text=Music';
-                    };
-                    songCover.appendChild(coverImg);
-                    
-                    const songInfo = document.createElement('div');
-                    songInfo.className = 'song-info';
-                    
-                    const songTitle = document.createElement('div');
-                    songTitle.className = 'song-title';
-                    songTitle.textContent = song.title;
-                    
-                    const songArtist = document.createElement('div');
-                    songArtist.className = 'song-artist';
-                    songArtist.textContent = song.artist;
-                    
-                    songInfo.appendChild(songTitle);
-                    songInfo.appendChild(songArtist);
-                    
-                    const songActions = document.createElement('div');
-                    songActions.className = 'song-actions';
-                    
-                    const playButton = document.createElement('button');
-                    playButton.className = 'play-button';
-                    playButton.innerHTML = '<i class="fas fa-play"></i>';
-                    playButton.title = 'Play';
-                    
-                    songActions.appendChild(playButton);
-                    
-                    songItem.appendChild(songCover);
-                    songItem.appendChild(songInfo);
-                    songItem.appendChild(songActions);
-                    
-                    songsContainer.appendChild(songItem);
-                });
-                
-                songsSection.appendChild(songsContainer);
-                container.appendChild(songsSection);
-            }
+            // Set tags
+            renderTags(user.tags || []);
             
             // Apply custom CSS if provided
             if (page.custom_css) {
-                const customStyle = document.createElement('style');
-                customStyle.textContent = page.custom_css;
-                document.head.appendChild(customStyle);
+                // Check if we've already added this custom CSS
+                const existingStyle = document.getElementById('customUserCSS');
+                if (existingStyle) {
+                    existingStyle.textContent = page.custom_css;
+                } else {
+                    const customStyle = document.createElement('style');
+                    customStyle.id = 'customUserCSS';
+                    customStyle.textContent = page.custom_css;
+                    document.head.appendChild(customStyle);
+                }
             }
-            
-            // Apply custom JS if provided
-            if (page.custom_js) {
-                const customScript = document.createElement('script');
-                customScript.textContent = page.custom_js;
-                document.body.appendChild(customScript);
-            }
-            
-            // Render the content
-            appContent.innerHTML = '';
-            appContent.appendChild(container);
-            
-            // Initialize audio player
-            initAudioPlayer();
             
             // Hide loading screen
-            const loading = document.getElementById('loading');
             if (loading) {
                 loading.style.opacity = '0';
                 setTimeout(() => {
                     loading.style.display = 'none';
                 }, 300);
             }
-
-            // Hide the stats badge since we're now showing stats in the profile card
-            document.getElementById('statsBadge').style.display = 'none';
         }
-
+        
+        // Function to set background
+        function setBackground(background) {
+            if (!background) return;
+            
+            const bgContainer = document.getElementById('backgroundContainer');
+            bgContainer.innerHTML = '';
+            
+            if (background.type === 'solid') {
+                document.body.style.backgroundColor = background.value;
+                document.body.style.backgroundImage = 'none';
+            } else if (background.type === 'gradient') {
+                document.body.style.background = background.value;
+            } else if (background.type === 'image') {
+                const img = document.createElement('img');
+                img.src = background.value;
+                img.className = 'bg-image';
+                bgContainer.appendChild(img);
+                
+                if (background.opacity < 1) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'bg-overlay';
+                    overlay.style.opacity = 1 - background.opacity;
+                    bgContainer.appendChild(overlay);
+                }
+            } else if (background.type === 'video') {
+                const video = document.createElement('video');
+                video.src = background.value;
+                video.className = 'bg-video';
+                video.autoplay = true;
+                video.loop = true;
+                video.muted = true;
+                bgContainer.appendChild(video);
+                
+                if (background.opacity < 1) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'bg-overlay';
+                    overlay.style.opacity = 1 - background.opacity;
+                    bgContainer.appendChild(overlay);
+                }
+            }
+        }
+        
+        // Function to set container style
+        function setContainerStyle(layout) {
+            if (!layout) return;
+            
+            const profileContainer = document.getElementById('profileContainer');
+            
+            if (layout.container_style && layout.container_style.enabled) {
+                // Apply container background color or gradient
+                if (layout.container_style.background_color) {
+                    profileContainer.style.backgroundColor = layout.container_style.background_color;
+                }
+                
+                if (layout.container_style.gradient) {
+                    profileContainer.style.background = layout.container_style.gradient;
+                }
+                
+                // Apply opacity
+                if (layout.container_style.opacity !== undefined) {
+                    profileContainer.style.opacity = layout.container_style.opacity;
+                }
+                
+                // Apply border radius
+                if (layout.container_style.border_radius !== undefined) {
+                    profileContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
+                }
+                
+                // Apply border color
+                if (layout.container_style.border_color) {
+                    profileContainer.style.borderColor = layout.container_style.border_color;
+                }
+                
+                // Apply shadow
+                if (layout.container_style.shadow) {
+                    profileContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+                } else {
+                    profileContainer.style.boxShadow = 'none';
+                }
+            } else {
+                // If container is disabled, remove borders and background
+                profileContainer.style.border = 'none';
+                profileContainer.style.backgroundColor = 'transparent';
+                profileContainer.style.boxShadow = 'none';
+            }
+        }
+        
+        // Function to render social links
+        function renderSocialLinks(links) {
+            const socialLinksContainer = document.getElementById('socialLinks');
+            socialLinksContainer.innerHTML = '';
+            
+            if (!links || links.length === 0) {
+                socialLinksContainer.style.display = 'none';
+                return;
+            }
+            
+            socialLinksContainer.style.display = 'flex';
+            
+            const socialIcons = {
+                'instagram': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/2048px-Instagram_icon.png',
+                'twitter': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Logo_of_Twitter.svg/512px-Logo_of_Twitter.svg.png',
+                'facebook': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/2021_Facebook_icon.svg/2048px-2021_Facebook_icon.svg.png',
+                'tiktok': 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/TikTok_logo.svg/1024px-TikTok_logo.svg.png',
+                'youtube': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/2560px-YouTube_full-color_icon_%282017%29.svg.png',
+                'linkedin': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/LinkedIn_logo_initials.png/800px-LinkedIn_logo_initials.png',
+                'github': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/2048px-Octicons-mark-github.svg.png',
+                'twitch': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Twitch_logo.svg/2560px-Twitch_logo.svg.png',
+                'spotify': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/2048px-Spotify_logo_without_text.svg.png',
+                'snapchat': 'https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Snapchat_logo.svg/1200px-Snapchat_logo.svg.png',
+                'discord': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Discord_Mark.svg/2048px-Discord_Mark.svg.png',
+                'pinterest': 'https://upload.wikimedia.org/wikipedia/commons/0/08/Pinterest-logo.png',
+                'reddit': 'https://upload.wikimedia.org/wikipedia/en/thumb/5/58/Reddit_logo_new.svg/2560px-Reddit_logo_new.svg.png',
+                'email': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Gmail_icon_%282020%29.svg/2560px-Gmail_icon_%282020%29.svg.png'
+            };
+            
+            links.forEach(link => {
+                const linkElement = document.createElement('a');
+                linkElement.href = link.url;
+                linkElement.className = 'social-icon';
+                linkElement.target = '_blank';
+                linkElement.rel = 'noopener noreferrer';
+                
+                const imgElement = document.createElement('img');
+                
+                // Use icon from link if provided, otherwise use default icon for platform
+                if (link.icon) {
+                    imgElement.src = link.icon;
+                } else {
+                    const platform = link.platform.toLowerCase();
+                    imgElement.src = socialIcons[platform] || 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Computer_keyboarding_pictogram.svg/1024px-Computer_keyboarding_pictogram.svg.png';
+                }
+                
+                imgElement.alt = link.display_name || link.platform;
+                linkElement.appendChild(imgElement);
+                
+                socialLinksContainer.appendChild(linkElement);
+            });
+        }
+        
+        // Function to render songs
+        function renderSongs(songs) {
+            const songsContainer = document.getElementById('songsContainer');
+            const songsList = document.getElementById('songsList');
+            songsList.innerHTML = '';
+            
+            if (!songs || songs.length === 0) {
+                songsContainer.style.display = 'none';
+                return;
+            }
+            
+            songsContainer.style.display = 'block';
+            
+            const audioPlayer = document.getElementById('audioPlayer');
+            songsList = songs; // Store songs for global reference
+            
+            songs.forEach((song, index) => {
+                const songItem = document.createElement('div');
+                songItem.className = 'song-item';
+                
+                const songCover = document.createElement('div');
+                songCover.className = 'song-cover';
+                
+                const coverImg = document.createElement('img');
+                coverImg.src = song.cover_url;
+                coverImg.alt = song.title;
+                coverImg.onerror = () => {
+                    coverImg.src = 'https://via.placeholder.com/60?text=Music';
+                };
+                songCover.appendChild(coverImg);
+                
+                const songInfo = document.createElement('div');
+                songInfo.className = 'song-info';
+                
+                const songTitle = document.createElement('div');
+                songTitle.className = 'song-title';
+                songTitle.textContent = song.title;
+                
+                const songArtist = document.createElement('div');
+                songArtist.className = 'song-artist';
+                songArtist.textContent = song.artist;
+                
+                songInfo.appendChild(songTitle);
+                songInfo.appendChild(songArtist);
+                
+                const playButton = document.createElement('button');
+                playButton.className = 'play-button';
+                playButton.innerHTML = '<div class="play-icon"></div>';
+                
+                // Setup play functionality
+                songItem.addEventListener('click', function() {
+                    // Extract audio URL from YouTube URL or use direct audio URL
+                    let audioUrl = '';
+                    
+                    if (song.youtube_url) {
+                        if (isDirectMediaUrl(song.youtube_url)) {
+                            audioUrl = song.youtube_url;
+                        } else if (song.audio_url) {
+                            audioUrl = song.audio_url;
+                        } else {
+                            // For YouTube links - this is a placeholder
+                            // In a real implementation you'd need server-side processing
+                            console.warn("YouTube links need server-side processing for audio extraction");
+                            // Use a placeholder or streaming service URL
+                            audioUrl = song.youtube_url; // This won't play directly but shows the intent
+                        }
+                    }
+                    
+                    currentSongIndex = index;
+                    
+                    // If we have a mobile player or popup, use it
+                    if (window.innerWidth <= 768) {
+                        openMusicPlayer(song);
+                    } else {
+                        // Otherwise just play directly
+                        if (audioUrl) {
+                            // If current song is playing, pause it
+                            if (audioPlayer.src === audioUrl && !audioPlayer.paused) {
+                                audioPlayer.pause();
+                                playButton.innerHTML = '<div class="play-icon"></div>';
+                            } else {
+                                // Play new song
+                                audioPlayer.src = audioUrl;
+                                audioPlayer.play()
+                                    .then(() => {
+                                        // Update all play buttons to show play icon
+                                        document.querySelectorAll('.play-button').forEach(btn => {
+                                            btn.innerHTML = '<div class="play-icon"></div>';
+                                        });
+                                        
+                                        // Update this button to show pause icon
+                                        playButton.innerHTML = '<div class="pause-icon"></div>';
+                                    })
+                                    .catch(error => {
+                                        console.error('Error playing audio:', error);
+                                    });
+                            }
+                        }
+                    }
+                });
+                
+                songItem.appendChild(songCover);
+                songItem.appendChild(songInfo);
+                songItem.appendChild(playButton);
+                
+                songsList.appendChild(songItem);
+            });
+            
+            // When song ends, play next song
+            audioPlayer.onended = function() {
+                currentSongIndex = (currentSongIndex + 1) % songs.length;
+                const nextSong = songs[currentSongIndex];
+                
+                if (window.innerWidth <= 768) {
+                    loadAndPlaySong(nextSong);
+                } else {
+                    const songItems = document.querySelectorAll('.song-item');
+                    if (songItems[currentSongIndex]) {
+                        songItems[currentSongIndex].click();
+                    }
+                }
+            };
+        }
+        
+        // Function to render tags
+        function renderTags(tags) {
+            const tagsContainer = document.querySelector('.tags-container');
+            tagsContainer.innerHTML = '';
+            
+            if (!tags || tags.length === 0) {
+                // Add default tags as shown in the prototype
+                const cyanTag = document.createElement('div');
+                cyanTag.className = 'tag tag-cyan';
+                
+                const blackTag = document.createElement('div');
+                blackTag.className = 'tag tag-black';
+                
+                const purpleTag = document.createElement('div');
+                purpleTag.className = 'tag tag-purple';
+                
+                tagsContainer.appendChild(cyanTag);
+                tagsContainer.appendChild(blackTag);
+                tagsContainer.appendChild(purpleTag);
+                return;
+            }
+            
+            // Create tags from user data
+            tags.forEach(tag => {
+                const tagElement = document.createElement('div');
+                tagElement.className = 'tag';
+                
+                if (tag.icon_type === 'emoji') {
+                    tagElement.textContent = tag.icon;
+                    tagElement.title = tag.text;
+                } else if (tag.icon_type === 'svg') {
+                    tagElement.innerHTML = tag.icon;
+                    tagElement.title = tag.text;
+                } else if (tag.icon_type === 'image') {
+                    const imgElement = document.createElement('img');
+                    imgElement.src = tag.icon;
+                    imgElement.alt = tag.text;
+                    imgElement.style.width = '100%';
+                    imgElement.style.height = '100%';
+                    tagElement.appendChild(imgElement);
+                    tagElement.title = tag.text;
+                }
+                
+                tagsContainer.appendChild(tagElement);
+            });
+        }
+        
         function showError(code, message) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'flex';
@@ -1740,8 +1876,17 @@
             document.getElementById('rateLimitMessage').style.display = code === 429 ? 'block' : 'none';
         }
         
-        // Load content when page is ready
-        document.addEventListener('DOMContentLoaded', loadContent);
-    </script>
+        // Initialize the page when loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize audio player
+            initAudioPlayer();
+            
+            // Load content
+            loadContent();
+            
+            // Global function for music player
+            window.closeMusicPlayer = closeMusicPlayer;
+        });
+</script>
 </body>
 </html>
