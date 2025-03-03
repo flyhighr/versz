@@ -8,14 +8,16 @@ import logging
 import secrets
 import hashlib
 import json
+import base64
 from functools import lru_cache
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Optional, List, Dict, Any, Union, Set
 from contextlib import asynccontextmanager
+import pytz
 
-from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends, Form, Body, BackgroundTasks, Query
+from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends, Form, Body, BackgroundTasks, Query, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -64,6 +66,7 @@ class Settings:
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
     MAX_AVATAR_SIZE: int = 1024 * 1024  # 1MB
     PREVIEW_EXPIRATION_MINUTES: int = 30  # How long preview pages are valid
+    IMGBB_API_KEY: str = os.getenv("IMGBB_API_KEY", "YOUR_IMGBB_API_KEY")
     DEFAULT_TAGS = {
         "early_supporter": {
             "icon": """<svg viewBox="0 0 24 24" width="24" height="24">
@@ -78,9 +81,42 @@ class Settings:
             "icon_type": "emoji"
         }
     }
-    DEFAULT_LAYOUTS = ["simple", "card", "modern", "minimalist", "creative"]
+    DEFAULT_LAYOUT = "standard"
     DEFAULT_EFFECTS = ["typewriter", "fade-in", "bounce", "pulse", "none"]
     DEFAULT_BACKGROUND_TYPES = ["solid", "gradient", "image", "video"]
+    DEFAULT_FONTS = [
+        {
+            "name": "Open Sans",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
+            "family": "'Open Sans', sans-serif"
+        },
+        {
+            "name": "Roboto",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Roboto&display=swap' rel='stylesheet'>",
+            "family": "'Roboto', sans-serif"
+        },
+        {
+            "name": "Lato",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Lato&display=swap' rel='stylesheet'>",
+            "family": "'Lato', sans-serif"
+        },
+        {
+            "name": "Montserrat",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Montserrat&display=swap' rel='stylesheet'>",
+            "family": "'Montserrat', sans-serif"
+        },
+        {
+            "name": "Poppins",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Poppins&display=swap' rel='stylesheet'>",
+            "family": "'Poppins', sans-serif"
+        },
+        {
+            "name": "Annie Use Your Telescope",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Annie+Use+Your+Telescope&display=swap' rel='stylesheet'>",
+            "family": "'Annie Use Your Telescope', cursive"
+        }
+    ]
+    TIMEZONES = [tz for tz in pytz.all_timezones]
 
 
 settings = Settings()
@@ -191,7 +227,7 @@ class ContainerStyle(BaseModel):
 
 
 class PageLayout(BaseModel):
-    type: str = Field(..., description="Layout type: simple, card, modern, etc.")
+    type: str = Field(default=settings.DEFAULT_LAYOUT, description="Layout type")
     container_style: ContainerStyle = ContainerStyle()
 
 
@@ -201,6 +237,19 @@ class TextEffect(BaseModel):
     delay: Optional[int] = None
 
 
+class FontConfig(BaseModel):
+    name: str
+    link: str
+    family: str
+
+
+class TextStyle(BaseModel):
+    font: Optional[FontConfig] = None
+    color: Optional[str] = None
+    size: Optional[int] = None
+    weight: Optional[str] = None
+
+
 class ProfilePage(BaseModel):
     page_id: Optional[str] = None
     url: str
@@ -208,9 +257,9 @@ class ProfilePage(BaseModel):
     name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_decoration: Optional[str] = None  # URL to decoration image (replaces animation)
+    avatar_decoration: Optional[str] = None
     background: BackgroundConfig
-    layout: PageLayout
+    layout: PageLayout = PageLayout()
     social_links: List[SocialLink] = []
     songs: List[Song] = []
     show_joined_date: bool = True
@@ -223,6 +272,8 @@ class ProfilePage(BaseModel):
     pronouns: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+    name_style: Optional[TextStyle] = None
+    bio_style: Optional[TextStyle] = None
 
 
 class PageUpdate(BaseModel):
@@ -230,7 +281,7 @@ class PageUpdate(BaseModel):
     name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_decoration: Optional[str] = None  # URL to decoration image
+    avatar_decoration: Optional[str] = None
     background: Optional[BackgroundConfig] = None
     layout: Optional[PageLayout] = None
     social_links: Optional[List[SocialLink]] = None
@@ -245,6 +296,8 @@ class PageUpdate(BaseModel):
     pronouns: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+    name_style: Optional[TextStyle] = None
+    bio_style: Optional[TextStyle] = None
 
 
 class PreviewRequest(BaseModel):
@@ -270,7 +323,7 @@ class DisplayPreferences(BaseModel):
     show_age: bool = True
     show_gender: bool = True
     show_pronouns: bool = True
-    default_layout: str = "simple"
+    default_layout: str = settings.DEFAULT_LAYOUT
     default_background: BackgroundConfig = BackgroundConfig(
         type="solid", 
         value="#ffffff"
@@ -299,17 +352,29 @@ class UserCreate(UserBase):
 
 class UserOnboarding(BaseModel):
     name: str
-    avatar_url: Optional[str] = None
     username: str
+    birth_date: date
     location: Optional[str] = None
-    age: Optional[int] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
+    timezone: Optional[str] = None
     
     @validator('username')
     def validate_username(cls, v):
         if not v.isalnum() and not all(c.isalnum() or c == '_' for c in v):
             raise ValueError('Username can only contain alphanumeric characters and underscores')
+        return v
+    
+    @validator('timezone')
+    def validate_timezone(cls, v):
+        if v and v not in pytz.all_timezones:
+            raise ValueError('Invalid timezone')
+        return v
+    
+    @validator('birth_date')
+    def validate_birth_date(cls, v):
+        if v > datetime.now().date():
+            raise ValueError('Birth date cannot be in the future')
         return v
 
 
@@ -323,7 +388,7 @@ class UserResponse(UserBase):
     username: Optional[str] = None
     name: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_decoration: Optional[str] = None  # URL to decoration image
+    avatar_decoration: Optional[str] = None
     is_verified: bool
     page_count: int
     joined_at: datetime
@@ -331,9 +396,12 @@ class UserResponse(UserBase):
     display_preferences: DisplayPreferences
     location: Optional[str] = None
     age: Optional[int] = None
+    birth_date: Optional[date] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
-    bio: Optional[str] = None  # Add this line to include the bio field
+    bio: Optional[str] = None
+    timezone: Optional[str] = None
+
 
 class UserPasswordReset(BaseModel):
     email: EmailStr
@@ -385,6 +453,13 @@ class URLCheckResponse(BaseModel):
 class PreviewResponse(BaseModel):
     preview_id: str
     expires_at: datetime
+
+
+class ImageUploadResponse(BaseModel):
+    url: str
+    success: bool
+    display_url: Optional[str] = None
+    delete_url: Optional[str] = None
 
 
 # Database connection
@@ -622,30 +697,45 @@ async def increment_page_views(db: AsyncIOMotorDatabase, url: str, device_hash: 
         return views
 
 
-async def validate_avatar(avatar_url: str) -> bool:
-    """Validate if the avatar URL is valid and the file is appropriate"""
+async def calculate_age(birth_date: date) -> int:
+    """Calculate age from birth date"""
+    today = date.today()
+    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    return age
+
+
+async def upload_image_to_imgbb(image_data: bytes, image_name: str = "image") -> Dict[str, Any]:
+    """Upload image to ImgBB and return the result"""
     try:
+        # Convert the image to base64
+        base64_image = base64.b64encode(image_data).decode('utf-8')
+        
+        # Prepare the upload data
+        data = {
+            'key': settings.IMGBB_API_KEY,
+            'image': base64_image,
+            'name': image_name
+        }
+        
+        # Upload to ImgBB
         async with httpx.AsyncClient() as client:
-            response = await client.head(avatar_url, follow_redirects=True)
+            response = await client.post('https://api.imgbb.com/1/upload', data=data)
             
-            if response.status_code != 200:
-                return False
-                
-            content_type = response.headers.get("content-type", "")
-            content_length = int(response.headers.get("content-length", "0"))
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success', False):
+                    return {
+                        'success': True,
+                        'url': result['data']['url'],
+                        'display_url': result['data']['display_url'],
+                        'delete_url': result['data']['delete_url']
+                    }
             
-            # Check if it's an image or a gif
-            if not (content_type.startswith("image/") or content_type == "image/gif"):
-                return False
-                
-            # Check if it's under the size limit
-            if content_length > settings.MAX_AVATAR_SIZE:
-                return False
-                
-            return True
+            logger.error(f"Error uploading to ImgBB: {response.text}")
+            return {'success': False}
     except Exception as e:
-        logger.error(f"Error validating avatar: {str(e)}")
-        return False
+        logger.error(f"Exception uploading to ImgBB: {str(e)}")
+        return {'success': False}
 
 
 async def validate_decoration(decoration_url: str) -> bool:
@@ -791,7 +881,7 @@ async def register_user(
                 "show_age": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_layout": "simple",
+                "default_layout": settings.DEFAULT_LAYOUT,
                 "default_background": {
                     "type": "solid",
                     "value": "#ffffff"
@@ -908,8 +998,10 @@ async def register_user(
             "display_preferences": DisplayPreferences(),
             "location": None,
             "age": None,
+            "birth_date": None,
             "gender": None,
-            "pronouns": None
+            "pronouns": None,
+            "timezone": None
         }
 
 
@@ -1104,16 +1196,17 @@ async def verify_email(request: Request, token: str):
                 "show_age": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_layout": "simple",
+                "default_layout": settings.DEFAULT_LAYOUT,
                 "default_background": {
                     "type": "solid",
                     "value": "#ffffff"
                 }
             }),
             "location": pending_user.get("location"),
-            "age": pending_user.get("age"),
+            "birth_date": pending_user.get("birth_date"),
             "gender": pending_user.get("gender"),
-            "pronouns": pending_user.get("pronouns")
+            "pronouns": pending_user.get("pronouns"),
+            "timezone": pending_user.get("timezone")
         }
         
         await db.users.insert_one(user_data)
@@ -1148,6 +1241,14 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
         async with get_database() as db:
             page_count = await db.profile_pages.count_documents({"user_id": user["id"]})
         
+        # Calculate age if birth_date exists
+        age = None
+        if user.get("birth_date"):
+            birth_date = user["birth_date"]
+            if isinstance(birth_date, str):
+                birth_date = datetime.strptime(birth_date, "%Y-%m-%d").date()
+            age = await calculate_age(birth_date)
+        
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -1171,16 +1272,18 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
                 "show_age": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_layout": "simple",
+                "default_layout": settings.DEFAULT_LAYOUT,
                 "default_background": {
                     "type": "solid",
                     "value": "#ffffff"
                 }
             }),
             "location": user.get("location"),
-            "age": user.get("age"),
+            "age": age,
+            "birth_date": user.get("birth_date"),
             "gender": user.get("gender"),
-            "pronouns": user.get("pronouns")
+            "pronouns": user.get("pronouns"),
+            "timezone": user.get("timezone")
         }
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
@@ -1358,12 +1461,20 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             "show_age": True,
             "show_gender": True,
             "show_pronouns": True,
-            "default_layout": "simple",
+            "default_layout": settings.DEFAULT_LAYOUT,
             "default_background": {
                 "type": "solid",
                 "value": "#ffffff"
             }
         })
+        
+        # Calculate age if birth_date exists
+        age = None
+        birth_date = current_user.get("birth_date")
+        if birth_date:
+            if isinstance(birth_date, str):
+                birth_date = datetime.strptime(birth_date, "%Y-%m-%d").date()
+            age = await calculate_age(birth_date)
         
         return {
             "id": current_user["id"],
@@ -1379,11 +1490,152 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             "tags": current_user.get("tags", []),
             "display_preferences": display_prefs,
             "location": current_user.get("location"),
-            "age": current_user.get("age"),
+            "age": age,
+            "birth_date": birth_date,
             "gender": current_user.get("gender"),
             "pronouns": current_user.get("pronouns"),
-            "bio": current_user.get("bio")  # Add this line to include the bio field
+            "bio": current_user.get("bio"),
+            "timezone": current_user.get("timezone")
         }
+
+
+@app.post("/upload-avatar")
+@limiter.limit(RateLimits.UPLOAD_LIMIT)
+async def upload_avatar(
+    request: Request,
+    avatar: UploadFile = File(...),
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Upload avatar image and return the URL"""
+    # Check file size
+    file_size = 0
+    contents = await avatar.read()
+    file_size = len(contents)
+    
+    if file_size > settings.MAX_AVATAR_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File size exceeds maximum allowed size of {settings.MAX_AVATAR_SIZE/1024/1024}MB"
+        )
+    
+    # Check file type
+    content_type = avatar.content_type
+    if not content_type or not content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files are allowed"
+        )
+    
+    # Upload to ImgBB
+    result = await upload_image_to_imgbb(contents, f"avatar_{current_user['id']}")
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image"
+        )
+    
+    # Update user's avatar URL
+    async with get_database() as db:
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {"avatar_url": result["url"]}}
+        )
+        await user_cache.delete(f"user:{current_user['email']}")
+        if current_user.get("username"):
+            await user_cache.delete(f"username:{current_user['username']}")
+    
+    return {
+        "url": result["url"],
+        "display_url": result.get("display_url"),
+        "success": True
+    }
+
+
+@app.post("/upload-decoration")
+@limiter.limit(RateLimits.UPLOAD_LIMIT)
+async def upload_decoration(
+    request: Request,
+    decoration: UploadFile = File(...),
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Upload avatar decoration image and return the URL"""
+    # Check file size
+    file_size = 0
+    contents = await decoration.read()
+    file_size = len(contents)
+    
+    if file_size > settings.MAX_AVATAR_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File size exceeds maximum allowed size of {settings.MAX_AVATAR_SIZE/1024/1024}MB"
+        )
+    
+    # Check file type
+    content_type = decoration.content_type
+    if not content_type or not content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files are allowed"
+        )
+    
+    # Upload to ImgBB
+    result = await upload_image_to_imgbb(contents, f"decoration_{current_user['id']}")
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image"
+        )
+    
+    return {
+        "url": result["url"],
+        "display_url": result.get("display_url"),
+        "success": True
+    }
+
+
+@app.post("/upload-background")
+@limiter.limit(RateLimits.UPLOAD_LIMIT)
+async def upload_background(
+    request: Request,
+    background: UploadFile = File(...),
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Upload background image and return the URL"""
+    # Check file size
+    file_size = 0
+    contents = await background.read()
+    file_size = len(contents)
+    
+    if file_size > settings.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File size exceeds maximum allowed size of {settings.MAX_FILE_SIZE/1024/1024}MB"
+        )
+    
+    # Check file type
+    content_type = background.content_type
+    if not content_type or not (content_type.startswith("image/") or content_type.startswith("video/")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image or video files are allowed"
+        )
+    
+    # Upload to ImgBB
+    result = await upload_image_to_imgbb(contents, f"background_{current_user['id']}")
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image"
+        )
+    
+    return {
+        "url": result["url"],
+        "display_url": result.get("display_url"),
+        "success": True
+    }
 
 
 @app.put("/onboarding", response_model=UserResponse)
@@ -1391,6 +1643,7 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
 async def complete_onboarding(
     request: Request,
     onboarding_data: UserOnboarding,
+    avatar: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
@@ -1406,22 +1659,39 @@ async def complete_onboarding(
                     detail="Username already taken"
                 )
         
-        # Validate avatar URL if provided
-        if onboarding_data.avatar_url and not await validate_avatar(onboarding_data.avatar_url):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar URL or file too large (max 1MB)"
-            )
+        # Handle avatar upload if provided
+        avatar_url = current_user.get("avatar_url")
+        if avatar:
+            contents = await avatar.read()
+            if len(contents) > settings.MAX_AVATAR_SIZE:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Avatar image too large (max {settings.MAX_AVATAR_SIZE/1024/1024}MB)"
+                )
+            
+            result = await upload_image_to_imgbb(contents, f"avatar_{current_user['id']}")
+            if result["success"]:
+                avatar_url = result["url"]
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to upload avatar image"
+                )
+        
+        # Calculate age from birth date
+        age = await calculate_age(onboarding_data.birth_date) if onboarding_data.birth_date else None
         
         # Update user information
         update_data = {
             "username": onboarding_data.username,
             "name": onboarding_data.name,
-            "avatar_url": onboarding_data.avatar_url,
+            "avatar_url": avatar_url,
             "location": onboarding_data.location,
-            "age": onboarding_data.age,
+            "birth_date": onboarding_data.birth_date,
+            "age": age,
             "gender": onboarding_data.gender,
             "pronouns": onboarding_data.pronouns,
+            "timezone": onboarding_data.timezone,
             "onboarding_completed": True
         }
         
@@ -1439,10 +1709,11 @@ async def complete_onboarding(
         if page_count == 0:
             default_page = {
                 "user_id": current_user["id"],
+                "page_id": str(ObjectId()),
                 "url": onboarding_data.username,
                 "title": f"{onboarding_data.name}'s Page",
                 "name": onboarding_data.name,
-                "avatar_url": onboarding_data.avatar_url,
+                "avatar_url": avatar_url,
                 "avatar_decoration": None,
                 "bio": "",
                 "background": {
@@ -1451,7 +1722,7 @@ async def complete_onboarding(
                     "opacity": 1.0
                 },
                 "layout": {
-                    "type": "simple",
+                    "type": settings.DEFAULT_LAYOUT,
                     "container_style": {
                         "enabled": True,
                         "background_color": "#ffffff",
@@ -1464,10 +1735,36 @@ async def complete_onboarding(
                 "songs": [],
                 "show_joined_date": True,
                 "show_views": True,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.utcnow(),
+                "name_style": {
+                    "font": {
+                        "name": "Open Sans",
+                        "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
+                        "family": "'Open Sans', sans-serif"
+                    },
+                    "color": "#000000",
+                    "size": 24,
+                    "weight": "normal"
+                },
+                "bio_style": {
+                    "font": {
+                        "name": "Open Sans",
+                        "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
+                        "family": "'Open Sans', sans-serif"
+                    },
+                    "color": "#333333",
+                    "size": 16,
+                    "weight": "normal"
+                }
             }
             
             await db.profile_pages.insert_one(default_page)
+            
+            # Initialize views counter
+            await db.views.insert_one({
+                "url": onboarding_data.username,
+                "views": 0
+            })
             
         # Clear cache
         await user_cache.delete(f"user:{current_user['email']}")
@@ -1492,9 +1789,11 @@ async def complete_onboarding(
             "tags": updated_user.get("tags", []),
             "display_preferences": updated_user.get("display_preferences", DisplayPreferences().dict()),
             "location": updated_user.get("location"),
-            "age": updated_user.get("age"),
+            "age": age,
+            "birth_date": updated_user.get("birth_date"),
             "gender": updated_user.get("gender"),
-            "pronouns": updated_user.get("pronouns")
+            "pronouns": updated_user.get("pronouns"),
+            "timezone": updated_user.get("timezone")
         }
 
 
@@ -1544,20 +1843,6 @@ async def create_profile_page(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="URL already taken"
-            )
-        
-        # Validate avatar URL if provided
-        if page_data.avatar_url and not await validate_avatar(page_data.avatar_url):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar URL or file too large (max 1MB)"
-            )
-            
-        # Validate avatar decoration if provided
-        if page_data.avatar_decoration and not await validate_decoration(page_data.avatar_decoration):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar decoration URL"
             )
         
         # Generate page ID
@@ -1645,20 +1930,6 @@ async def update_profile_page(
                 detail="Page not found or you don't have permission to update it"
             )
         
-        # Validate avatar URL if provided
-        if page_update.avatar_url and not await validate_avatar(page_update.avatar_url):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar URL or file too large (max 1MB)"
-            )
-            
-        # Validate avatar decoration if provided
-        if page_update.avatar_decoration and not await validate_decoration(page_update.avatar_decoration):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar decoration URL"
-            )
-        
         # Prepare update data
         update_data = page_update.dict(exclude_unset=True)
         
@@ -1736,6 +2007,8 @@ class CustomJSONResponse(JSONResponse):
                 return str(obj)
             elif isinstance(obj, datetime):
                 return obj.isoformat()
+            elif isinstance(obj, date):
+                return obj.isoformat()
             raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
         
         return json.dumps(
@@ -1801,27 +2074,67 @@ def json_serialize(obj):
         return str(obj)
     elif isinstance(obj, datetime):
         return obj.isoformat()
+    elif isinstance(obj, date):
+        return obj.isoformat()
     else:
         return obj
+
 
 @app.post("/update-profile")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def update_user_profile(
     request: Request,
     profile_data: dict = Body(...),
+    avatar: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
         # Extract data from request body
         username = profile_data.get("username")
         name = profile_data.get("name")
-        avatar_url = profile_data.get("avatar_url")
         avatar_decoration = profile_data.get("avatar_decoration")
         location = profile_data.get("location")
-        age = profile_data.get("age")
+        birth_date_str = profile_data.get("birth_date")
         gender = profile_data.get("gender")
         pronouns = profile_data.get("pronouns")
-        bio = profile_data.get("bio")  # Added bio extraction
+        bio = profile_data.get("bio")
+        timezone = profile_data.get("timezone")
+        
+        # Process birth date
+        birth_date = None
+        if birth_date_str:
+            try:
+                if isinstance(birth_date_str, str):
+                    birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
+                else:
+                    birth_date = birth_date_str
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid birth date format. Use YYYY-MM-DD."
+                )
+        
+        # Calculate age from birth date
+        age = await calculate_age(birth_date) if birth_date else None
+        
+        # Handle avatar upload if provided
+        avatar_url = current_user.get("avatar_url")
+        if avatar:
+            contents = await avatar.read()
+            if len(contents) > settings.MAX_AVATAR_SIZE:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Avatar image too large (max {settings.MAX_AVATAR_SIZE/1024/1024}MB)"
+                )
+            
+            result = await upload_image_to_imgbb(contents, f"avatar_{current_user['id']}")
+            if result["success"]:
+                avatar_url = result["url"]
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to upload avatar image"
+                )
         
         # Update user information
         update_data = {
@@ -1830,16 +2143,29 @@ async def update_user_profile(
             "avatar_url": avatar_url,
             "avatar_decoration": avatar_decoration,
             "location": location,
+            "birth_date": birth_date,
             "age": age,
             "gender": gender,
             "pronouns": pronouns,
-            "bio": bio,  # Added bio to update_data
+            "bio": bio,
+            "timezone": timezone,
             "onboarding_completed": True
         }
         
         # Remove None values
         update_data = {k: v for k, v in update_data.items() if v is not None}
         
+        # Check if username is being changed and is available
+        if username and username != current_user.get("username"):
+            existing_user = await db.users.find_one({
+                "username": username,
+                "id": {"$ne": current_user["id"]}
+            })
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken"
+                )
         
         await db.users.update_one(
             {"id": current_user["id"]},
@@ -1849,23 +2175,23 @@ async def update_user_profile(
         # Create default profile page if user doesn't have any
         page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
         
-        if page_count == 0:
+        if page_count == 0 and username:
             default_page = {
                 "user_id": current_user["id"],
                 "page_id": str(ObjectId()),
                 "url": username,
-                "title": f"{name}'s Page",
-                "name": name,
+                "title": f"{name or username}'s Page",
+                "name": name or username,
                 "avatar_url": avatar_url,
                 "avatar_decoration": avatar_decoration,
-                "bio": "",
+                "bio": bio or "",
                 "background": {
                     "type": "solid",
                     "value": "#ffffff",
                     "opacity": 1.0
                 },
                 "layout": {
-                    "type": "simple",
+                    "type": settings.DEFAULT_LAYOUT,
                     "container_style": {
                         "enabled": True,
                         "background_color": "#ffffff",
@@ -1878,7 +2204,27 @@ async def update_user_profile(
                 "songs": [],
                 "show_joined_date": True,
                 "show_views": True,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.utcnow(),
+                "name_style": {
+                    "font": {
+                        "name": "Open Sans",
+                        "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
+                        "family": "'Open Sans', sans-serif"
+                    },
+                    "color": "#000000",
+                    "size": 24,
+                    "weight": "normal"
+                },
+                "bio_style": {
+                    "font": {
+                        "name": "Open Sans",
+                        "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
+                        "family": "'Open Sans', sans-serif"
+                    },
+                    "color": "#333333",
+                    "size": 16,
+                    "weight": "normal"
+                }
             }
             
             await db.profile_pages.insert_one(default_page)
@@ -1906,9 +2252,12 @@ async def update_user_profile(
                 "avatar_url": updated_user.get("avatar_url"),
                 "avatar_decoration": updated_user.get("avatar_decoration"),
                 "location": updated_user.get("location"),
-                "age": updated_user.get("age"),
+                "birth_date": updated_user.get("birth_date"),
+                "age": age,
                 "gender": updated_user.get("gender"),
-                "pronouns": updated_user.get("pronouns")
+                "pronouns": updated_user.get("pronouns"),
+                "bio": updated_user.get("bio"),
+                "timezone": updated_user.get("timezone")
             }
         }
 
@@ -2044,6 +2393,14 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
         if "_id" in page:
             page["_id"] = str(page["_id"])
         
+        # Calculate age from birth date if available
+        age = None
+        if user.get("birth_date"):
+            birth_date = user["birth_date"]
+            if isinstance(birth_date, str):
+                birth_date = datetime.strptime(birth_date, "%Y-%m-%d").date()
+            age = await calculate_age(birth_date)
+        
         response_data = {
             "page": page,
             "user": {
@@ -2065,17 +2422,23 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
             response_data["user"].pop("tags", None)
         
         # Add user profile data if the preferences allow
-        if display_prefs.get("show_location", True) and "location" in user:
+        if display_prefs.get("show_location", True) and user.get("location"):
             response_data["user"]["location"] = user["location"]
             
-        if display_prefs.get("show_age", True) and "age" in user:
-            response_data["user"]["age"] = user["age"]
+        if display_prefs.get("show_age", True) and age:
+            response_data["user"]["age"] = age
             
-        if display_prefs.get("show_gender", True) and "gender" in user:
+        if display_prefs.get("show_gender", True) and user.get("gender"):
             response_data["user"]["gender"] = user["gender"]
             
-        if display_prefs.get("show_pronouns", True) and "pronouns" in user:
+        if display_prefs.get("show_pronouns", True) and user.get("pronouns"):
             response_data["user"]["pronouns"] = user["pronouns"]
+            
+        if user.get("timezone"):
+            response_data["user"]["timezone"] = user["timezone"]
+            
+        if user.get("bio"):
+            response_data["user"]["bio"] = user["bio"]
             
         return response_data
 
@@ -2139,6 +2502,10 @@ async def create_template(
         template_dict["created_at"] = datetime.utcnow()
         template_dict["use_count"] = 0
         
+        # Ensure page_config has avatar_decoration instead of avatar_effects
+        if "avatar_effects" in template_dict.get("page_config", {}):
+            template_dict["page_config"]["avatar_decoration"] = template_dict["page_config"].pop("avatar_effects", None)
+        
         # Insert template
         await db.templates.insert_one(template_dict)
         
@@ -2189,6 +2556,10 @@ async def get_templates(
             if "_id" in template:
                 template["_id"] = str(template["_id"])
             
+            # Ensure page_config has avatar_decoration instead of avatar_effects
+            if "page_config" in template and "avatar_effects" in template["page_config"]:
+                template["page_config"]["avatar_decoration"] = template["page_config"].pop("avatar_effects", None)
+            
             templates.append({
                 **template,
                 "created_by_username": username
@@ -2224,6 +2595,10 @@ async def get_template(request: Request, template_id: str):
         # Format template
         if "_id" in template:
             template["_id"] = str(template["_id"])
+        
+        # Ensure page_config has avatar_decoration instead of avatar_effects
+        if "page_config" in template and "avatar_effects" in template["page_config"]:
+            template["page_config"]["avatar_decoration"] = template["page_config"].pop("avatar_effects", None)
         
         template_response = {
             **template,
@@ -2273,6 +2648,19 @@ async def use_template(
         
         # Create page from template
         page_config = template["page_config"]
+        
+        # Ensure page_config has avatar_decoration instead of avatar_effects
+        if "avatar_effects" in page_config:
+            page_config["avatar_decoration"] = page_config.pop("avatar_effects", None)
+        
+        # Set user's avatar if available
+        if not page_config.get("avatar_url") and current_user.get("avatar_url"):
+            page_config["avatar_url"] = current_user["avatar_url"]
+        
+        # Set user's name if available
+        if not page_config.get("name") and current_user.get("name"):
+            page_config["name"] = current_user["name"]
+        
         page_config["url"] = url
         page_config["page_id"] = page_id
         page_config["user_id"] = current_user["id"]
@@ -2301,82 +2689,6 @@ async def use_template(
             "message": "Page created from template",
             "page_id": page_id,
             "url": url
-        }
-
-
-@app.put("/profile")
-@limiter.limit(RateLimits.MODIFY_LIMIT)
-async def update_user_profile(
-    request: Request,
-    profile_data: dict = Body(...),
-    current_user: dict = Depends(get_current_verified_user)
-):
-    async with get_database() as db:
-        # Check which fields are being updated
-        allowed_fields = [
-            "name", "avatar_url", "avatar_decoration", "location", "age", 
-            "gender", "pronouns", "bio"
-        ]
-        
-        update_data = {k: v for k, v in profile_data.items() if k in allowed_fields}
-        
-        # Validate username if it's being changed
-        if "username" in profile_data and profile_data["username"] != current_user.get("username"):
-            # Check username availability
-            existing_user = await db.users.find_one({
-                "username": profile_data["username"],
-                "id": {"$ne": current_user["id"]}
-            })
-            
-            if existing_user:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Username already taken"
-                )
-            
-            update_data["username"] = profile_data["username"]
-        
-        # Validate avatar URL if provided
-        if "avatar_url" in update_data and not await validate_avatar(update_data["avatar_url"]):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar URL or file too large (max 1MB)"
-            )
-            
-        # Validate avatar decoration if provided
-        if "avatar_decoration" in update_data and not await validate_decoration(update_data["avatar_decoration"]):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid avatar decoration URL"
-            )
-        
-        # Update user
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": update_data}
-        )
-        
-        # Clear cache
-        await user_cache.delete(f"user:{current_user['email']}")
-        if "username" in current_user and current_user["username"]:
-            await user_cache.delete(f"username:{current_user['username']}")
-        
-        # Get updated user
-        updated_user = await db.users.find_one({"id": current_user["id"]})
-        
-        return {
-            "message": "Profile updated successfully",
-            "profile": {
-                "username": updated_user.get("username"),
-                "name": updated_user.get("name"),
-                "avatar_url": updated_user.get("avatar_url"),
-                "avatar_decoration": updated_user.get("avatar_decoration"),
-                "location": updated_user.get("location"),
-                "age": updated_user.get("age"),
-                "gender": updated_user.get("gender"),
-                "pronouns": updated_user.get("pronouns"),
-                "bio": updated_user.get("bio")
-            }
         }
 
 
@@ -2412,43 +2724,16 @@ async def get_social_platforms():
     return {"platforms": platforms}
 
 
-@app.get("/layouts")
-async def get_available_layouts():
-    # List of available layouts with their descriptions
-    layouts = [
-        {
-            "type": "simple",
-            "name": "Simple",
-            "description": "A clean, minimal layout with all elements stacked vertically.",
-            "preview_image": "https://example.com/previews/simple.jpg"
-        },
-        {
-            "type": "card",
-            "name": "Card",
-            "description": "Elements are displayed in card-like containers with subtle shadows.",
-            "preview_image": "https://example.com/previews/card.jpg"
-        },
-        {
-            "type": "modern",
-            "name": "Modern",
-            "description": "A sleek, contemporary design with rounded corners and smooth animations.",
-            "preview_image": "https://example.com/previews/modern.jpg"
-        },
-        {
-            "type": "minimalist",
-            "name": "Minimalist",
-            "description": "Ultra-minimal design with focus on typography and whitespace.",
-            "preview_image": "https://example.com/previews/minimalist.jpg"
-        },
-        {
-            "type": "creative",
-            "name": "Creative",
-            "description": "Bold, artistic layout with unique element positioning and creative flourishes.",
-            "preview_image": "https://example.com/previews/creative.jpg"
-        }
-    ]
-    
-    return {"layouts": layouts}
+@app.get("/fonts")
+async def get_available_fonts():
+    """Return available fonts with their links and family names"""
+    return {"fonts": settings.DEFAULT_FONTS}
+
+
+@app.get("/timezones")
+async def get_available_timezones():
+    """Return list of available timezones"""
+    return {"timezones": settings.TIMEZONES}
 
 
 @app.get("/effects")
@@ -2538,6 +2823,10 @@ async def get_trending_templates(
             template["id"] = str(template["id"])
             if "_id" in template:
                 template["_id"] = str(template["_id"])
+            
+            # Ensure page_config has avatar_decoration instead of avatar_effects
+            if "page_config" in template and "avatar_effects" in template["page_config"]:
+                template["page_config"]["avatar_decoration"] = template["page_config"].pop("avatar_effects", None)
             
             templates.append({
                 **template,
