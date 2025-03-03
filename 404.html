@@ -6,20 +6,14 @@
     <title>Profile Page</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lulu&display=swap" rel="stylesheet">
+    <!-- Replace Lulu font with a similar playful font that is available on Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
     <style>
-        @font-face {
-            font-family: 'Lulu';
-            src: url('https://fonts.googleapis.com/css2?family=Lulu&display=swap');
-            font-weight: normal;
-            font-style: normal;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Lulu', sans-serif;
+            font-family: 'Indie Flower', cursive, sans-serif;
         }
 
         body {
@@ -874,942 +868,914 @@
     </div>
 
     <audio id="audioPlayer" class="audio-player"></audio>
-        <script>
-        const API_URL = 'https://versz-vs1b.onrender.com';
-        const cache = new Map();
-        let isMobile = window.matchMedia('(max-width: 768px)').matches;
-        let currentSong = null;
-        let currentSongIndex = 0;
-        let songsList = [];
-        let audioPlayer = null;
-        let isPlaying = false;
-        let typingTitleInterval = null;
-        let isTypingForward = true;
-        let currentTitle = '';
-        let fullTitle = '';
+    <script>
+    const API_URL = 'https://versz-vs1b.onrender.com';
+    const cache = new Map();
+    let isMobile = window.matchMedia('(max-width: 768px)').matches;
+    let currentSong = null;
+    let currentSongIndex = 0;
+    let songsData = []; // Changed from songsList to avoid const reassignment
+    let audioPlayer = null;
+    let isPlaying = false;
+    let typingTitleInterval = null;
+    let isTypingForward = true;
+    let currentTitle = '';
+    let fullTitle = '';
 
-        window.addEventListener('resize', () => {
-            isMobile = window.matchMedia('(max-width: 768px)').matches;
+    window.addEventListener('resize', () => {
+        isMobile = window.matchMedia('(max-width: 768px)').matches;
+    });
+
+    // Initialize the audio player and controls
+    function initAudioPlayer() {
+        audioPlayer = document.getElementById('audioPlayer');
+        const playPauseButton = document.getElementById('playPauseButton');
+        const playPauseIcon = document.getElementById('playPauseIcon');
+        const prevButton = document.getElementById('prevButton');
+        const nextButton = document.getElementById('nextButton');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeDisplay = document.getElementById('currentTime');
+        const durationDisplay = document.getElementById('duration');
+        
+        // Play/Pause button event
+        playPauseButton.addEventListener('click', () => {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                playPauseIcon.className = 'fas fa-pause';
+                isPlaying = true;
+            } else {
+                audioPlayer.pause();
+                playPauseIcon.className = 'fas fa-play';
+                isPlaying = false;
+            }
         });
-
-        // Initialize the audio player and controls
-        function initAudioPlayer() {
-            audioPlayer = document.getElementById('audioPlayer');
-            const playPauseButton = document.getElementById('playPauseButton');
-            const playPauseIcon = document.getElementById('playPauseIcon');
-            const prevButton = document.getElementById('prevButton');
-            const nextButton = document.getElementById('nextButton');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const currentTimeDisplay = document.getElementById('currentTime');
-            const durationDisplay = document.getElementById('duration');
+        
+        // Previous button event
+        prevButton.addEventListener('click', () => {
+            if (songsData.length > 1) {
+                currentSongIndex = (currentSongIndex - 1 + songsData.length) % songsData.length;
+                loadAndPlaySong(songsData[currentSongIndex]);
+            }
+        });
+        
+        // Next button event
+        nextButton.addEventListener('click', () => {
+            if (songsData.length > 1) {
+                currentSongIndex = (currentSongIndex + 1) % songsData.length;
+                loadAndPlaySong(songsData[currentSongIndex]);
+            }
+        });
+        
+        // Update progress bar
+        audioPlayer.addEventListener('timeupdate', () => {
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
             
-            // Play/Pause button event
-            playPauseButton.addEventListener('click', () => {
-                if (audioPlayer.paused) {
-                    audioPlayer.play();
+            if (!isNaN(duration)) {
+                // Update progress bar
+                const progressPercent = (currentTime / duration) * 100;
+                progressBar.style.width = `${progressPercent}%`;
+                
+                // Update time displays
+                currentTimeDisplay.textContent = formatTime(currentTime);
+                durationDisplay.textContent = formatTime(duration);
+            }
+        });
+        
+        // Click on progress bar to seek
+        progressContainer.addEventListener('click', (e) => {
+            const width = progressContainer.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audioPlayer.duration;
+            
+            audioPlayer.currentTime = (clickX / width) * duration;
+        });
+        
+        // When song ends
+        audioPlayer.addEventListener('ended', () => {
+            playPauseIcon.className = 'fas fa-play';
+            isPlaying = false;
+            
+            // Auto play next song if available
+            if (songsData.length > 1) {
+                currentSongIndex = (currentSongIndex + 1) % songsData.length;
+                loadAndPlaySong(songsData[currentSongIndex]);
+            }
+        });
+    }
+    
+    // Format time in minutes:seconds
+    function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    async function fetchWithTimeout(resource, options = {}) {
+        const timeout = options.timeout || 8000;
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        
+        try {
+            const response = await fetch(resource, {
+                ...options,
+                signal: controller.signal
+            });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            console.error('Fetch error:', error);
+            throw error;
+        }
+    }
+
+    function createBadgeElement(tag) {
+        const badgeElement = document.createElement('div');
+        badgeElement.className = 'tag';
+        
+        if (tag.icon_type === 'emoji') {
+            badgeElement.textContent = tag.icon;
+            badgeElement.title = tag.text;
+        } else if (tag.icon_type === 'svg') {
+            badgeElement.innerHTML = tag.icon;
+            badgeElement.title = tag.text;
+        } else if (tag.icon_type === 'image') {
+            const imgElement = document.createElement('img');
+            imgElement.src = tag.icon;
+            imgElement.alt = tag.text;
+            imgElement.style.width = '100%';
+            imgElement.style.height = '100%';
+            badgeElement.appendChild(imgElement);
+            badgeElement.title = tag.text;
+        }
+        
+        return badgeElement;
+    }
+
+    function updateStatsBadge(data) {
+        const statsBadge = document.getElementById('statsBadge');
+        const viewsCounter = document.getElementById('viewsCounterBadge');
+        const viewCount = document.getElementById('viewCountBadge');
+        const joinedDate = document.getElementById('joinedDateBadge');
+        const joinedDateText = document.getElementById('joinedDateTextBadge');
+
+        if (data.views !== undefined) {
+            viewCount.textContent = data.views;
+            viewsCounter.style.display = 'flex';
+            statsBadge.style.display = 'flex';
+        } else {
+            viewsCounter.style.display = 'none';
+        }
+
+        if (data.user && data.user.joined_at) {
+            const joinedTime = new Date(data.user.joined_at);
+            const now = new Date();
+            const diffTime = Math.abs(now - joinedTime);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            let joinedString;
+            if (diffDays < 30) {
+                joinedString = `${diffDays} days ago`;
+            } else if (diffDays < 365) {
+                const months = Math.floor(diffDays / 30);
+                joinedString = `${months} month${months > 1 ? 's' : ''} ago`;
+            } else {
+                const years = Math.floor(diffDays / 365);
+                joinedString = `${years} year${years > 1 ? 's' : ''} ago`;
+            }
+            
+            joinedDateText.textContent = joinedString;
+            joinedDate.style.display = 'flex';
+            statsBadge.style.display = 'flex';
+        } else {
+            joinedDate.style.display = 'none';
+        }
+
+        // Hide stats badge if nothing to show
+        if (viewsCounter.style.display === 'none' && joinedDate.style.display === 'none') {
+            statsBadge.style.display = 'none';
+        }
+    }
+
+    function isDirectMediaUrl(url) {
+        if (!url) return false;
+        const mediaExtensions = ['.mp3', '.mp4', '.wav', '.ogg', '.webm', '.m4a', '.aac'];
+        return mediaExtensions.some(ext => url.toLowerCase().endsWith(ext));
+    }
+
+    function loadAndPlaySong(song) {
+        if (!song) return;
+        
+        currentSong = song;
+        
+        // Update player UI
+        const songTitle = document.getElementById('musicPlayerSong');
+        const artist = document.getElementById('musicPlayerArtist');
+        const coverImg = document.getElementById('musicPlayerCover');
+        const playPauseIcon = document.getElementById('playPauseIcon');
+        
+        songTitle.textContent = song.title;
+        artist.textContent = song.artist;
+        coverImg.src = song.cover_url;
+        coverImg.onerror = () => {
+            coverImg.src = 'https://via.placeholder.com/100?text=Music';
+        };
+        
+        // Setup audio player
+        const audio = document.getElementById('audioPlayer');
+        
+        // Check if we have a direct media URL
+        let audioSource = '';
+        
+        // Check for direct audio in youtube_url (which may contain direct audio)
+        if (song.youtube_url && isDirectMediaUrl(song.youtube_url)) {
+            audioSource = song.youtube_url;
+        } 
+        // Check for direct audio in audio_url
+        else if (song.audio_url && isDirectMediaUrl(song.audio_url)) {
+            audioSource = song.audio_url;
+        }
+        
+        // If we have a valid audio source, play it
+        if (audioSource) {
+            audio.src = audioSource;
+            audio.load();
+            audio.play()
+                .then(() => {
                     playPauseIcon.className = 'fas fa-pause';
                     isPlaying = true;
-                } else {
-                    audioPlayer.pause();
+                })
+                .catch(error => {
+                    console.error('Error playing audio:', error);
                     playPauseIcon.className = 'fas fa-play';
                     isPlaying = false;
-                }
-            });
-            
-            // Previous button event
-            prevButton.addEventListener('click', () => {
-                if (songsList.length > 1) {
-                    currentSongIndex = (currentSongIndex - 1 + songsList.length) % songsList.length;
-                    loadAndPlaySong(songsList[currentSongIndex]);
-                }
-            });
-            
-            // Next button event
-            nextButton.addEventListener('click', () => {
-                if (songsList.length > 1) {
-                    currentSongIndex = (currentSongIndex + 1) % songsList.length;
-                    loadAndPlaySong(songsList[currentSongIndex]);
-                }
-            });
-            
-            // Update progress bar
-            audioPlayer.addEventListener('timeupdate', () => {
-                const currentTime = audioPlayer.currentTime;
-                const duration = audioPlayer.duration;
-                
-                if (!isNaN(duration)) {
-                    // Update progress bar
-                    const progressPercent = (currentTime / duration) * 100;
-                    progressBar.style.width = `${progressPercent}%`;
-                    
-                    // Update time displays
-                    currentTimeDisplay.textContent = formatTime(currentTime);
-                    durationDisplay.textContent = formatTime(duration);
-                }
-            });
-            
-            // Click on progress bar to seek
-            progressContainer.addEventListener('click', (e) => {
-                const width = progressContainer.clientWidth;
-                const clickX = e.offsetX;
-                const duration = audioPlayer.duration;
-                
-                audioPlayer.currentTime = (clickX / width) * duration;
-            });
-            
-            // When song ends
-            audioPlayer.addEventListener('ended', () => {
-                playPauseIcon.className = 'fas fa-play';
-                isPlaying = false;
-                
-                // Auto play next song if available
-                if (songsList.length > 1) {
-                    currentSongIndex = (currentSongIndex + 1) % songsList.length;
-                    loadAndPlaySong(songsList[currentSongIndex]);
-                }
-            });
-        }
-        
-        // Format time in minutes:seconds
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-        }
-
-        async function fetchWithTimeout(resource, options = {}) {
-            const timeout = options.timeout || 8000;
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
-            
-            try {
-                const response = await fetch(resource, {
-                    ...options,
-                    signal: controller.signal
                 });
-                clearTimeout(id);
-                return response;
-            } catch (error) {
-                clearTimeout(id);
-                console.error('Fetch error:', error);
-                // Check if it's a CORS error
-                if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-                    console.warn('Possible CORS issue. If you\'re in development, make sure the server has CORS enabled.');
-                }
-                throw error;
-            }
-        }
-
-        function createBadgeElement(tag) {
-            const badgeElement = document.createElement('div');
-            badgeElement.className = 'tag';
+        } else {
+            console.log('No direct audio URL available for this song');
+            playPauseIcon.className = 'fas fa-play';
+            isPlaying = false;
             
-            if (tag.icon_type === 'svg') {
-                badgeElement.innerHTML = tag.icon;
-            } else if (tag.icon_type === 'image' || tag.icon.startsWith('http')) {
-                const img = document.createElement('img');
-                img.src = tag.icon;
-                img.alt = tag.text;
-                img.style.width = '100%';
-                img.style.height = '100%';
-                badgeElement.appendChild(img);
-            } else if (tag.icon_type === 'emoji') {
-                badgeElement.textContent = tag.icon;
-            }
-            
-            badgeElement.title = tag.text;
-            return badgeElement;
+            // Show a message to the user that direct playback is not available
+            alert('This song does not have a direct audio URL for playback.');
         }
+    }
 
-        function updateStatsBadge(data) {
-            const statsBadge = document.getElementById('statsBadge');
-            const viewsCounter = document.getElementById('viewsCounterBadge');
-            const viewCount = document.getElementById('viewCountBadge');
-            const joinedDate = document.getElementById('joinedDateBadge');
-            const joinedDateText = document.getElementById('joinedDateTextBadge');
+    function openMusicPlayer(song) {
+        const overlay = document.getElementById('musicPlayerOverlay');
         
-            if (data.views !== undefined) {
-                viewCount.textContent = data.views;
-                viewsCounter.style.display = 'flex';
-                statsBadge.style.display = 'flex';
-            } else {
-                viewsCounter.style.display = 'none';
-            }
+        // Save current song index
+        if (songsData.length > 0) {
+            currentSongIndex = songsData.findIndex(s => 
+                s.title === song.title && s.artist === song.artist);
+            if (currentSongIndex === -1) currentSongIndex = 0;
+        }
         
-            if (data.user && data.user.joined_at) {
-                const joinedTime = new Date(data.user.joined_at);
-                const now = new Date();
-                const diffTime = Math.abs(now - joinedTime);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                let joinedString;
-                if (diffDays < 30) {
-                    joinedString = `${diffDays} days ago`;
-                } else if (diffDays < 365) {
-                    const months = Math.floor(diffDays / 30);
-                    joinedString = `${months} month${months > 1 ? 's' : ''} ago`;
+        // Load and play the song
+        loadAndPlaySong(song);
+        
+        // Show player
+        overlay.style.display = 'flex';
+    }
+
+    function closeMusicPlayer() {
+        const overlay = document.getElementById('musicPlayerOverlay');
+        const audio = document.getElementById('audioPlayer');
+        
+        // Stop playback
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+        
+        // Reset playing state
+        isPlaying = false;
+        document.getElementById('playPauseIcon').className = 'fas fa-play';
+        
+        // Hide player
+        overlay.style.display = 'none';
+    }
+
+    function startTitleAnimation(title) {
+        if (!title) return;
+        
+        fullTitle = title;
+        currentTitle = '';
+        
+        // Clear any existing interval
+        if (typingTitleInterval) {
+            clearInterval(typingTitleInterval);
+        }
+        
+        // Start the typing animation
+        isTypingForward = true;
+        document.title = '';
+        
+        typingTitleInterval = setInterval(() => {
+            if (isTypingForward) {
+                // Typing forward
+                if (currentTitle.length < fullTitle.length) {
+                    currentTitle = fullTitle.substring(0, currentTitle.length + 1);
+                    document.title = currentTitle;
                 } else {
-                    const years = Math.floor(diffDays / 365);
-                    joinedString = `${years} year${years > 1 ? 's' : ''} ago`;
+                    // Reached the end, pause before reversing
+                    setTimeout(() => {
+                        isTypingForward = false;
+                    }, 2000);
+                }
+            } else {
+                // Typing backward
+                if (currentTitle.length > 0) {
+                    currentTitle = currentTitle.substring(0, currentTitle.length - 1);
+                    document.title = currentTitle || ' '; // Prevent empty title
+                } else {
+                    // Reached the beginning, pause before starting again
+                    setTimeout(() => {
+                        isTypingForward = true;
+                    }, 1000);
+                }
+            }
+        }, 150); // Adjust typing speed here
+    }
+
+    async function loadContent() {
+        const path = window.location.pathname.substring(1);
+        const urlParams = new URLSearchParams(window.location.search);
+        const templateId = urlParams.get('template');
+        const previewId = urlParams.get('preview');
+        
+        if (!path && !templateId && !previewId) {
+            showError(404, 'Page not found');
+            return;
+        }
+    
+        try {
+            let cacheKey = path;
+            if (templateId) cacheKey += `-template-${templateId}`;
+            if (previewId) cacheKey += `-preview-${previewId}`;
+            
+            if (cache.has(cacheKey)) {
+                const cachedContent = cache.get(cacheKey);
+                await renderContent(cachedContent);
+                updateStatsBadge(cachedContent);
+                setupPreviewBanner(cachedContent);
+                return;
+            }
+    
+            let url;
+            let data;
+            
+            if (previewId) {
+                // Load preview data
+                url = `${API_URL}/preview/${previewId}`;
+                const response = await fetchWithTimeout(url);
+                
+                if (!response.ok) {
+                    if (response.status === 429) {
+                        showError(429, 'Rate limit exceeded');
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                joinedDateText.textContent = joinedString;
-                joinedDate.style.display = 'flex';
-                statsBadge.style.display = 'flex';
+                data = await response.json();
+                
+                // For preview data, we need to format it properly
+                if (data) {
+                    // Handle case where preview data might be in a different format
+                    // Make sure we have a consistent structure
+                    data = {
+                        page: data,
+                        is_preview: true,
+                        original_path: path // Store the original path for context
+                    };
+                }
+            } else if (path) {
+                url = `${API_URL}/p/${path}${templateId ? `?template_id=${templateId}` : ''}`;
+                const response = await fetchWithTimeout(url);
+                
+                if (!response.ok) {
+                    if (response.status === 429) {
+                        showError(429, 'Rate limit exceeded');
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                data = await response.json();
             } else {
-                joinedDate.style.display = 'none';
+                showError(404, 'Invalid URL');
+                return;
             }
-        
-            // Hide stats badge if nothing to show
-            if (viewsCounter.style.display === 'none' && joinedDate.style.display === 'none') {
-                statsBadge.style.display = 'none';
+            
+            if (!data) {
+                showError(404, 'Data not found');
+                return;
             }
+    
+            cache.set(cacheKey, data);
+            await renderContent(data);
+            updateStatsBadge(data);
+            setupPreviewBanner(data);
+        } catch (err) {
+            console.error('Loading error:', err);
+            showError(404, 'Page not found or failed to load');
         }
+    }
+
+    function setupPreviewBanner(data) {
+        const previewBanner = document.getElementById('previewBanner');
+        const previewType = document.getElementById('previewType');
+        const previewName = document.getElementById('previewName');
+        const useTemplateBtn = document.getElementById('useTemplateBtn');
+        const exitPreviewBtn = document.getElementById('exitPreviewBtn');
         
-        function getYoutubeEmbedUrl(url) {
-            // Handle different YouTube URL formats
-            let videoId = '';
+        if (data.is_template_preview) {
+            previewType.textContent = 'Template Preview';
+            previewName.textContent = data.template_name || 'Template';
+            previewBanner.style.display = 'flex';
             
-            if (url.includes('youtube.com/watch')) {
-                const urlParams = new URLSearchParams(new URL(url).search);
-                videoId = urlParams.get('v');
-            } else if (url.includes('youtu.be/')) {
-                videoId = url.split('youtu.be/')[1].split('?')[0];
-            } else if (url.includes('youtube.com/embed/')) {
-                videoId = url.split('youtube.com/embed/')[1].split('?')[0];
-            }
-            
-            if (videoId) {
-                return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-            }
-            
-            return null;
-        }
-        
-        function isDirectMediaUrl(url) {
-            const mediaExtensions = ['.mp3', '.mp4', '.wav', '.ogg', '.webm'];
-            return mediaExtensions.some(ext => url.toLowerCase().endsWith(ext));
-        }
-        
-        function loadAndPlaySong(song) {
-            if (!song) return;
-            
-            currentSong = song;
-            
-            // Update player UI
-            const songTitle = document.getElementById('musicPlayerSong');
-            const artist = document.getElementById('musicPlayerArtist');
-            const coverImg = document.getElementById('musicPlayerCover');
-            const playPauseIcon = document.getElementById('playPauseIcon');
-            
-            songTitle.textContent = song.title;
-            artist.textContent = song.artist;
-            coverImg.src = song.cover_url;
-            coverImg.onerror = () => {
-                coverImg.src = 'https://via.placeholder.com/100?text=Music';
+            useTemplateBtn.style.display = 'block';
+            useTemplateBtn.onclick = () => {
+                window.location.href = `/templates.html?use=${data.template_id}`;
             };
             
-            // Setup audio player
-            const audio = document.getElementById('audioPlayer');
+            exitPreviewBtn.onclick = () => {
+                window.location.href = '/templates.html';
+            };
+        } else if (data.is_preview || (data.page && data.page.is_preview)) {
+            previewType.textContent = 'Page Preview';
+            previewName.textContent = data.page?.title || 'Preview';
+            previewBanner.style.display = 'flex';
             
-            // Determine the source based on the URL
-            let audioSource = '';
-            
-            if (song.youtube_url) {
-                if (isDirectMediaUrl(song.youtube_url)) {
-                    // Direct media URL
-                    audioSource = song.youtube_url;
-                } else if (song.audio_url) {
-                    // Use audio_url if available as fallback
-                    audioSource = song.audio_url;
+            useTemplateBtn.style.display = 'none';
+            exitPreviewBtn.onclick = () => {
+                // If we have the original path, go back to the normal page
+                if (data.original_path) {
+                    window.location.href = `/${data.original_path}`;
                 } else {
-                    // Extract audio from YouTube
-                    const youtubeId = getYoutubeVideoId(song.youtube_url);
-                    if (youtubeId) {
-                        // For a real implementation, you would need a server-side service to extract audio
-                        console.warn('YouTube audio extraction not implemented. Using placeholder audio.');
-                        audioSource = 'https://example.com/placeholder-audio.mp3'; // Replace with actual fallback
-                    }
+                    window.history.back();
                 }
+            };
+        } else {
+            previewBanner.style.display = 'none';
+        }
+    }
+
+    function applyNameEffect(element, effect) {
+        if (!element || !effect) return;
+        
+        if (effect.name === 'typewriter') {
+            // Create a container for the typewriter effect
+            const container = document.createElement('div');
+            container.className = 'typewriter-container';
+            
+            // Move the element into the container
+            element.parentNode.insertBefore(container, element);
+            container.appendChild(element);
+            
+            // Apply the typewriter class
+            element.className += ' typewriter-text';
+            
+            if (effect.speed) {
+                element.style.animationDuration = `${effect.speed}s`;
+            }
+            if (effect.delay) {
+                element.style.animationDelay = `${effect.delay}s`;
+            }
+            if (effect.reverse) {
+                element.className += ' typewriter-reverse';
+            }
+        }
+        // Add other effects as needed
+    }
+
+    async function renderContent(data) {
+        const loading = document.getElementById('loading');
+        if (!data || (!data.page && !data.is_preview)) {
+            showError(404, 'Page data not found');
+            return;
+        }
+        
+        // Handle case where data might be directly the page object for previews
+        const page = data.page || data;
+        const user = data.user || {};
+        
+        // Set the page title with animation
+        const pageTitle = page.title || user.name || "Profile Page";
+        document.title = pageTitle;
+        startTitleAnimation(pageTitle + " | Users Page");
+        
+        // Set avatar
+        if (page.avatar_url) {
+            document.getElementById('avatarImg').src = page.avatar_url;
+            document.getElementById('avatarImg').onerror = function() {
+                this.src = 'https://via.placeholder.com/150?text=User';
+            };
+        }
+        
+        // Set avatar decoration
+        if (page.avatar_decoration) {
+            const decorationElement = document.getElementById('avatarDecoration');
+            decorationElement.style.display = 'block';
+            decorationElement.innerHTML = `<img src="${page.avatar_decoration}" alt="Decoration">`;
+        } else {
+            document.getElementById('avatarDecoration').style.display = 'none';
+        }
+        
+        // Set name and username
+        document.getElementById('profileName').textContent = page.name || user.name || 'User';
+        document.getElementById('username').textContent = user.username ? `@${user.username}` : '@user';
+        
+        // Apply name effect if specified
+        if (page.name_effect) {
+            applyNameEffect(document.getElementById('profileName'), page.name_effect);
+        }
+        
+        // Set joined date
+        if (user.joined_at) {
+            const joinedTime = new Date(user.joined_at);
+            const now = new Date();
+            const diffTime = Math.abs(now - joinedTime);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            let joinedString;
+            if (diffDays < 30) {
+                joinedString = `Joined ${diffDays} days ago`;
+            } else if (diffDays < 365) {
+                const months = Math.floor(diffDays / 30);
+                joinedString = `Joined ${months} month${months > 1 ? 's' : ''} ago`;
+            } else {
+                const years = Math.floor(diffDays / 365);
+                joinedString = `Joined ${years} year${years > 1 ? 's' : ''} ago`;
             }
             
-            // If we have a valid audio source, play it
-            if (audioSource) {
-                audio.src = audioSource;
-                audio.load();
-                audio.play()
-                    .then(() => {
-                        playPauseIcon.className = 'fas fa-pause';
-                        isPlaying = true;
-                    })
-                    .catch(error => {
-                        console.error('Error playing audio:', error);
-                        playPauseIcon.className = 'fas fa-play';
-                        isPlaying = false;
-                    });
+            document.getElementById('joinedDate').textContent = joinedString;
+            document.getElementById('joinedDate').style.display = 'block';
+        } else {
+            document.getElementById('joinedDate').style.display = 'none';
+        }
+        
+        // Set bio
+        if (page.bio) {
+            document.getElementById('bio').textContent = page.bio;
+            document.getElementById('bio').style.display = 'block';
+            
+            // Apply bio effect if specified
+            if (page.bio_effect) {
+                applyNameEffect(document.getElementById('bio'), page.bio_effect);
+            }
+        } else {
+            document.getElementById('bio').style.display = 'none';
+        }
+        
+        // Set user details
+        const ageContainer = document.getElementById('ageContainer');
+        const genderContainer = document.getElementById('genderContainer');
+        const otherDetails = document.getElementById('otherDetails');
+        
+        // Reset details
+        ageContainer.textContent = '';
+        genderContainer.textContent = '';
+        otherDetails.textContent = '';
+        
+        if (user.age) {
+            ageContainer.textContent = `Age: ${user.age}`;
+            ageContainer.style.display = 'block';
+        } else {
+            ageContainer.style.display = 'none';
+        }
+        
+        if (user.gender) {
+            genderContainer.textContent = `Gender: ${user.gender}`;
+            genderContainer.style.display = 'block';
+        } else {
+            genderContainer.style.display = 'none';
+        }
+        
+        if (user.pronouns) {
+            otherDetails.textContent = user.pronouns;
+            otherDetails.style.display = 'block';
+        } else {
+            otherDetails.style.display = 'none';
+        }
+        
+        // Set background
+        setBackground(page.background);
+        
+        // Set container style
+        setContainerStyle(page.layout);
+        
+        // Set social links
+        renderSocialLinks(page.social_links || []);
+        
+        // Set songs
+        renderSongs(page.songs || []);
+        
+        // Set views counter
+        if (data.views !== undefined) {
+            document.getElementById('viewsCounter').textContent = `Views: ${data.views}`;
+            document.getElementById('viewsCounter').style.display = 'block';
+        } else {
+            document.getElementById('viewsCounter').style.display = 'none';
+        }
+        
+        // Set tags
+        renderTags(user.tags || []);
+        
+        // Apply custom CSS if provided
+        if (page.custom_css) {
+            // Check if we've already added this custom CSS
+            const existingStyle = document.getElementById('customUserCSS');
+            if (existingStyle) {
+                existingStyle.textContent = page.custom_css;
             } else {
-                console.error('No valid audio source found for the song');
-                playPauseIcon.className = 'fas fa-play';
-                isPlaying = false;
+                const customStyle = document.createElement('style');
+                customStyle.id = 'customUserCSS';
+                customStyle.textContent = page.custom_css;
+                document.head.appendChild(customStyle);
             }
         }
         
-        function getYoutubeVideoId(url) {
-            if (!url) return null;
-            
-            let videoId = null;
-            
-            if (url.includes('youtube.com/watch')) {
-                const urlParams = new URLSearchParams(new URL(url).search);
-                videoId = urlParams.get('v');
-            } else if (url.includes('youtu.be/')) {
-                videoId = url.split('youtu.be/')[1].split('?')[0];
-            } else if (url.includes('youtube.com/embed/')) {
-                videoId = url.split('youtube.com/embed/')[1].split('?')[0];
-            }
-            
-            return videoId;
+        // Hide loading screen
+        if (loading) {
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 300);
         }
+    }
+
+    // Function to set background
+    function setBackground(background) {
+        if (!background) return;
         
-        function openMusicPlayer(song) {
-            const overlay = document.getElementById('musicPlayerOverlay');
+        const bgContainer = document.getElementById('backgroundContainer');
+        bgContainer.innerHTML = '';
+        
+        if (background.type === 'solid') {
+            document.body.style.backgroundColor = background.value;
+            document.body.style.backgroundImage = 'none';
+        } else if (background.type === 'gradient') {
+            document.body.style.background = background.value;
+        } else if (background.type === 'image') {
+            const img = document.createElement('img');
+            img.src = background.value;
+            img.className = 'bg-image';
+            bgContainer.appendChild(img);
             
-            // Save current song index
-            if (songsList.length > 0) {
-                currentSongIndex = songsList.findIndex(s => 
-                    s.title === song.title && s.artist === song.artist);
-                if (currentSongIndex === -1) currentSongIndex = 0;
+            if (background.opacity < 1) {
+                const overlay = document.createElement('div');
+                overlay.className = 'bg-overlay';
+                overlay.style.opacity = 1 - background.opacity;
+                bgContainer.appendChild(overlay);
             }
+        } else if (background.type === 'video') {
+            const video = document.createElement('video');
+            video.src = background.value;
+            video.className = 'bg-video';
+            video.autoplay = true;
+            video.loop = true;
+            video.muted = true;
+            bgContainer.appendChild(video);
             
-            // Load and play the song
-            loadAndPlaySong(song);
-            
-            // Show player
-            overlay.style.display = 'flex';
-        }
-        
-        function closeMusicPlayer() {
-            const overlay = document.getElementById('musicPlayerOverlay');
-            const audio = document.getElementById('audioPlayer');
-            
-            // Stop playback
-            if (audio) {
-                audio.pause();
-                audio.currentTime = 0;
-            }
-            
-            // Reset playing state
-            isPlaying = false;
-            document.getElementById('playPauseIcon').className = 'fas fa-play';
-            
-            // Hide player
-            overlay.style.display = 'none';
-        }
-        
-        function startTitleAnimation(title) {
-            if (!title) return;
-            
-            fullTitle = title;
-            currentTitle = '';
-            
-            // Clear any existing interval
-            if (typingTitleInterval) {
-                clearInterval(typingTitleInterval);
-            }
-            
-            // Start the typing animation
-            isTypingForward = true;
-            document.title = '';
-            
-            typingTitleInterval = setInterval(() => {
-                if (isTypingForward) {
-                    // Typing forward
-                    if (currentTitle.length < fullTitle.length) {
-                        currentTitle = fullTitle.substring(0, currentTitle.length + 1);
-                        document.title = currentTitle;
-                    } else {
-                        // Reached the end, pause before reversing
-                        setTimeout(() => {
-                            isTypingForward = false;
-                        }, 2000);
-                    }
-                } else {
-                    // Typing backward
-                    if (currentTitle.length > 0) {
-                        currentTitle = currentTitle.substring(0, currentTitle.length - 1);
-                        document.title = currentTitle || ' '; // Prevent empty title
-                    } else {
-                        // Reached the beginning, pause before starting again
-                        setTimeout(() => {
-                            isTypingForward = true;
-                        }, 1000);
-                    }
-                }
-            }, 150); // Adjust typing speed here
-        }
-        
-        async function loadContent() {
-            const path = window.location.pathname.substring(1);
-            const urlParams = new URLSearchParams(window.location.search);
-            const templateId = urlParams.get('template');
-            const previewId = urlParams.get('preview');
-            
-            if (!path && !templateId && !previewId) {
-                showError(404, 'Page not found');
-                return;
-            }
-        
-            try {
-                let cacheKey = path;
-                if (templateId) cacheKey += `-template-${templateId}`;
-                if (previewId) cacheKey += `-preview-${previewId}`;
-                
-                if (cache.has(cacheKey)) {
-                    const cachedContent = cache.get(cacheKey);
-                    await renderContent(cachedContent);
-                    updateStatsBadge(cachedContent);
-                    setupPreviewBanner(cachedContent);
-                    return;
-                }
-        
-                let url;
-                let data;
-                
-                if (previewId) {
-                    // Load preview data
-                    url = `${API_URL}/preview/${previewId}`;
-                    const response = await fetchWithTimeout(url);
-                    
-                    if (!response.ok) {
-                        if (response.status === 429) {
-                            showError(429, 'Rate limit exceeded');
-                            return;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    data = await response.json();
-                    
-                    // For preview data, we need to format it properly
-                    if (data) {
-                        // Handle case where preview data might be in a different format
-                        // Make sure we have a consistent structure
-                        data = {
-                            page: data,
-                            is_preview: true,
-                            original_path: path // Store the original path for context
-                        };
-                    }
-                } else if (path) {
-                    url = `${API_URL}/p/${path}${templateId ? `?template_id=${templateId}` : ''}`;
-                    const response = await fetchWithTimeout(url);
-                    
-                    if (!response.ok) {
-                        if (response.status === 429) {
-                            showError(429, 'Rate limit exceeded');
-                            return;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    data = await response.json();
-                } else {
-                    showError(404, 'Invalid URL');
-                    return;
-                }
-                
-                if (!data) {
-                    showError(404, 'Data not found');
-                    return;
-                }
-        
-                cache.set(cacheKey, data);
-                await renderContent(data);
-                updateStatsBadge(data);
-                setupPreviewBanner(data);
-            } catch (err) {
-                console.error('Loading error:', err);
-                showError(404, 'Page not found or failed to load');
+            if (background.opacity < 1) {
+                const overlay = document.createElement('div');
+                overlay.className = 'bg-overlay';
+                overlay.style.opacity = 1 - background.opacity;
+                bgContainer.appendChild(overlay);
             }
         }
+    }
+
+    // Function to set container style
+    function setContainerStyle(layout) {
+        if (!layout) return;
         
-        function setupPreviewBanner(data) {
-            const previewBanner = document.getElementById('previewBanner');
-            const previewType = document.getElementById('previewType');
-            const previewName = document.getElementById('previewName');
-            const useTemplateBtn = document.getElementById('useTemplateBtn');
-            const exitPreviewBtn = document.getElementById('exitPreviewBtn');
-            
-            if (data.is_template_preview) {
-                previewType.textContent = 'Template Preview';
-                previewName.textContent = data.template_name || 'Template';
-                previewBanner.style.display = 'flex';
-                
-                useTemplateBtn.style.display = 'block';
-                useTemplateBtn.onclick = () => {
-                    window.location.href = `/templates.html?use=${data.template_id}`;
-                };
-                
-                exitPreviewBtn.onclick = () => {
-                    window.location.href = '/templates.html';
-                };
-            } else if (data.is_preview || (data.page && data.page.is_preview)) {
-                previewType.textContent = 'Page Preview';
-                previewName.textContent = data.page?.title || 'Preview';
-                previewBanner.style.display = 'flex';
-                
-                useTemplateBtn.style.display = 'none';
-                exitPreviewBtn.onclick = () => {
-                    // If we have the original path, go back to the normal page
-                    if (data.original_path) {
-                        window.location.href = `/${data.original_path}`;
-                    } else {
-                        window.history.back();
-                    }
-                };
-            } else {
-                previewBanner.style.display = 'none';
-            }
-        }
+        const profileContainer = document.getElementById('profileContainer');
         
-        function applyNameEffect(element, effect) {
-            if (!element || !effect) return;
-            
-            if (effect.name === 'typewriter') {
-                // Create a container for the typewriter effect
-                const container = document.createElement('div');
-                container.className = 'typewriter-container';
-                
-                // Move the element into the container
-                element.parentNode.insertBefore(container, element);
-                container.appendChild(element);
-                
-                // Apply the typewriter class
-                element.className += ' typewriter-text';
-                
-                if (effect.speed) {
-                    element.style.animationDuration = `${effect.speed}s`;
-                }
-                if (effect.delay) {
-                    element.style.animationDelay = `${effect.delay}s`;
-                }
-                if (effect.reverse) {
-                    element.className += ' typewriter-reverse';
-                }
-            }
-            // Add other effects as needed
-        }
-        
-        async function renderContent(data) {
-            const loading = document.getElementById('loading');
-            if (!data || (!data.page && !data.is_preview)) {
-                showError(404, 'Page data not found');
-                return;
+        if (layout.container_style && layout.container_style.enabled) {
+            // Apply container background color or gradient
+            if (layout.container_style.background_color) {
+                profileContainer.style.backgroundColor = layout.container_style.background_color;
             }
             
-            // Handle case where data might be directly the page object for previews
-            const page = data.page || data;
-            const user = data.user || {};
-            
-            // Set the page title with animation
-            const pageTitle = page.title || user.name || "Profile Page";
-            document.title = pageTitle;
-            startTitleAnimation(pageTitle + "..");
-            
-            // Set avatar
-            if (page.avatar_url) {
-                document.getElementById('avatarImg').src = page.avatar_url;
-                document.getElementById('avatarImg').onerror = function() {
-                    this.src = 'https://via.placeholder.com/150?text=User';
-                };
+            if (layout.container_style.gradient) {
+                profileContainer.style.background = layout.container_style.gradient;
             }
             
-            // Set avatar decoration
-            if (page.avatar_decoration) {
-                const decorationElement = document.getElementById('avatarDecoration');
-                decorationElement.style.display = 'block';
-                decorationElement.innerHTML = `<img src="${page.avatar_decoration}" alt="Decoration">`;
+            // Apply opacity
+            if (layout.container_style.opacity !== undefined) {
+                profileContainer.style.opacity = layout.container_style.opacity;
+            }
+            
+            // Apply border radius
+            if (layout.container_style.border_radius !== undefined) {
+                profileContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
+            }
+            
+            // Apply border color
+            if (layout.container_style.border_color) {
+                profileContainer.style.borderColor = layout.container_style.border_color;
+            }
+            
+            // Apply shadow
+            if (layout.container_style.shadow) {
+                profileContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
             } else {
-                document.getElementById('avatarDecoration').style.display = 'none';
-            }
-            
-            // Set name and username
-            document.getElementById('profileName').textContent = page.name || user.name || 'User';
-            document.getElementById('username').textContent = user.username ? `@${user.username}` : '@user';
-            
-            // Apply name effect if specified
-            if (page.name_effect) {
-                applyNameEffect(document.getElementById('profileName'), page.name_effect);
-            }
-            
-            // Set joined date
-            if (user.joined_at) {
-                const joinedTime = new Date(user.joined_at);
-                const now = new Date();
-                const diffTime = Math.abs(now - joinedTime);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                let joinedString;
-                if (diffDays < 30) {
-                    joinedString = `Joined ${diffDays} days ago`;
-                } else if (diffDays < 365) {
-                    const months = Math.floor(diffDays / 30);
-                    joinedString = `Joined ${months} month${months > 1 ? 's' : ''} ago`;
-                } else {
-                    const years = Math.floor(diffDays / 365);
-                    joinedString = `Joined ${years} year${years > 1 ? 's' : ''} ago`;
-                }
-                
-                document.getElementById('joinedDate').textContent = joinedString;
-                document.getElementById('joinedDate').style.display = 'block';
-            } else {
-                document.getElementById('joinedDate').style.display = 'none';
-            }
-            
-            // Set bio
-            if (page.bio) {
-                document.getElementById('bio').textContent = page.bio;
-                document.getElementById('bio').style.display = 'block';
-                
-                // Apply bio effect if specified
-                if (page.bio_effect) {
-                    applyNameEffect(document.getElementById('bio'), page.bio_effect);
-                }
-            } else {
-                document.getElementById('bio').style.display = 'none';
-            }
-            
-            // Set user details
-            const ageContainer = document.getElementById('ageContainer');
-            const genderContainer = document.getElementById('genderContainer');
-            const otherDetails = document.getElementById('otherDetails');
-            
-            // Reset details
-            ageContainer.textContent = '';
-            genderContainer.textContent = '';
-            otherDetails.textContent = '';
-            
-            if (user.age) {
-                ageContainer.textContent = `Age: ${user.age}`;
-                ageContainer.style.display = 'block';
-            } else {
-                ageContainer.style.display = 'none';
-            }
-            
-            if (user.gender) {
-                genderContainer.textContent = `Gender: ${user.gender}`;
-                genderContainer.style.display = 'block';
-            } else {
-                genderContainer.style.display = 'none';
-            }
-            
-            if (user.pronouns) {
-                otherDetails.textContent = user.pronouns;
-                otherDetails.style.display = 'block';
-            } else {
-                otherDetails.style.display = 'none';
-            }
-            
-            // Set background
-            setBackground(page.background);
-            
-            // Set container style
-            setContainerStyle(page.layout);
-            
-            // Set social links
-            renderSocialLinks(page.social_links || []);
-            
-            // Set songs
-            renderSongs(page.songs || []);
-            
-            // Set views counter
-            if (data.views !== undefined) {
-                document.getElementById('viewsCounter').textContent = `Views: ${data.views}`;
-                document.getElementById('viewsCounter').style.display = 'block';
-            } else {
-                document.getElementById('viewsCounter').style.display = 'none';
-            }
-            
-            // Set tags
-            renderTags(user.tags || []);
-            
-            // Apply custom CSS if provided
-            if (page.custom_css) {
-                // Check if we've already added this custom CSS
-                const existingStyle = document.getElementById('customUserCSS');
-                if (existingStyle) {
-                    existingStyle.textContent = page.custom_css;
-                } else {
-                    const customStyle = document.createElement('style');
-                    customStyle.id = 'customUserCSS';
-                    customStyle.textContent = page.custom_css;
-                    document.head.appendChild(customStyle);
-                }
-            }
-            
-            // Hide loading screen
-            if (loading) {
-                loading.style.opacity = '0';
-                setTimeout(() => {
-                    loading.style.display = 'none';
-                }, 300);
-            }
-        }
-        
-        // Function to set background
-        function setBackground(background) {
-            if (!background) return;
-            
-            const bgContainer = document.getElementById('backgroundContainer');
-            bgContainer.innerHTML = '';
-            
-            if (background.type === 'solid') {
-                document.body.style.backgroundColor = background.value;
-                document.body.style.backgroundImage = 'none';
-            } else if (background.type === 'gradient') {
-                document.body.style.background = background.value;
-            } else if (background.type === 'image') {
-                const img = document.createElement('img');
-                img.src = background.value;
-                img.className = 'bg-image';
-                bgContainer.appendChild(img);
-                
-                if (background.opacity < 1) {
-                    const overlay = document.createElement('div');
-                    overlay.className = 'bg-overlay';
-                    overlay.style.opacity = 1 - background.opacity;
-                    bgContainer.appendChild(overlay);
-                }
-            } else if (background.type === 'video') {
-                const video = document.createElement('video');
-                video.src = background.value;
-                video.className = 'bg-video';
-                video.autoplay = true;
-                video.loop = true;
-                video.muted = true;
-                bgContainer.appendChild(video);
-                
-                if (background.opacity < 1) {
-                    const overlay = document.createElement('div');
-                    overlay.className = 'bg-overlay';
-                    overlay.style.opacity = 1 - background.opacity;
-                    bgContainer.appendChild(overlay);
-                }
-            }
-        }
-        
-        // Function to set container style
-        function setContainerStyle(layout) {
-            if (!layout) return;
-            
-            const profileContainer = document.getElementById('profileContainer');
-            
-            if (layout.container_style && layout.container_style.enabled) {
-                // Apply container background color or gradient
-                if (layout.container_style.background_color) {
-                    profileContainer.style.backgroundColor = layout.container_style.background_color;
-                }
-                
-                if (layout.container_style.gradient) {
-                    profileContainer.style.background = layout.container_style.gradient;
-                }
-                
-                // Apply opacity
-                if (layout.container_style.opacity !== undefined) {
-                    profileContainer.style.opacity = layout.container_style.opacity;
-                }
-                
-                // Apply border radius
-                if (layout.container_style.border_radius !== undefined) {
-                    profileContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
-                }
-                
-                // Apply border color
-                if (layout.container_style.border_color) {
-                    profileContainer.style.borderColor = layout.container_style.border_color;
-                }
-                
-                // Apply shadow
-                if (layout.container_style.shadow) {
-                    profileContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
-                } else {
-                    profileContainer.style.boxShadow = 'none';
-                }
-            } else {
-                // If container is disabled, remove borders and background
-                profileContainer.style.border = 'none';
-                profileContainer.style.backgroundColor = 'transparent';
                 profileContainer.style.boxShadow = 'none';
             }
+        } else {
+            // If container is disabled, remove borders and background
+            profileContainer.style.border = 'none';
+            profileContainer.style.backgroundColor = 'transparent';
+            profileContainer.style.boxShadow = 'none';
+        }
+    }
+
+    // Function to render social links
+    function renderSocialLinks(links) {
+        const socialLinksContainer = document.getElementById('socialLinks');
+        socialLinksContainer.innerHTML = '';
+        
+        if (!links || links.length === 0) {
+            socialLinksContainer.style.display = 'none';
+            return;
         }
         
-        // Function to render social links
-        function renderSocialLinks(links) {
-            const socialLinksContainer = document.getElementById('socialLinks');
-            socialLinksContainer.innerHTML = '';
+        socialLinksContainer.style.display = 'flex';
+        
+        // Use CDN-hosted images to avoid CORS issues
+        const socialIcons = {
+            'instagram': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/instagram.svg',
+            'twitter': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/twitter.svg',
+            'facebook': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/facebook.svg',
+            'tiktok': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/tiktok.svg',
+            'youtube': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/youtube.svg',
+            'linkedin': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/linkedin.svg',
+            'github': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/github.svg',
+            'twitch': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/twitch.svg',
+            'spotify': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/spotify.svg',
+            'snapchat': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/snapchat.svg',
+            'discord': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/discord.svg',
+            'pinterest': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/pinterest.svg',
+            'reddit': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/reddit.svg',
+            'email': 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/gmail.svg'
+        };
+        
+        links.forEach(link => {
+            const linkElement = document.createElement('a');
+            linkElement.href = link.url;
+            linkElement.className = 'social-icon';
+            linkElement.target = '_blank';
+            linkElement.rel = 'noopener noreferrer';
             
-            if (!links || links.length === 0) {
-                socialLinksContainer.style.display = 'none';
-                return;
+            const imgElement = document.createElement('img');
+            
+            // Use icon from link if provided, otherwise use default icon for platform
+            if (link.icon) {
+                imgElement.src = link.icon;
+            } else {
+                const platform = link.platform.toLowerCase();
+                imgElement.src = socialIcons[platform] || 'https://cdn.jsdelivr.net/npm/simple-icons@v6/icons/link.svg';
             }
             
-            socialLinksContainer.style.display = 'flex';
+            imgElement.alt = link.display_name || link.platform;
+            linkElement.appendChild(imgElement);
             
-            const socialIcons = {
-                'instagram': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/2048px-Instagram_icon.png',
-                'twitter': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Logo_of_Twitter.svg/512px-Logo_of_Twitter.svg.png',
-                'facebook': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/2021_Facebook_icon.svg/2048px-2021_Facebook_icon.svg.png',
-                'tiktok': 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/TikTok_logo.svg/1024px-TikTok_logo.svg.png',
-                'youtube': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/2560px-YouTube_full-color_icon_%282017%29.svg.png',
-                'linkedin': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/LinkedIn_logo_initials.png/800px-LinkedIn_logo_initials.png',
-                'github': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/2048px-Octicons-mark-github.svg.png',
-                'twitch': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Twitch_logo.svg/2560px-Twitch_logo.svg.png',
-                'spotify': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/2048px-Spotify_logo_without_text.svg.png',
-                'snapchat': 'https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Snapchat_logo.svg/1200px-Snapchat_logo.svg.png',
-                'discord': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Discord_Mark.svg/2048px-Discord_Mark.svg.png',
-                'pinterest': 'https://upload.wikimedia.org/wikipedia/commons/0/08/Pinterest-logo.png',
-                'reddit': 'https://upload.wikimedia.org/wikipedia/en/thumb/5/58/Reddit_logo_new.svg/2560px-Reddit_logo_new.svg.png',
-                'email': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Gmail_icon_%282020%29.svg/2560px-Gmail_icon_%282020%29.svg.png'
+            socialLinksContainer.appendChild(linkElement);
+        });
+    }
+
+    // Function to render songs
+    function renderSongs(songs) {
+        const songsContainer = document.getElementById('songsContainer');
+        const songsList = document.getElementById('songsList');
+        songsList.innerHTML = '';
+        
+        if (!songs || songs.length === 0) {
+            songsContainer.style.display = 'none';
+            return;
+        }
+        
+        songsContainer.style.display = 'block';
+        
+        const audioPlayer = document.getElementById('audioPlayer');
+        songsData = songs; // Store songs for global reference
+        
+        songs.forEach((song, index) => {
+            const songItem = document.createElement('div');
+            songItem.className = 'song-item';
+            
+            const songCover = document.createElement('div');
+            songCover.className = 'song-cover';
+            
+            const coverImg = document.createElement('img');
+            coverImg.src = song.cover_url;
+            coverImg.alt = song.title;
+            coverImg.onerror = () => {
+                coverImg.src = 'https://via.placeholder.com/60?text=Music';
             };
+            songCover.appendChild(coverImg);
             
-            links.forEach(link => {
-                const linkElement = document.createElement('a');
-                linkElement.href = link.url;
-                linkElement.className = 'social-icon';
-                linkElement.target = '_blank';
-                linkElement.rel = 'noopener noreferrer';
+            const songInfo = document.createElement('div');
+            songInfo.className = 'song-info';
+            
+            const songTitle = document.createElement('div');
+            songTitle.className = 'song-title';
+            songTitle.textContent = song.title;
+            
+            const songArtist = document.createElement('div');
+            songArtist.className = 'song-artist';
+            songArtist.textContent = song.artist;
+            
+            songInfo.appendChild(songTitle);
+            songInfo.appendChild(songArtist);
+            
+            const playButton = document.createElement('button');
+            playButton.className = 'play-button';
+            playButton.innerHTML = '<div class="play-icon"></div>';
+            
+            // Setup play functionality
+            songItem.addEventListener('click', function() {
+                // Check if we have a direct audio URL
+                let canPlay = false;
                 
-                const imgElement = document.createElement('img');
-                
-                // Use icon from link if provided, otherwise use default icon for platform
-                if (link.icon) {
-                    imgElement.src = link.icon;
-                } else {
-                    const platform = link.platform.toLowerCase();
-                    imgElement.src = socialIcons[platform] || 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Computer_keyboarding_pictogram.svg/1024px-Computer_keyboarding_pictogram.svg.png';
+                if (song.youtube_url && isDirectMediaUrl(song.youtube_url)) {
+                    canPlay = true;
+                } 
+                else if (song.audio_url && isDirectMediaUrl(song.audio_url)) {
+                    canPlay = true;
                 }
                 
-                imgElement.alt = link.display_name || link.platform;
-                linkElement.appendChild(imgElement);
+                if (!canPlay) {
+                    console.log('No direct audio URL available for this song');
+                    return;
+                }
                 
-                socialLinksContainer.appendChild(linkElement);
-            });
-        }
-        
-        // Function to render songs
-        function renderSongs(songs) {
-            const songsContainer = document.getElementById('songsContainer');
-            const songsList = document.getElementById('songsList');
-            songsList.innerHTML = '';
-            
-            if (!songs || songs.length === 0) {
-                songsContainer.style.display = 'none';
-                return;
-            }
-            
-            songsContainer.style.display = 'block';
-            
-            const audioPlayer = document.getElementById('audioPlayer');
-            songsList = songs; // Store songs for global reference
-            
-            songs.forEach((song, index) => {
-                const songItem = document.createElement('div');
-                songItem.className = 'song-item';
+                currentSongIndex = index;
                 
-                const songCover = document.createElement('div');
-                songCover.className = 'song-cover';
-                
-                const coverImg = document.createElement('img');
-                coverImg.src = song.cover_url;
-                coverImg.alt = song.title;
-                coverImg.onerror = () => {
-                    coverImg.src = 'https://via.placeholder.com/60?text=Music';
-                };
-                songCover.appendChild(coverImg);
-                
-                const songInfo = document.createElement('div');
-                songInfo.className = 'song-info';
-                
-                const songTitle = document.createElement('div');
-                songTitle.className = 'song-title';
-                songTitle.textContent = song.title;
-                
-                const songArtist = document.createElement('div');
-                songArtist.className = 'song-artist';
-                songArtist.textContent = song.artist;
-                
-                songInfo.appendChild(songTitle);
-                songInfo.appendChild(songArtist);
-                
-                const playButton = document.createElement('button');
-                playButton.className = 'play-button';
-                playButton.innerHTML = '<div class="play-icon"></div>';
-                
-                // Setup play functionality
-                songItem.addEventListener('click', function() {
-                    // Extract audio URL from YouTube URL or use direct audio URL
+                // If we have a mobile player or popup, use it
+                if (window.innerWidth <= 768) {
+                    openMusicPlayer(song);
+                } else {
+                    // Otherwise just play directly
                     let audioUrl = '';
                     
-                    if (song.youtube_url) {
-                        if (isDirectMediaUrl(song.youtube_url)) {
-                            audioUrl = song.youtube_url;
-                        } else if (song.audio_url) {
-                            audioUrl = song.audio_url;
+                    if (song.youtube_url && isDirectMediaUrl(song.youtube_url)) {
+                        audioUrl = song.youtube_url;
+                    } else if (song.audio_url && isDirectMediaUrl(song.audio_url)) {
+                        audioUrl = song.audio_url;
+                    }
+                    
+                    if (audioUrl) {
+                        // If current song is playing, pause it
+                        if (audioPlayer.src === audioUrl && !audioPlayer.paused) {
+                            audioPlayer.pause();
+                            playButton.innerHTML = '<div class="play-icon"></div>';
                         } else {
-                            // For YouTube links - this is a placeholder
-                            // In a real implementation you'd need server-side processing
-                            console.warn("YouTube links need server-side processing for audio extraction");
-                            // Use a placeholder or streaming service URL
-                            audioUrl = song.youtube_url; // This won't play directly but shows the intent
-                        }
-                    }
-                    
-                    currentSongIndex = index;
-                    
-                    // If we have a mobile player or popup, use it
-                    if (window.innerWidth <= 768) {
-                        openMusicPlayer(song);
-                    } else {
-                        // Otherwise just play directly
-                        if (audioUrl) {
-                            // If current song is playing, pause it
-                            if (audioPlayer.src === audioUrl && !audioPlayer.paused) {
-                                audioPlayer.pause();
-                                playButton.innerHTML = '<div class="play-icon"></div>';
-                            } else {
-                                // Play new song
-                                audioPlayer.src = audioUrl;
-                                audioPlayer.play()
-                                    .then(() => {
-                                        // Update all play buttons to show play icon
-                                        document.querySelectorAll('.play-button').forEach(btn => {
-                                            btn.innerHTML = '<div class="play-icon"></div>';
-                                        });
-                                        
-                                        // Update this button to show pause icon
-                                        playButton.innerHTML = '<div class="pause-icon"></div>';
-                                    })
-                                    .catch(error => {
-                                        console.error('Error playing audio:', error);
+                            // Play new song
+                            audioPlayer.src = audioUrl;
+                            audioPlayer.play()
+                                .then(() => {
+                                    // Update all play buttons to show play icon
+                                    document.querySelectorAll('.play-button').forEach(btn => {
+                                        btn.innerHTML = '<div class="play-icon"></div>';
                                     });
-                            }
+                                    
+                                    // Update this button to show pause icon
+                                    playButton.innerHTML = '<div class="pause-icon"></div>';
+                                })
+                                .catch(error => {
+                                    console.error('Error playing audio:', error);
+                                });
                         }
                     }
-                });
-                
-                songItem.appendChild(songCover);
-                songItem.appendChild(songInfo);
-                songItem.appendChild(playButton);
-                
-                songsList.appendChild(songItem);
+                }
             });
             
-            // When song ends, play next song
-            audioPlayer.onended = function() {
-                currentSongIndex = (currentSongIndex + 1) % songs.length;
-                const nextSong = songs[currentSongIndex];
-                
+            songItem.appendChild(songCover);
+            songItem.appendChild(songInfo);
+            songItem.appendChild(playButton);
+            
+            songsList.appendChild(songItem);
+        });
+        
+        // When song ends, play next song
+        audioPlayer.onended = function() {
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            const nextSong = songs[currentSongIndex];
+            
+            // Only auto-play next song if it has a direct audio URL
+            let canPlayNext = false;
+            if (nextSong.youtube_url && isDirectMediaUrl(nextSong.youtube_url)) {
+                canPlayNext = true;
+            } else if (nextSong.audio_url && isDirectMediaUrl(nextSong.audio_url)) {
+                canPlayNext = true;
+            }
+            
+            if (canPlayNext) {
                 if (window.innerWidth <= 768) {
                     loadAndPlaySong(nextSong);
                 } else {
@@ -1818,75 +1784,74 @@
                         songItems[currentSongIndex].click();
                     }
                 }
-            };
+            }
+        };
+    }
+
+    // Function to render tags
+    function renderTags(tags) {
+        const tagsContainer = document.querySelector('.tags-container');
+        tagsContainer.innerHTML = '';
+        
+        if (!tags || tags.length === 0) {
+            // Add default tags as shown in the prototype
+            const cyanTag = document.createElement('div');
+            cyanTag.className = 'tag tag-cyan';
+            
+            const blackTag = document.createElement('div');
+            blackTag.className = 'tag tag-black';
+            
+            const purpleTag = document.createElement('div');
+            purpleTag.className = 'tag tag-purple';
+            
+            tagsContainer.appendChild(cyanTag);
+            tagsContainer.appendChild(blackTag);
+            tagsContainer.appendChild(purpleTag);
+            return;
         }
         
-        // Function to render tags
-        function renderTags(tags) {
-            const tagsContainer = document.querySelector('.tags-container');
-            tagsContainer.innerHTML = '';
+        // Create tags from user data
+        tags.forEach(tag => {
+            const tagElement = document.createElement('div');
+            tagElement.className = 'tag';
             
-            if (!tags || tags.length === 0) {
-                // Add default tags as shown in the prototype
-                const cyanTag = document.createElement('div');
-                cyanTag.className = 'tag tag-cyan';
-                
-                const blackTag = document.createElement('div');
-                blackTag.className = 'tag tag-black';
-                
-                const purpleTag = document.createElement('div');
-                purpleTag.className = 'tag tag-purple';
-                
-                tagsContainer.appendChild(cyanTag);
-                tagsContainer.appendChild(blackTag);
-                tagsContainer.appendChild(purpleTag);
-                return;
+            if (tag.icon_type === 'emoji') {
+                tagElement.textContent = tag.icon;
+                tagElement.title = tag.text;
+            } else if (tag.icon_type === 'svg') {
+                tagElement.innerHTML = tag.icon;
+                tagElement.title = tag.text;
+            } else if (tag.icon_type === 'image') {
+                const imgElement = document.createElement('img');
+                imgElement.src = tag.icon;
+                imgElement.alt = tag.text;
+                imgElement.style.width = '100%';
+                imgElement.style.height = '100%';
+                tagElement.appendChild(imgElement);
+                tagElement.title = tag.text;
             }
             
-            // Create tags from user data
-            tags.forEach(tag => {
-                const tagElement = document.createElement('div');
-                tagElement.className = 'tag';
-                
-                if (tag.icon_type === 'emoji') {
-                    tagElement.textContent = tag.icon;
-                    tagElement.title = tag.text;
-                } else if (tag.icon_type === 'svg') {
-                    tagElement.innerHTML = tag.icon;
-                    tagElement.title = tag.text;
-                } else if (tag.icon_type === 'image') {
-                    const imgElement = document.createElement('img');
-                    imgElement.src = tag.icon;
-                    imgElement.alt = tag.text;
-                    imgElement.style.width = '100%';
-                    imgElement.style.height = '100%';
-                    tagElement.appendChild(imgElement);
-                    tagElement.title = tag.text;
-                }
-                
-                tagsContainer.appendChild(tagElement);
-            });
-        }
-        
-        function showError(code, message) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('error').style.display = 'flex';
-            document.getElementById('errorCode').textContent = code;
-            document.getElementById('errorMessage').textContent = message;
-            document.getElementById('rateLimitMessage').style.display = code === 429 ? 'block' : 'none';
-        }
-        
-        // Initialize the page when loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize audio player
-            initAudioPlayer();
-            
-            // Load content
-            loadContent();
-            
-            // Global function for music player
-            window.closeMusicPlayer = closeMusicPlayer;
+            tagsContainer.appendChild(tagElement);
         });
+    }
+
+    function showError(code, message) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'flex';
+        document.getElementById('errorCode').textContent = code;
+        document.getElementById('errorMessage').textContent = message;
+        document.getElementById('rateLimitMessage').style.display = code === 429 ? 'block' : 'none';
+    }
+
+    // Initialize the page when loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize audio player
+        initAudioPlayer();
+        
+        // Load content
+        loadContent();
+        
+        // Global function for music player
+        window.closeMusicPlayer = closeMusicPlayer;
+    });
 </script>
-</body>
-</html>
