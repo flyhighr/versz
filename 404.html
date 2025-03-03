@@ -1029,13 +1029,19 @@
             } catch (error) {
                 clearTimeout(id);
                 console.error('Fetch error:', error);
-                // Check if it's a CORS error
-                if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-                    console.warn('Possible CORS issue. If you\'re in development, make sure the server has CORS enabled.');
-                }
                 throw error;
             }
         }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+
 
         // Create typing animation effect for page title/name
         function createTypingAnimation(element, text) {
@@ -1175,7 +1181,13 @@
             }
         }
 
+        let isLoading = false;
+        
         async function loadContent() {
+            // Prevent multiple simultaneous calls
+            if (isLoading) return;
+            isLoading = true;
+        
             const path = window.location.pathname.substring(1);
             const urlParams = new URLSearchParams(window.location.search);
             const templateId = urlParams.get('template');
@@ -1183,9 +1195,10 @@
             
             if (!path && !templateId && !previewId) {
                 showError(404, 'Page not found');
+                isLoading = false;
                 return;
             }
-
+        
             try {
                 let cacheKey = path;
                 if (templateId) cacheKey += `-template-${templateId}`;
@@ -1196,9 +1209,10 @@
                     await renderContent(cachedContent);
                     updateStatsBadge(cachedContent);
                     setupPreviewBanner(cachedContent);
+                    isLoading = false;
                     return;
                 }
-
+        
                 let url;
                 if (previewId) {
                     url = `${API_URL}/preview/${previewId}`;
@@ -1206,20 +1220,24 @@
                     url = `${API_URL}/p/${path}${templateId ? `?template_id=${templateId}` : ''}`;
                 } else {
                     showError(404, 'Invalid URL');
+                    isLoading = false;
                     return;
                 }
-
+        
                 console.log("Fetching from URL:", url);
-                const response = await fetchWithTimeout(url);
-
+                // Add a timestamp to prevent caching by the browser
+                const timestampedUrl = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+                const response = await fetchWithTimeout(timestampedUrl);
+        
                 if (!response.ok) {
                     if (response.status === 429) {
                         showError(429, 'Rate limit exceeded');
+                        isLoading = false;
                         return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-
+        
                 const data = await response.json();
                 console.log("Received data:", data);
                 
@@ -1245,8 +1263,13 @@
             } catch (err) {
                 console.error('Loading error:', err);
                 showError(404, 'Page not found');
+            } finally {
+                isLoading = false;
             }
         }
+        
+        // Debounce the loadContent function to prevent rapid multiple calls
+        const debouncedLoadContent = debounce(loadContent, 300);
 
         function setupPreviewBanner(data) {
             const previewBanner = document.getElementById('previewBanner');
@@ -1858,7 +1881,7 @@
         }
         
         // Load content when page is ready
-        document.addEventListener('DOMContentLoaded', loadContent);
+        document.addEventListener('DOMContentLoaded', debouncedLoadContent);
     </script>
 </body>
 </html>
