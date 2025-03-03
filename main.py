@@ -8,16 +8,14 @@ import logging
 import secrets
 import hashlib
 import json
-import base64
 from functools import lru_cache
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta, date
 from typing import Optional, List, Dict, Any, Union, Set
 from contextlib import asynccontextmanager
-import pytz
 
-from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends, Form, Body, BackgroundTasks, Query, File
+from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends, Form, Body, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -36,7 +34,8 @@ import schedule
 import smtplib
 from email.message import EmailMessage
 from cachetools import TTLCache
-
+import pytz
+from dateutil.relativedelta import relativedelta
 
 class Settings:
     MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
@@ -66,7 +65,6 @@ class Settings:
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
     MAX_AVATAR_SIZE: int = 1024 * 1024  # 1MB
     PREVIEW_EXPIRATION_MINUTES: int = 30  # How long preview pages are valid
-    IMGBB_API_KEY: str = os.getenv("IMGBB_API_KEY", "YOUR_IMGBB_API_KEY")
     DEFAULT_TAGS = {
         "early_supporter": {
             "icon": """<svg viewBox="0 0 24 24" width="24" height="24">
@@ -86,41 +84,39 @@ class Settings:
     DEFAULT_BACKGROUND_TYPES = ["solid", "gradient", "image", "video"]
     DEFAULT_FONTS = [
         {
-            "name": "Open Sans",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
-            "family": "'Open Sans', sans-serif"
+            "name": "Default",
+            "value": "",
+            "link": ""
         },
         {
             "name": "Roboto",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Roboto&display=swap' rel='stylesheet'>",
-            "family": "'Roboto', sans-serif"
+            "value": "'Roboto', sans-serif",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap' rel='stylesheet'>"
         },
         {
-            "name": "Lato",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Lato&display=swap' rel='stylesheet'>",
-            "family": "'Lato', sans-serif"
+            "name": "Open Sans",
+            "value": "'Open Sans', sans-serif",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap' rel='stylesheet'>"
         },
         {
             "name": "Montserrat",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Montserrat&display=swap' rel='stylesheet'>",
-            "family": "'Montserrat', sans-serif"
+            "value": "'Montserrat', sans-serif",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap' rel='stylesheet'>"
         },
         {
-            "name": "Poppins",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Poppins&display=swap' rel='stylesheet'>",
-            "family": "'Poppins', sans-serif"
+            "name": "Lato",
+            "value": "'Lato', sans-serif",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap' rel='stylesheet'>"
         },
         {
-            "name": "Annie Use Your Telescope",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Annie+Use+Your+Telescope&display=swap' rel='stylesheet'>",
-            "family": "'Annie Use Your Telescope', cursive"
+            "name": "Playfair Display",
+            "value": "'Playfair Display', serif",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap' rel='stylesheet'>"
         }
     ]
-    TIMEZONES = [tz for tz in pytz.all_timezones]
-
+    TIMEZONES = list(pytz.all_timezones)
 
 settings = Settings()
-
 
 class RateLimits:
     AUTH_LIMIT = "5/minute"
@@ -128,7 +124,6 @@ class RateLimits:
     READ_LIMIT = "30/minute" 
     MODIFY_LIMIT = "15/minute"  
     ADMIN_LIMIT = "60/minute"
-
 
 # Logging configuration
 logging.basicConfig(
@@ -151,7 +146,6 @@ pwd_context = CryptContext(
     truncate_error=False
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 
 # Custom Async Cache Implementation
 class AsyncTTLCache:
@@ -177,7 +171,6 @@ class AsyncTTLCache:
     async def delete(self, key: str) -> None:
         self.cache.pop(key, None)
 
-
 # Initialize caches
 user_cache = AsyncTTLCache(ttl_seconds=300)
 page_cache = TTLCache(maxsize=1000, ttl=300)
@@ -185,16 +178,13 @@ views_cache = TTLCache(maxsize=1000, ttl=300)
 template_cache = TTLCache(maxsize=100, ttl=600)
 preview_cache = TTLCache(maxsize=100, ttl=300)
 
-
 # Pydantic models
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-
 class TokenData(BaseModel):
     username: Optional[str] = None
-
 
 class SocialLink(BaseModel):
     platform: str
@@ -202,19 +192,16 @@ class SocialLink(BaseModel):
     icon: Optional[str] = None
     display_name: Optional[str] = None
 
-
 class Song(BaseModel):
     title: str
     artist: str
     cover_url: str
     youtube_url: str
 
-
 class BackgroundConfig(BaseModel):
     type: str = Field(..., description="Type of background: solid, gradient, image, video")
     value: str = Field(..., description="Color code, gradient spec, or URL to image/video")
     opacity: float = Field(1.0, ge=0.0, le=1.0)
-
 
 class ContainerStyle(BaseModel):
     enabled: bool = True
@@ -225,30 +212,23 @@ class ContainerStyle(BaseModel):
     border_color: Optional[str] = None
     shadow: Optional[bool] = True
 
-
 class PageLayout(BaseModel):
-    type: str = Field(default=settings.DEFAULT_LAYOUT, description="Layout type")
+    type: str = Field(default="standard", description="Layout type")
     container_style: ContainerStyle = ContainerStyle()
-
 
 class TextEffect(BaseModel):
     name: str
     speed: Optional[int] = None
     delay: Optional[int] = None
 
-
 class FontConfig(BaseModel):
-    name: str
-    link: str
-    family: str
+    name: str = "Default"
+    value: str = ""
+    link: str = ""
 
-
-class TextStyle(BaseModel):
-    font: Optional[FontConfig] = None
+class TextStyleConfig(BaseModel):
     color: Optional[str] = None
-    size: Optional[int] = None
-    weight: Optional[str] = None
-
+    font: Optional[FontConfig] = None
 
 class ProfilePage(BaseModel):
     page_id: Optional[str] = None
@@ -257,9 +237,9 @@ class ProfilePage(BaseModel):
     name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_decoration: Optional[str] = None
+    avatar_decoration: Optional[str] = None  # URL to decoration image
     background: BackgroundConfig
-    layout: PageLayout = PageLayout()
+    layout: PageLayout = Field(default=PageLayout(type="standard"))
     social_links: List[SocialLink] = []
     songs: List[Song] = []
     show_joined_date: bool = True
@@ -267,21 +247,20 @@ class ProfilePage(BaseModel):
     name_effect: Optional[TextEffect] = None
     bio_effect: Optional[TextEffect] = None
     location: Optional[str] = None
-    age: Optional[int] = None
+    timezone: Optional[str] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
-    name_style: Optional[TextStyle] = None
-    bio_style: Optional[TextStyle] = None
-
+    name_style: Optional[TextStyleConfig] = None
+    username_style: Optional[TextStyleConfig] = None
 
 class PageUpdate(BaseModel):
     title: Optional[str] = None
     name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_decoration: Optional[str] = None
+    avatar_decoration: Optional[str] = None  # URL to decoration image
     background: Optional[BackgroundConfig] = None
     layout: Optional[PageLayout] = None
     social_links: Optional[List[SocialLink]] = None
@@ -291,18 +270,16 @@ class PageUpdate(BaseModel):
     name_effect: Optional[TextEffect] = None
     bio_effect: Optional[TextEffect] = None
     location: Optional[str] = None
-    age: Optional[int] = None
+    timezone: Optional[str] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
-    name_style: Optional[TextStyle] = None
-    bio_style: Optional[TextStyle] = None
-
+    name_style: Optional[TextStyleConfig] = None
+    username_style: Optional[TextStyleConfig] = None
 
 class PreviewRequest(BaseModel):
     page_data: ProfilePage
-
 
 class Tag(BaseModel):
     name: str
@@ -313,26 +290,26 @@ class Tag(BaseModel):
         description="Type of icon: 'emoji', 'svg', or 'image'"
     )
 
-
 class DisplayPreferences(BaseModel):
     show_views: bool = True
     show_uuid: bool = True
     show_tags: bool = True
     show_joined_date: bool = True
     show_location: bool = True
-    show_age: bool = True
+    show_dob: bool = True
     show_gender: bool = True
     show_pronouns: bool = True
-    default_layout: str = settings.DEFAULT_LAYOUT
+    show_timezone: bool = True
+    default_layout: str = "standard"
     default_background: BackgroundConfig = BackgroundConfig(
         type="solid", 
         value="#ffffff"
     )
-
+    default_name_style: TextStyleConfig = TextStyleConfig()
+    default_username_style: TextStyleConfig = TextStyleConfig()
 
 class UserBase(BaseModel):
     email: EmailStr
-
 
 class UserCreate(UserBase):
     password: constr(min_length=8, max_length=64)  # type: ignore
@@ -349,15 +326,15 @@ class UserCreate(UserBase):
             raise ValueError('Password must contain at least one number')
         return v
 
-
 class UserOnboarding(BaseModel):
     name: str
+    avatar_url: Optional[str] = None
     username: str
-    birth_date: date
     location: Optional[str] = None
+    date_of_birth: Optional[str] = None  # Format: YYYY-MM-DD
+    timezone: Optional[str] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
-    timezone: Optional[str] = None
     
     @validator('username')
     def validate_username(cls, v):
@@ -365,22 +342,24 @@ class UserOnboarding(BaseModel):
             raise ValueError('Username can only contain alphanumeric characters and underscores')
         return v
     
+    @validator('date_of_birth')
+    def validate_date_of_birth(cls, v):
+        if v:
+            try:
+                date.fromisoformat(v)
+                return v
+            except ValueError:
+                raise ValueError('Invalid date format. Use YYYY-MM-DD')
+        return v
+    
     @validator('timezone')
     def validate_timezone(cls, v):
         if v and v not in pytz.all_timezones:
             raise ValueError('Invalid timezone')
         return v
-    
-    @validator('birth_date')
-    def validate_birth_date(cls, v):
-        if v > datetime.now().date():
-            raise ValueError('Birth date cannot be in the future')
-        return v
-
 
 class UserLogin(UserBase):
     password: str
-
 
 class UserResponse(UserBase):
     id: str
@@ -388,30 +367,27 @@ class UserResponse(UserBase):
     username: Optional[str] = None
     name: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_decoration: Optional[str] = None
+    avatar_decoration: Optional[str] = None  # URL to decoration image
     is_verified: bool
     page_count: int
     joined_at: datetime
     tags: List[Tag] = []
     display_preferences: DisplayPreferences
     location: Optional[str] = None
+    date_of_birth: Optional[str] = None
     age: Optional[int] = None
-    birth_date: Optional[date] = None
+    timezone: Optional[str] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
     bio: Optional[str] = None
-    timezone: Optional[str] = None
-
 
 class UserPasswordReset(BaseModel):
     email: EmailStr
-
 
 class UserPasswordChange(BaseModel):
     email: EmailStr
     reset_code: str
     new_password: constr(min_length=8, max_length=64)  # type: ignore
-
 
 class ViewRecord(BaseModel):
     url: str
@@ -419,7 +395,6 @@ class ViewRecord(BaseModel):
     timestamp: datetime
     ip_address: str
     user_agent: str
-
 
 class Template(BaseModel):
     id: Optional[str] = None
@@ -432,7 +407,6 @@ class Template(BaseModel):
     page_config: ProfilePage
     tags: List[str] = []
 
-
 class TemplateResponse(BaseModel):
     id: str
     name: str
@@ -444,23 +418,13 @@ class TemplateResponse(BaseModel):
     use_count: int
     tags: List[str] = []
 
-
 class URLCheckResponse(BaseModel):
     url: str
     available: bool
 
-
 class PreviewResponse(BaseModel):
     preview_id: str
     expires_at: datetime
-
-
-class ImageUploadResponse(BaseModel):
-    url: str
-    success: bool
-    display_url: Optional[str] = None
-    delete_url: Optional[str] = None
-
 
 # Database connection
 @asynccontextmanager
@@ -478,12 +442,10 @@ async def get_database() -> AsyncIOMotorDatabase:
     finally:
         client.close()
 
-
 # FastAPI initialization
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Versz API", version="1.0.0")
 app.state.limiter = limiter
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -493,7 +455,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Utility functions
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -501,10 +462,8 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     to_encode.update({"exp": expire, "iat": datetime.utcnow()})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-
 async def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
-
 
 def get_password_hash(password: str) -> str:
     try:
@@ -512,7 +471,19 @@ def get_password_hash(password: str) -> str:
     except Exception as e:
         logger.error(f"Password hashing error: {str(e)}")
         raise ValueError("Error creating password hash")
-        
+
+def calculate_age(birth_date_str: str) -> int:
+    """Calculate age from date of birth string (YYYY-MM-DD)"""
+    if not birth_date_str:
+        return None
+    
+    try:
+        birth_date = date.fromisoformat(birth_date_str)
+        today = date.today()
+        return relativedelta(today, birth_date).years
+    except Exception as e:
+        logger.error(f"Age calculation error: {str(e)}")
+        return None
 
 async def send_email_async(to_email: str, subject: str, html_content: str) -> bool:
     try:
@@ -540,7 +511,6 @@ async def send_email_async(to_email: str, subject: str, html_content: str) -> bo
         logger.error(f"Error sending email to {to_email}: {str(e)}")
         return False
 
-
 async def get_user(email: str) -> Optional[Dict[str, Any]]:
     cache_key = f"user:{email}"
     cached_user = await user_cache.get(cache_key)
@@ -553,7 +523,6 @@ async def get_user(email: str) -> Optional[Dict[str, Any]]:
             await user_cache.set(cache_key, user)
         return user
 
-
 async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
     cache_key = f"username:{username}"
     cached_user = await user_cache.get(cache_key)
@@ -565,7 +534,6 @@ async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
         if user:
             await user_cache.set(cache_key, user)
         return user
-
 
 async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
     try:
@@ -587,7 +555,6 @@ async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any
         logger.error(f"Authentication error: {str(e)}")
         return None
 
-
 async def get_next_user_number(db: AsyncIOMotorDatabase) -> int:
     result = await db.users.find_one(
         filter={},
@@ -596,7 +563,6 @@ async def get_next_user_number(db: AsyncIOMotorDatabase) -> int:
     )
     return (result["user_number"] + 1) if result else 1
 
-
 async def is_url_available(db: AsyncIOMotorDatabase, url: str) -> bool:
     # Check if URL is taken by a page or a user
     if await db.profile_pages.find_one({"url": url}):
@@ -604,7 +570,6 @@ async def is_url_available(db: AsyncIOMotorDatabase, url: str) -> bool:
     if await db.users.find_one({"username": url}):
         return False
     return True
-
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -626,7 +591,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user
 
-
 async def get_current_verified_user(current_user: dict = Depends(get_current_user)):
     if not current_user.get("is_verified", False):
         raise HTTPException(
@@ -635,14 +599,12 @@ async def get_current_verified_user(current_user: dict = Depends(get_current_use
         )
     return current_user
 
-
 async def generate_device_identifier(request: Request) -> str:
     ip = request.client.host
     user_agent = request.headers.get("user-agent", "")
     accept_language = request.headers.get("accept-language", "")
     identifier = f"{ip}:{user_agent}:{accept_language}"
     return hashlib.sha256(identifier.encode()).hexdigest()
-
 
 async def should_count_view(db: AsyncIOMotorDatabase, url: str, device_hash: str) -> bool:
     last_view = await db.view_records.find_one(
@@ -661,12 +623,10 @@ async def should_count_view(db: AsyncIOMotorDatabase, url: str, device_hash: str
     
     return time_since_last_view > timedelta(minutes=settings.VIEW_COOLDOWN_MINUTES)
 
-
 async def cleanup_old_view_records():
     async with get_database() as db:
         cutoff_date = datetime.utcnow() - timedelta(days=settings.DEVICE_IDENTIFIER_TTL_DAYS)
         await db.view_records.delete_many({"timestamp": {"$lt": cutoff_date}})
-
 
 async def increment_page_views(db: AsyncIOMotorDatabase, url: str, device_hash: str) -> int:
     """Increment the view count for a page if the view should be counted"""
@@ -696,47 +656,30 @@ async def increment_page_views(db: AsyncIOMotorDatabase, url: str, device_hash: 
         views = views_doc["views"] if views_doc else 0
         return views
 
-
-async def calculate_age(birth_date: date) -> int:
-    """Calculate age from birth date"""
-    today = date.today()
-    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-    return age
-
-
-async def upload_image_to_imgbb(image_data: bytes, image_name: str = "image") -> Dict[str, Any]:
-    """Upload image to ImgBB and return the result"""
+async def validate_avatar(avatar_url: str) -> bool:
+    """Validate if the avatar URL is valid and the file is appropriate"""
     try:
-        # Convert the image to base64
-        base64_image = base64.b64encode(image_data).decode('utf-8')
-        
-        # Prepare the upload data
-        data = {
-            'key': settings.IMGBB_API_KEY,
-            'image': base64_image,
-            'name': image_name
-        }
-        
-        # Upload to ImgBB
         async with httpx.AsyncClient() as client:
-            response = await client.post('https://api.imgbb.com/1/upload', data=data)
+            response = await client.head(avatar_url, follow_redirects=True)
             
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success', False):
-                    return {
-                        'success': True,
-                        'url': result['data']['url'],
-                        'display_url': result['data']['display_url'],
-                        'delete_url': result['data']['delete_url']
-                    }
+            if response.status_code != 200:
+                return False
+                
+            content_type = response.headers.get("content-type", "")
+            content_length = int(response.headers.get("content-length", "0"))
             
-            logger.error(f"Error uploading to ImgBB: {response.text}")
-            return {'success': False}
+            # Check if it's an image or a gif
+            if not (content_type.startswith("image/") or content_type == "image/gif"):
+                return False
+                
+            # Check if it's under the size limit
+            if content_length > settings.MAX_AVATAR_SIZE:
+                return False
+                
+            return True
     except Exception as e:
-        logger.error(f"Exception uploading to ImgBB: {str(e)}")
-        return {'success': False}
-
+        logger.error(f"Error validating avatar: {str(e)}")
+        return False
 
 async def validate_decoration(decoration_url: str) -> bool:
     """Validate if the avatar decoration URL is valid and the file is appropriate"""
@@ -758,6 +701,40 @@ async def validate_decoration(decoration_url: str) -> bool:
         logger.error(f"Error validating decoration: {str(e)}")
         return False
 
+async def validate_font(font_link: str) -> bool:
+    """Validate if the font link is from Google Fonts or another trusted source"""
+    if not font_link:
+        return True
+        
+    trusted_domains = [
+        "fonts.googleapis.com",
+        "fonts.gstatic.com",
+        "use.typekit.net",
+        "use.fontawesome.com"
+    ]
+    
+    try:
+        # Check if it's a valid link format
+        if not font_link.startswith("<link") or "rel='stylesheet'" not in font_link and 'rel="stylesheet"' not in font_link:
+            return False
+            
+        # Extract href value
+        import re
+        href_match = re.search(r'href=[\'"]([^\'"]+)[\'"]', font_link)
+        if not href_match:
+            return False
+            
+        font_url = href_match.group(1)
+        
+        # Check if from trusted domain
+        from urllib.parse import urlparse
+        parsed_url = urlparse(font_url)
+        domain = parsed_url.netloc
+        
+        return any(domain == trusted for trusted in trusted_domains)
+    except Exception as e:
+        logger.error(f"Error validating font link: {str(e)}")
+        return False
 
 async def cleanup_expired_previews():
     """Cleanup function to remove expired preview pages"""
@@ -769,6 +746,18 @@ async def cleanup_expired_previews():
         if result.deleted_count > 0:
             logger.info(f"Cleaned up {result.deleted_count} expired preview pages")
 
+def json_serialize(obj):
+    """Convert MongoDB document to serializable format"""
+    if isinstance(obj, dict):
+        return {k: json_serialize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [json_serialize(item) for item in obj]
+    elif isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, datetime):
+        return obj.isoformat()
+    else:
+        return obj
 
 # Endpoints
 @app.get("/", response_class=HTMLResponse)
@@ -783,8 +772,6 @@ async def root(request: Request):
         </body>
     </html>
     """
-
-
 @app.get("/health")
 @limiter.limit(RateLimits.ADMIN_LIMIT)
 async def health_check(request: Request):
@@ -802,7 +789,6 @@ async def health_check(request: Request):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Service unhealthy"
         )
-
 
 @app.post("/register", response_model=UserResponse)
 @limiter.limit("5/minute")
@@ -878,13 +864,30 @@ async def register_user(
                 "show_tags": True,
                 "show_joined_date": True,
                 "show_location": True,
-                "show_age": True,
+                "show_dob": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_layout": settings.DEFAULT_LAYOUT,
+                "show_timezone": True,
+                "default_layout": "standard",
                 "default_background": {
                     "type": "solid",
                     "value": "#ffffff"
+                },
+                "default_name_style": {
+                    "color": "#000000",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                },
+                "default_username_style": {
+                    "color": "#555555",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
                 }
             }
         }
@@ -997,13 +1000,12 @@ async def register_user(
             "tags": [],
             "display_preferences": DisplayPreferences(),
             "location": None,
+            "date_of_birth": None,
             "age": None,
-            "birth_date": None,
+            "timezone": None,
             "gender": None,
-            "pronouns": None,
-            "timezone": None
+            "pronouns": None
         }
-
 
 @app.post("/resend-verification")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -1019,7 +1021,7 @@ async def resend_verification_email(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email is required"
         )
-    """Resend verification email to user"""
+    
     async with get_database() as db:
         # Check if user exists and is not verified
         user = await db.users.find_one({"email": email})
@@ -1140,7 +1142,6 @@ async def resend_verification_email(
         
         return {"message": "Verification email sent"}
 
-
 @app.get("/verify")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def verify_email(request: Request, token: str):
@@ -1193,20 +1194,37 @@ async def verify_email(request: Request, token: str):
                 "show_tags": True,
                 "show_joined_date": True,
                 "show_location": True,
-                "show_age": True,
+                "show_dob": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_layout": settings.DEFAULT_LAYOUT,
+                "show_timezone": True,
+                "default_layout": "standard",
                 "default_background": {
                     "type": "solid",
                     "value": "#ffffff"
+                },
+                "default_name_style": {
+                    "color": "#000000",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                },
+                "default_username_style": {
+                    "color": "#555555",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
                 }
             }),
             "location": pending_user.get("location"),
-            "birth_date": pending_user.get("birth_date"),
+            "date_of_birth": pending_user.get("date_of_birth"),
+            "timezone": pending_user.get("timezone"),
             "gender": pending_user.get("gender"),
-            "pronouns": pending_user.get("pronouns"),
-            "timezone": pending_user.get("timezone")
+            "pronouns": pending_user.get("pronouns")
         }
         
         await db.users.insert_one(user_data)
@@ -1215,7 +1233,6 @@ async def verify_email(request: Request, token: str):
         await user_cache.delete(f"user:{verification['email']}")
         
         return {"message": "Email verified successfully"}
-
 
 @app.post("/token")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -1241,14 +1258,11 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
         async with get_database() as db:
             page_count = await db.profile_pages.count_documents({"user_id": user["id"]})
         
-        # Calculate age if birth_date exists
+        # Calculate age if date_of_birth is present
         age = None
-        if user.get("birth_date"):
-            birth_date = user["birth_date"]
-            if isinstance(birth_date, str):
-                birth_date = datetime.strptime(birth_date, "%Y-%m-%d").date()
-            age = await calculate_age(birth_date)
-        
+        if user.get("date_of_birth"):
+            age = calculate_age(user["date_of_birth"])
+            
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -1269,21 +1283,38 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
                 "show_tags": True,
                 "show_joined_date": True,
                 "show_location": True,
-                "show_age": True,
+                "show_dob": True,
                 "show_gender": True,
                 "show_pronouns": True,
-                "default_layout": settings.DEFAULT_LAYOUT,
+                "show_timezone": True,
+                "default_layout": "standard",
                 "default_background": {
                     "type": "solid",
                     "value": "#ffffff"
+                },
+                "default_name_style": {
+                    "color": "#000000",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                },
+                "default_username_style": {
+                    "color": "#555555",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
                 }
             }),
             "location": user.get("location"),
+            "date_of_birth": user.get("date_of_birth"),
             "age": age,
-            "birth_date": user.get("birth_date"),
+            "timezone": user.get("timezone"),
             "gender": user.get("gender"),
-            "pronouns": user.get("pronouns"),
-            "timezone": user.get("timezone")
+            "pronouns": user.get("pronouns")
         }
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
@@ -1291,7 +1322,6 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "An error occurred during login. Please try again."}
         )
-
 
 @app.post("/request-password-reset")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -1417,7 +1447,6 @@ async def request_password_reset(
         
         return {"message": "Password reset email sent"}
 
-
 @app.post("/reset-password")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def reset_password(request: Request, reset_data: UserPasswordChange):
@@ -1445,7 +1474,6 @@ async def reset_password(request: Request, reset_data: UserPasswordChange):
         
         return {"message": "Password reset successfully"}
 
-
 @app.get("/me", response_model=UserResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def read_users_me(request: Request, current_user: dict = Depends(get_current_user)):
@@ -1458,23 +1486,37 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             "show_tags": True,
             "show_joined_date": True,
             "show_location": True,
-            "show_age": True,
+            "show_dob": True,
             "show_gender": True,
             "show_pronouns": True,
-            "default_layout": settings.DEFAULT_LAYOUT,
+            "show_timezone": True,
+            "default_layout": "standard",
             "default_background": {
                 "type": "solid",
                 "value": "#ffffff"
+            },
+            "default_name_style": {
+                "color": "#000000",
+                "font": {
+                    "name": "Default",
+                    "value": "",
+                    "link": ""
+                }
+            },
+            "default_username_style": {
+                "color": "#555555",
+                "font": {
+                    "name": "Default",
+                    "value": "",
+                    "link": ""
+                }
             }
         })
         
-        # Calculate age if birth_date exists
+        # Calculate age if date_of_birth is present
         age = None
-        birth_date = current_user.get("birth_date")
-        if birth_date:
-            if isinstance(birth_date, str):
-                birth_date = datetime.strptime(birth_date, "%Y-%m-%d").date()
-            age = await calculate_age(birth_date)
+        if current_user.get("date_of_birth"):
+            age = calculate_age(current_user["date_of_birth"])
         
         return {
             "id": current_user["id"],
@@ -1490,160 +1532,19 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             "tags": current_user.get("tags", []),
             "display_preferences": display_prefs,
             "location": current_user.get("location"),
+            "date_of_birth": current_user.get("date_of_birth"),
             "age": age,
-            "birth_date": birth_date,
+            "timezone": current_user.get("timezone"),
             "gender": current_user.get("gender"),
             "pronouns": current_user.get("pronouns"),
-            "bio": current_user.get("bio"),
-            "timezone": current_user.get("timezone")
+            "bio": current_user.get("bio")
         }
-
-
-@app.post("/upload-avatar")
-@limiter.limit(RateLimits.UPLOAD_LIMIT)
-async def upload_avatar(
-    request: Request,
-    avatar: UploadFile = File(...),
-    current_user: dict = Depends(get_current_verified_user)
-):
-    """Upload avatar image and return the URL"""
-    # Check file size
-    file_size = 0
-    contents = await avatar.read()
-    file_size = len(contents)
-    
-    if file_size > settings.MAX_AVATAR_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size exceeds maximum allowed size of {settings.MAX_AVATAR_SIZE/1024/1024}MB"
-        )
-    
-    # Check file type
-    content_type = avatar.content_type
-    if not content_type or not content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only image files are allowed"
-        )
-    
-    # Upload to ImgBB
-    result = await upload_image_to_imgbb(contents, f"avatar_{current_user['id']}")
-    
-    if not result["success"]:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload image"
-        )
-    
-    # Update user's avatar URL
-    async with get_database() as db:
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$set": {"avatar_url": result["url"]}}
-        )
-        await user_cache.delete(f"user:{current_user['email']}")
-        if current_user.get("username"):
-            await user_cache.delete(f"username:{current_user['username']}")
-    
-    return {
-        "url": result["url"],
-        "display_url": result.get("display_url"),
-        "success": True
-    }
-
-
-@app.post("/upload-decoration")
-@limiter.limit(RateLimits.UPLOAD_LIMIT)
-async def upload_decoration(
-    request: Request,
-    decoration: UploadFile = File(...),
-    current_user: dict = Depends(get_current_verified_user)
-):
-    """Upload avatar decoration image and return the URL"""
-    # Check file size
-    file_size = 0
-    contents = await decoration.read()
-    file_size = len(contents)
-    
-    if file_size > settings.MAX_AVATAR_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size exceeds maximum allowed size of {settings.MAX_AVATAR_SIZE/1024/1024}MB"
-        )
-    
-    # Check file type
-    content_type = decoration.content_type
-    if not content_type or not content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only image files are allowed"
-        )
-    
-    # Upload to ImgBB
-    result = await upload_image_to_imgbb(contents, f"decoration_{current_user['id']}")
-    
-    if not result["success"]:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload image"
-        )
-    
-    return {
-        "url": result["url"],
-        "display_url": result.get("display_url"),
-        "success": True
-    }
-
-
-@app.post("/upload-background")
-@limiter.limit(RateLimits.UPLOAD_LIMIT)
-async def upload_background(
-    request: Request,
-    background: UploadFile = File(...),
-    current_user: dict = Depends(get_current_verified_user)
-):
-    """Upload background image and return the URL"""
-    # Check file size
-    file_size = 0
-    contents = await background.read()
-    file_size = len(contents)
-    
-    if file_size > settings.MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size exceeds maximum allowed size of {settings.MAX_FILE_SIZE/1024/1024}MB"
-        )
-    
-    # Check file type
-    content_type = background.content_type
-    if not content_type or not (content_type.startswith("image/") or content_type.startswith("video/")):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only image or video files are allowed"
-        )
-    
-    # Upload to ImgBB
-    result = await upload_image_to_imgbb(contents, f"background_{current_user['id']}")
-    
-    if not result["success"]:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload image"
-        )
-    
-    return {
-        "url": result["url"],
-        "display_url": result.get("display_url"),
-        "success": True
-    }
-
 
 @app.put("/onboarding", response_model=UserResponse)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def complete_onboarding(
     request: Request,
     onboarding_data: UserOnboarding,
-    avatar: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
@@ -1659,39 +1560,35 @@ async def complete_onboarding(
                     detail="Username already taken"
                 )
         
-        # Handle avatar upload if provided
-        avatar_url = current_user.get("avatar_url")
-        if avatar:
-            contents = await avatar.read()
-            if len(contents) > settings.MAX_AVATAR_SIZE:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Avatar image too large (max {settings.MAX_AVATAR_SIZE/1024/1024}MB)"
-                )
-            
-            result = await upload_image_to_imgbb(contents, f"avatar_{current_user['id']}")
-            if result["success"]:
-                avatar_url = result["url"]
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to upload avatar image"
-                )
+        # Validate avatar URL if provided
+        if onboarding_data.avatar_url and not await validate_avatar(onboarding_data.avatar_url):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar URL or file too large (max 1MB)"
+            )
         
-        # Calculate age from birth date
-        age = await calculate_age(onboarding_data.birth_date) if onboarding_data.birth_date else None
+        # Calculate age from date of birth if provided
+        age = None
+        if onboarding_data.date_of_birth:
+            age = calculate_age(onboarding_data.date_of_birth)
+        
+        # Validate timezone if provided
+        if onboarding_data.timezone and onboarding_data.timezone not in settings.TIMEZONES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid timezone"
+            )
         
         # Update user information
         update_data = {
             "username": onboarding_data.username,
             "name": onboarding_data.name,
-            "avatar_url": avatar_url,
+            "avatar_url": onboarding_data.avatar_url,
             "location": onboarding_data.location,
-            "birth_date": onboarding_data.birth_date,
-            "age": age,
+            "date_of_birth": onboarding_data.date_of_birth,
+            "timezone": onboarding_data.timezone,
             "gender": onboarding_data.gender,
             "pronouns": onboarding_data.pronouns,
-            "timezone": onboarding_data.timezone,
             "onboarding_completed": True
         }
         
@@ -1713,7 +1610,7 @@ async def complete_onboarding(
                 "url": onboarding_data.username,
                 "title": f"{onboarding_data.name}'s Page",
                 "name": onboarding_data.name,
-                "avatar_url": avatar_url,
+                "avatar_url": onboarding_data.avatar_url,
                 "avatar_decoration": None,
                 "bio": "",
                 "background": {
@@ -1722,7 +1619,7 @@ async def complete_onboarding(
                     "opacity": 1.0
                 },
                 "layout": {
-                    "type": settings.DEFAULT_LAYOUT,
+                    "type": "standard",
                     "container_style": {
                         "enabled": True,
                         "background_color": "#ffffff",
@@ -1737,25 +1634,22 @@ async def complete_onboarding(
                 "show_views": True,
                 "created_at": datetime.utcnow(),
                 "name_style": {
-                    "font": {
-                        "name": "Open Sans",
-                        "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
-                        "family": "'Open Sans', sans-serif"
-                    },
                     "color": "#000000",
-                    "size": 24,
-                    "weight": "normal"
-                },
-                "bio_style": {
                     "font": {
-                        "name": "Open Sans",
-                        "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
-                        "family": "'Open Sans', sans-serif"
-                    },
-                    "color": "#333333",
-                    "size": 16,
-                    "weight": "normal"
-                }
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                },
+                "username_style": {
+                    "color": "#555555",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                },
+                "timezone": onboarding_data.timezone
             }
             
             await db.profile_pages.insert_one(default_page)
@@ -1775,6 +1669,11 @@ async def complete_onboarding(
         updated_user = await db.users.find_one({"id": current_user["id"]})
         page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
         
+        # Calculate age
+        age = None
+        if updated_user.get("date_of_birth"):
+            age = calculate_age(updated_user["date_of_birth"])
+        
         return {
             "id": updated_user["id"],
             "user_number": updated_user.get("user_number"),
@@ -1789,13 +1688,12 @@ async def complete_onboarding(
             "tags": updated_user.get("tags", []),
             "display_preferences": updated_user.get("display_preferences", DisplayPreferences().dict()),
             "location": updated_user.get("location"),
+            "date_of_birth": updated_user.get("date_of_birth"),
             "age": age,
-            "birth_date": updated_user.get("birth_date"),
+            "timezone": updated_user.get("timezone"),
             "gender": updated_user.get("gender"),
-            "pronouns": updated_user.get("pronouns"),
-            "timezone": updated_user.get("timezone")
+            "pronouns": updated_user.get("pronouns")
         }
-
 
 @app.get("/check-url")
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -1821,7 +1719,6 @@ async def check_url_availability(request: Request, url: str):
         available = await is_url_available(db, url)
         return {"url": url, "available": available}
 
-
 @app.post("/pages", response_model=ProfilePage)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def create_profile_page(
@@ -1845,6 +1742,35 @@ async def create_profile_page(
                 detail="URL already taken"
             )
         
+        # Validate avatar URL if provided
+        if page_data.avatar_url and not await validate_avatar(page_data.avatar_url):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar URL or file too large (max 1MB)"
+            )
+            
+        # Validate avatar decoration if provided
+        if page_data.avatar_decoration and not await validate_decoration(page_data.avatar_decoration):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar decoration URL"
+            )
+            
+        # Validate custom fonts if provided
+        if page_data.name_style and page_data.name_style.font and page_data.name_style.font.link:
+            if not await validate_font(page_data.name_style.font.link):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid font link for name"
+                )
+                
+        if page_data.username_style and page_data.username_style.font and page_data.username_style.font.link:
+            if not await validate_font(page_data.username_style.font.link):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid font link for username"
+                )
+        
         # Generate page ID
         page_id = str(ObjectId())
         
@@ -1853,6 +1779,10 @@ async def create_profile_page(
         page_dict["page_id"] = page_id
         page_dict["user_id"] = current_user["id"]
         page_dict["created_at"] = datetime.utcnow()
+        
+        # Use timezone from user if not specified in page
+        if not page_dict.get("timezone") and current_user.get("timezone"):
+            page_dict["timezone"] = current_user["timezone"]
         
         # Initialize views counter
         await db.views.insert_one({
@@ -1864,7 +1794,6 @@ async def create_profile_page(
         await db.profile_pages.insert_one(page_dict)
         
         return {**page_data.dict(), "page_id": page_id}
-
 
 @app.get("/pages", response_model=List[ProfilePage])
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -1881,7 +1810,6 @@ async def get_user_pages(
             pages.append(page)
         
         return pages
-
 
 @app.get("/pages/{page_id}", response_model=ProfilePage)
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -1908,7 +1836,6 @@ async def get_page_by_id(
         
         return page
 
-
 @app.put("/pages/{page_id}", response_model=ProfilePage)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def update_profile_page(
@@ -1928,6 +1855,42 @@ async def update_profile_page(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Page not found or you don't have permission to update it"
+            )
+        
+        # Validate avatar URL if provided
+        if page_update.avatar_url and not await validate_avatar(page_update.avatar_url):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar URL or file too large (max 1MB)"
+            )
+            
+        # Validate avatar decoration if provided
+        if page_update.avatar_decoration and not await validate_decoration(page_update.avatar_decoration):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar decoration URL"
+            )
+            
+        # Validate custom fonts if provided
+        if page_update.name_style and page_update.name_style.font and page_update.name_style.font.link:
+            if not await validate_font(page_update.name_style.font.link):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid font link for name"
+                )
+                
+        if page_update.username_style and page_update.username_style.font and page_update.username_style.font.link:
+            if not await validate_font(page_update.username_style.font.link):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid font link for username"
+                )
+        
+        # Validate timezone if provided
+        if page_update.timezone and page_update.timezone not in settings.TIMEZONES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid timezone"
             )
         
         # Prepare update data
@@ -1962,7 +1925,6 @@ async def update_profile_page(
         
         return updated_page
 
-
 @app.post("/preview-page", response_model=PreviewResponse)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def create_page_preview(
@@ -1971,6 +1933,21 @@ async def create_page_preview(
     current_user: dict = Depends(get_current_verified_user)
 ):
     """Create a temporary preview of a page without saving it permanently"""
+    
+    # Validate custom fonts if provided
+    if preview_data.name_style and preview_data.name_style.font and preview_data.name_style.font.link:
+        if not await validate_font(preview_data.name_style.font.link):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid font link for name"
+            )
+            
+    if preview_data.username_style and preview_data.username_style.font and preview_data.username_style.font.link:
+        if not await validate_font(preview_data.username_style.font.link):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid font link for username"
+            )
     
     # Generate preview ID
     preview_id = str(ObjectId())
@@ -1996,18 +1973,12 @@ async def create_page_preview(
             "expires_at": expires_at
         }
 
-
-from fastapi.responses import JSONResponse
-import json
-
 class CustomJSONResponse(JSONResponse):
     def render(self, content) -> bytes:
         def default_serializer(obj):
             if isinstance(obj, ObjectId):
                 return str(obj)
             elif isinstance(obj, datetime):
-                return obj.isoformat()
-            elif isinstance(obj, date):
                 return obj.isoformat()
             raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
         
@@ -2063,78 +2034,42 @@ async def get_page_preview(request: Request, preview_id: str):
         
         return preview
 
-# Add this helper function to handle serialization of MongoDB objects
-def json_serialize(obj):
-    """Convert MongoDB document to serializable format"""
-    if isinstance(obj, dict):
-        return {k: json_serialize(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [json_serialize(item) for item in obj]
-    elif isinstance(obj, ObjectId):
-        return str(obj)
-    elif isinstance(obj, datetime):
-        return obj.isoformat()
-    elif isinstance(obj, date):
-        return obj.isoformat()
-    else:
-        return obj
-
-
 @app.post("/update-profile")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def update_user_profile(
     request: Request,
     profile_data: dict = Body(...),
-    avatar: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
         # Extract data from request body
         username = profile_data.get("username")
         name = profile_data.get("name")
+        avatar_url = profile_data.get("avatar_url")
         avatar_decoration = profile_data.get("avatar_decoration")
         location = profile_data.get("location")
-        birth_date_str = profile_data.get("birth_date")
+        date_of_birth = profile_data.get("date_of_birth")
+        timezone = profile_data.get("timezone")
         gender = profile_data.get("gender")
         pronouns = profile_data.get("pronouns")
         bio = profile_data.get("bio")
-        timezone = profile_data.get("timezone")
         
-        # Process birth date
-        birth_date = None
-        if birth_date_str:
+        # Validate date of birth if provided
+        if date_of_birth:
             try:
-                if isinstance(birth_date_str, str):
-                    birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
-                else:
-                    birth_date = birth_date_str
+                date.fromisoformat(date_of_birth)
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid birth date format. Use YYYY-MM-DD."
+                    detail="Invalid date format for date of birth. Use YYYY-MM-DD"
                 )
-        
-        # Calculate age from birth date
-        age = await calculate_age(birth_date) if birth_date else None
-        
-        # Handle avatar upload if provided
-        avatar_url = current_user.get("avatar_url")
-        if avatar:
-            contents = await avatar.read()
-            if len(contents) > settings.MAX_AVATAR_SIZE:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Avatar image too large (max {settings.MAX_AVATAR_SIZE/1024/1024}MB)"
-                )
-            
-            result = await upload_image_to_imgbb(contents, f"avatar_{current_user['id']}")
-            if result["success"]:
-                avatar_url = result["url"]
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to upload avatar image"
-                )
+                
+        # Validate timezone if provided
+        if timezone and timezone not in settings.TIMEZONES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid timezone"
+            )
         
         # Update user information
         update_data = {
@@ -2143,29 +2078,16 @@ async def update_user_profile(
             "avatar_url": avatar_url,
             "avatar_decoration": avatar_decoration,
             "location": location,
-            "birth_date": birth_date,
-            "age": age,
+            "date_of_birth": date_of_birth,
+            "timezone": timezone,
             "gender": gender,
             "pronouns": pronouns,
             "bio": bio,
-            "timezone": timezone,
             "onboarding_completed": True
         }
         
         # Remove None values
         update_data = {k: v for k, v in update_data.items() if v is not None}
-        
-        # Check if username is being changed and is available
-        if username and username != current_user.get("username"):
-            existing_user = await db.users.find_one({
-                "username": username,
-                "id": {"$ne": current_user["id"]}
-            })
-            if existing_user:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Username already taken"
-                )
         
         await db.users.update_one(
             {"id": current_user["id"]},
@@ -2180,8 +2102,8 @@ async def update_user_profile(
                 "user_id": current_user["id"],
                 "page_id": str(ObjectId()),
                 "url": username,
-                "title": f"{name or username}'s Page",
-                "name": name or username,
+                "title": f"{name}'s Page" if name else f"{username}'s Page",
+                "name": name,
                 "avatar_url": avatar_url,
                 "avatar_decoration": avatar_decoration,
                 "bio": bio or "",
@@ -2191,7 +2113,7 @@ async def update_user_profile(
                     "opacity": 1.0
                 },
                 "layout": {
-                    "type": settings.DEFAULT_LAYOUT,
+                    "type": "standard",
                     "container_style": {
                         "enabled": True,
                         "background_color": "#ffffff",
@@ -2206,25 +2128,22 @@ async def update_user_profile(
                 "show_views": True,
                 "created_at": datetime.utcnow(),
                 "name_style": {
-                    "font": {
-                        "name": "Open Sans",
-                        "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
-                        "family": "'Open Sans', sans-serif"
-                    },
                     "color": "#000000",
-                    "size": 24,
-                    "weight": "normal"
-                },
-                "bio_style": {
                     "font": {
-                        "name": "Open Sans",
-                        "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' rel='stylesheet'>",
-                        "family": "'Open Sans', sans-serif"
-                    },
-                    "color": "#333333",
-                    "size": 16,
-                    "weight": "normal"
-                }
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                },
+                "username_style": {
+                    "color": "#555555",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                },
+                "timezone": timezone
             }
             
             await db.profile_pages.insert_one(default_page)
@@ -2243,6 +2162,11 @@ async def update_user_profile(
         # Get updated user
         updated_user = await db.users.find_one({"id": current_user["id"]})
         
+        # Calculate age
+        age = None
+        if updated_user.get("date_of_birth"):
+            age = calculate_age(updated_user["date_of_birth"])
+        
         return {
             "message": "Profile updated successfully",
             "profile": {
@@ -2252,15 +2176,14 @@ async def update_user_profile(
                 "avatar_url": updated_user.get("avatar_url"),
                 "avatar_decoration": updated_user.get("avatar_decoration"),
                 "location": updated_user.get("location"),
-                "birth_date": updated_user.get("birth_date"),
+                "date_of_birth": updated_user.get("date_of_birth"),
                 "age": age,
+                "timezone": updated_user.get("timezone"),
                 "gender": updated_user.get("gender"),
                 "pronouns": updated_user.get("pronouns"),
-                "bio": updated_user.get("bio"),
-                "timezone": updated_user.get("timezone")
+                "bio": updated_user.get("bio")
             }
         }
-
 
 @app.delete("/pages/{page_id}")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
@@ -2294,7 +2217,6 @@ async def delete_profile_page(
             views_cache.pop(f"views:{page['url']}")
         
         return {"message": "Page deleted successfully"}
-
 
 @app.get("/p/{url}")
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -2393,13 +2315,10 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
         if "_id" in page:
             page["_id"] = str(page["_id"])
         
-        # Calculate age from birth date if available
+        # Calculate age if date_of_birth is present
         age = None
-        if user.get("birth_date"):
-            birth_date = user["birth_date"]
-            if isinstance(birth_date, str):
-                birth_date = datetime.strptime(birth_date, "%Y-%m-%d").date()
-            age = await calculate_age(birth_date)
+        if user.get("date_of_birth"):
+            age = calculate_age(user["date_of_birth"])
         
         response_data = {
             "page": page,
@@ -2422,26 +2341,23 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
             response_data["user"].pop("tags", None)
         
         # Add user profile data if the preferences allow
-        if display_prefs.get("show_location", True) and user.get("location"):
+        if display_prefs.get("show_location", True) and "location" in user:
             response_data["user"]["location"] = user["location"]
             
-        if display_prefs.get("show_age", True) and age:
+        if display_prefs.get("show_dob", True) and "date_of_birth" in user:
+            response_data["user"]["date_of_birth"] = user["date_of_birth"]
             response_data["user"]["age"] = age
             
-        if display_prefs.get("show_gender", True) and user.get("gender"):
+        if display_prefs.get("show_gender", True) and "gender" in user:
             response_data["user"]["gender"] = user["gender"]
             
-        if display_prefs.get("show_pronouns", True) and user.get("pronouns"):
+        if display_prefs.get("show_pronouns", True) and "pronouns" in user:
             response_data["user"]["pronouns"] = user["pronouns"]
             
-        if user.get("timezone"):
+        if display_prefs.get("show_timezone", True) and "timezone" in user:
             response_data["user"]["timezone"] = user["timezone"]
             
-        if user.get("bio"):
-            response_data["user"]["bio"] = user["bio"]
-            
         return response_data
-
 
 @app.get("/views/{url}")
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -2456,7 +2372,6 @@ async def get_views(request: Request, url: str):
         views_cache[cache_key] = views
         return {"views": views}
 
-
 @app.put("/preferences")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def update_display_preferences(
@@ -2465,6 +2380,21 @@ async def update_display_preferences(
     current_user: dict = Depends(get_current_verified_user)
 ):
     async with get_database() as db:
+        # Validate custom fonts if provided
+        if preferences.default_name_style and preferences.default_name_style.font and preferences.default_name_style.font.link:
+            if not await validate_font(preferences.default_name_style.font.link):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid font link for name"
+                )
+                
+        if preferences.default_username_style and preferences.default_username_style.font and preferences.default_username_style.font.link:
+            if not await validate_font(preferences.default_username_style.font.link):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid font link for username"
+                )
+        
         await db.users.update_one(
             {"id": current_user["id"]},
             {"$set": {"display_preferences": preferences.dict()}}
@@ -2474,7 +2404,6 @@ async def update_display_preferences(
             await user_cache.delete(f"username:{current_user['username']}")
         
         return {"message": "Display preferences updated successfully"}
-
 
 @app.post("/templates", response_model=TemplateResponse)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
@@ -2492,6 +2421,21 @@ async def create_template(
                 detail=f"You have reached the maximum limit of {settings.MAX_TEMPLATES} templates"
             )
         
+        # Validate custom fonts in the template's page_config
+        if template_data.page_config.name_style and template_data.page_config.name_style.font and template_data.page_config.name_style.font.link:
+            if not await validate_font(template_data.page_config.name_style.font.link):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid font link for name in template"
+                )
+                
+        if template_data.page_config.username_style and template_data.page_config.username_style.font and template_data.page_config.username_style.font.link:
+            if not await validate_font(template_data.page_config.username_style.font.link):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid font link for username in template"
+                )
+        
         # Generate template ID
         template_id = str(ObjectId())
         
@@ -2502,9 +2446,9 @@ async def create_template(
         template_dict["created_at"] = datetime.utcnow()
         template_dict["use_count"] = 0
         
-        # Ensure page_config has avatar_decoration instead of avatar_effects
-        if "avatar_effects" in template_dict.get("page_config", {}):
-            template_dict["page_config"]["avatar_decoration"] = template_dict["page_config"].pop("avatar_effects", None)
+        # Make sure the template's page_config has standard layout
+        if template_dict["page_config"].get("layout", {}).get("type") != "standard":
+            template_dict["page_config"]["layout"] = {"type": "standard", "container_style": ContainerStyle().dict()}
         
         # Insert template
         await db.templates.insert_one(template_dict)
@@ -2516,7 +2460,6 @@ async def create_template(
         }
         
         return template_response
-
 
 @app.get("/templates", response_model=List[TemplateResponse])
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -2556,10 +2499,6 @@ async def get_templates(
             if "_id" in template:
                 template["_id"] = str(template["_id"])
             
-            # Ensure page_config has avatar_decoration instead of avatar_effects
-            if "page_config" in template and "avatar_effects" in template["page_config"]:
-                template["page_config"]["avatar_decoration"] = template["page_config"].pop("avatar_effects", None)
-            
             templates.append({
                 **template,
                 "created_by_username": username
@@ -2569,7 +2508,6 @@ async def get_templates(
         total_count = await db.templates.count_documents(filter_query)
         
         return templates
-
 
 @app.get("/templates/{template_id}", response_model=TemplateResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -2596,10 +2534,6 @@ async def get_template(request: Request, template_id: str):
         if "_id" in template:
             template["_id"] = str(template["_id"])
         
-        # Ensure page_config has avatar_decoration instead of avatar_effects
-        if "page_config" in template and "avatar_effects" in template["page_config"]:
-            template["page_config"]["avatar_decoration"] = template["page_config"].pop("avatar_effects", None)
-        
         template_response = {
             **template,
             "created_by_username": username
@@ -2609,7 +2543,6 @@ async def get_template(request: Request, template_id: str):
         template_cache[cache_key] = template_response
         
         return template_response
-
 
 @app.post("/use-template/{template_id}")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
@@ -2649,23 +2582,20 @@ async def use_template(
         # Create page from template
         page_config = template["page_config"]
         
-        # Ensure page_config has avatar_decoration instead of avatar_effects
-        if "avatar_effects" in page_config:
-            page_config["avatar_decoration"] = page_config.pop("avatar_effects", None)
+        # Make sure we're working with a dict
+        if isinstance(page_config, ProfilePage):
+            page_config = page_config.dict()
         
-        # Set user's avatar if available
-        if not page_config.get("avatar_url") and current_user.get("avatar_url"):
-            page_config["avatar_url"] = current_user["avatar_url"]
-        
-        # Set user's name if available
-        if not page_config.get("name") and current_user.get("name"):
-            page_config["name"] = current_user["name"]
-        
+        # Update page config with new data
         page_config["url"] = url
         page_config["page_id"] = page_id
         page_config["user_id"] = current_user["id"]
         page_config["created_at"] = datetime.utcnow()
         page_config["created_from_template"] = template_id
+        
+        # Apply user's timezone if available
+        if current_user.get("timezone") and not page_config.get("timezone"):
+            page_config["timezone"] = current_user["timezone"]
         
         # Initialize views
         await db.views.insert_one({
@@ -2690,7 +2620,6 @@ async def use_template(
             "page_id": page_id,
             "url": url
         }
-
 
 @app.get("/social-platforms")
 async def get_social_platforms():
@@ -2723,18 +2652,19 @@ async def get_social_platforms():
     
     return {"platforms": platforms}
 
-
-@app.get("/fonts")
-async def get_available_fonts():
-    """Return available fonts with their links and family names"""
-    return {"fonts": settings.DEFAULT_FONTS}
-
-
-@app.get("/timezones")
-async def get_available_timezones():
-    """Return list of available timezones"""
-    return {"timezones": settings.TIMEZONES}
-
+@app.get("/layouts")
+async def get_available_layouts():
+    # Just return the standard layout since we're simplifying
+    layouts = [
+        {
+            "type": "standard",
+            "name": "Standard",
+            "description": "A clean, well-organized layout with all elements arranged in an optimal way.",
+            "preview_image": "https://example.com/previews/standard.jpg"
+        }
+    ]
+    
+    return {"layouts": layouts}
 
 @app.get("/effects")
 async def get_available_effects():
@@ -2774,7 +2704,6 @@ async def get_available_effects():
     
     return {"effects": effects}
 
-
 @app.get("/background-types")
 async def get_background_types():
     # List of available background types
@@ -2803,6 +2732,15 @@ async def get_background_types():
     
     return {"background_types": backgrounds}
 
+@app.get("/fonts")
+async def get_available_fonts():
+    # Return the list of default fonts
+    return {"fonts": settings.DEFAULT_FONTS}
+
+@app.get("/timezones")
+async def get_timezones():
+    # Return all available timezones
+    return {"timezones": settings.TIMEZONES}
 
 @app.get("/trending-templates")
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -2824,17 +2762,12 @@ async def get_trending_templates(
             if "_id" in template:
                 template["_id"] = str(template["_id"])
             
-            # Ensure page_config has avatar_decoration instead of avatar_effects
-            if "page_config" in template and "avatar_effects" in template["page_config"]:
-                template["page_config"]["avatar_decoration"] = template["page_config"].pop("avatar_effects", None)
-            
             templates.append({
                 **template,
                 "created_by_username": username
             })
         
         return {"templates": templates}
-
 
 @app.get("/user/{username}/pages")
 @limiter.limit(RateLimits.READ_LIMIT)
@@ -2864,7 +2797,6 @@ async def get_user_public_pages(request: Request, username: str):
             "pages": pages
         }
 
-
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
@@ -2873,7 +2805,6 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
             "detail": "Rate limit exceeded. Please try again later."
         }
     )
-
 
 # Health check ping
 async def ping_self():
@@ -2884,10 +2815,8 @@ async def ping_self():
         except Exception as e:
             logger.error(f"Health check ping failed: {str(e)}")
 
-
 def run_ping():
     asyncio.run(ping_self())
-
 
 def start_ping_scheduler():
     schedule.every(settings.PING_INTERVAL).seconds.do(run_ping)
@@ -2895,13 +2824,11 @@ def start_ping_scheduler():
         schedule.run_pending()
         time.sleep(1)
 
-
 async def start_cleanup_scheduler():
     while True:
         await cleanup_old_view_records()
         await cleanup_expired_previews()
         await asyncio.sleep(24 * 60 * 60)  # Run daily
-
 
 async def cleanup_expired_registrations():
     """Cleanup function to remove expired pending registrations"""
@@ -2915,7 +2842,6 @@ async def cleanup_expired_registrations():
         await db.verification.delete_many({
             "expires_at": {"$lt": datetime.utcnow()}
         })
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -2932,9 +2858,8 @@ async def startup_event():
     
     asyncio.create_task(periodic_registration_cleanup())
    
-ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
-ping_thread.start()
-
+    ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
+    ping_thread.start()
 
 if __name__ == "__main__":
     import uvicorn
