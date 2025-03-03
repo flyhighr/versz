@@ -890,8 +890,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const previewId = await createPagePreview(pageData);
                 
                 if (previewId) {
-                    // Open preview in new tab
-                    window.open(`/?preview=${previewId}`, '_blank');
+                    // Get the current URL for the page
+                    const pageUrl = document.getElementById('edit-url').value;
+                    
+                    // Open preview in new tab - using the page URL with preview parameter
+                    window.open(`/${pageUrl}?preview=${previewId}`, '_blank');
                 } else {
                     // Fallback - just open the current page
                     const url = document.getElementById('edit-url').value;
