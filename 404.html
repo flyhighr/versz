@@ -973,30 +973,6 @@
             const path = window.location.pathname;
             const search = window.location.search;
             
-            // If we're at the 404 page, redirect to the correct path
-            if (path.indexOf('/404.html') === 0) {
-                // Extract the intended path from sessionStorage
-                const redirectPath = sessionStorage.getItem('redirectPath');
-                const redirectSearch = sessionStorage.getItem('redirectSearch');
-                
-                if (redirectPath) {
-                    // Clear storage
-                    sessionStorage.removeItem('redirectPath');
-                    sessionStorage.removeItem('redirectSearch');
-                    
-                    // Redirect to the correct path
-                    let redirectUrl = redirectPath;
-                    if (redirectSearch) {
-                        redirectUrl += redirectSearch;
-                    }
-                    window.location.replace(redirectUrl);
-                } else {
-                    // No redirect path stored, go to home
-                    window.location.replace('/');
-                }
-                return;
-            }
-            
             // Special handling for preview URLs
             const previewParam = new URLSearchParams(search).get('preview');
             if (previewParam) {
