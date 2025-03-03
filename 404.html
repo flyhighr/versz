@@ -939,7 +939,7 @@
                 showError(404, 'Page not found');
                 return;
             }
-
+        
             try {
                 let cacheKey = path;
                 if (templateId) cacheKey += `-template-${templateId}`;
@@ -952,11 +952,12 @@
                     setupPreviewBanner(cachedContent);
                     return;
                 }
-
+        
                 let url;
                 let data;
                 
                 if (previewId) {
+                    // Load preview data
                     url = `${API_URL}/preview/${previewId}`;
                     const response = await fetchWithTimeout(url);
                     
@@ -976,7 +977,8 @@
                         // Make sure we have a consistent structure
                         data = {
                             page: data,
-                            is_preview: true
+                            is_preview: true,
+                            original_path: path // Store the original path for context
                         };
                     }
                 } else if (path) {
@@ -1001,7 +1003,7 @@
                     showError(404, 'Data not found');
                     return;
                 }
-
+        
                 cache.set(cacheKey, data);
                 await renderContent(data);
                 updateStatsBadge(data);
@@ -1039,7 +1041,12 @@
                 
                 useTemplateBtn.style.display = 'none';
                 exitPreviewBtn.onclick = () => {
-                    window.history.back();
+                    // If we have the original path, go back to the normal page
+                    if (data.original_path) {
+                        window.location.href = `/${data.original_path}`;
+                    } else {
+                        window.history.back();
+                    }
                 };
             } else {
                 previewBanner.style.display = 'none';
