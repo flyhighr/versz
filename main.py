@@ -918,8 +918,15 @@ async def register_user(
 async def resend_verification_email(
     request: Request,
     background_tasks: BackgroundTasks,
-    email: EmailStr = Body(...)
+    data: dict = Body(...)
 ):
+    """Resend verification email to user"""
+    email = data.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is required"
+        )
     """Resend verification email to user"""
     async with get_database() as db:
         # Check if user exists and is not verified
