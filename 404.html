@@ -1789,23 +1789,6 @@
         const tagsContainer = document.querySelector('.tags-container');
         tagsContainer.innerHTML = '';
         
-        if (!tags || tags.length === 0) {
-            // Add default tags as shown in the prototype
-            const cyanTag = document.createElement('div');
-            cyanTag.className = 'tag tag-cyan';
-            
-            const blackTag = document.createElement('div');
-            blackTag.className = 'tag tag-black';
-            
-            const purpleTag = document.createElement('div');
-            purpleTag.className = 'tag tag-purple';
-            
-            tagsContainer.appendChild(cyanTag);
-            tagsContainer.appendChild(blackTag);
-            tagsContainer.appendChild(purpleTag);
-            return;
-        }
-        
         // Create tags from user data
         tags.forEach(tag => {
             const tagElement = document.createElement('div');
