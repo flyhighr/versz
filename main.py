@@ -1727,6 +1727,8 @@ class CustomJSONResponse(JSONResponse):
         def default_serializer(obj):
             if isinstance(obj, ObjectId):
                 return str(obj)
+            elif isinstance(obj, datetime):
+                return obj.isoformat()
             raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
         
         return json.dumps(
@@ -1756,6 +1758,8 @@ async def get_page_preview(request: Request, preview_id: str):
                 detail="Preview expired or not found"
             )
         
+        # Convert ObjectId to string before returning
+        preview_data = json_serialize(preview_data)
         return preview_data
     
     # If not in cache, get from database
@@ -1771,15 +1775,27 @@ async def get_page_preview(request: Request, preview_id: str):
                 detail="Preview expired or not found"
             )
         
-        
-        # Update cache - we should still convert for the cache
-        if "_id" in preview:
-            preview["_id"] = str(preview["_id"])
+        # Convert MongoDB document to serializable format
+        preview = json_serialize(preview)
             
         # Update cache
         preview_cache[cache_key] = preview
         
         return preview
+
+# Add this helper function to handle serialization of MongoDB objects
+def json_serialize(obj):
+    """Convert MongoDB document to serializable format"""
+    if isinstance(obj, dict):
+        return {k: json_serialize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [json_serialize(item) for item in obj]
+    elif isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, datetime):
+        return obj.isoformat()
+    else:
+        return obj
 
 @app.post("/update-profile")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
