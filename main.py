@@ -2542,16 +2542,20 @@ async def get_template(request: Request, template_id: str):
         # Cache result
         template_cache[cache_key] = template_response
         
-        return template_response
-
 @app.post("/use-template/{template_id}")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def use_template(
     request: Request,
     template_id: str,
-    url: str = Body(...),
+    data: dict = Body(...),  # Change this to expect a dict
     current_user: dict = Depends(get_current_verified_user)
 ):
+    url = data.get("url")
+    if not url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="URL is required"
+        )
     async with get_database() as db:
         # Check URL availability
         if not await is_url_available(db, url):
