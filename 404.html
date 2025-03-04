@@ -157,6 +157,7 @@
             position: relative;
         }
 
+        /* Updated avatar decoration styles */
         .avatar {
             width: 100px;
             height: 100px;
@@ -167,21 +168,29 @@
             position: relative;
             flex-shrink: 0;
         }
-
+        
         .avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-
+        
         .avatar-decoration {
             position: absolute;
-            top: -10px;
-            left: -10px;
-            width: 120px;
-            height: 120px;
+            top: -15px;
+            left: -15px;
+            width: 130px;
+            height: 130px;
             pointer-events: none;
             z-index: 2;
+            overflow: visible; /* Allow decoration to extend beyond avatar */
+        }
+        
+        .avatar-decoration img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Changed to contain to prevent cropping */
+            border-radius: 0; /* Remove border-radius to allow any shape */
         }
 
         .profile-info {
@@ -195,8 +204,8 @@
             margin-bottom: 5px;
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
-            word-break: break-word;
+            gap: 8px; /* Add gap between name and tags */
+            flex-wrap: nowrap; /* Prevent wrapping initially */
         }
 
         .username {
@@ -224,15 +233,16 @@
 
         /* Tags section */
         .tags-container {
-            display: flex;
-            flex-wrap: wrap;
-            margin-top: 5px;
+            display: inline-flex; /* Changed to inline-flex */
+            align-items: center;
+            margin-left: 5px;
             gap: 5px;
+            flex-wrap: wrap;
         }
 
         .tag {
-            width: 25px;
-            height: 25px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -241,6 +251,7 @@
             background-color: #f0f0f0;
             color: #000;
             font-size: 14px;
+            flex-shrink: 0; /* Prevent shrinking */
         }
 
         .tag-cyan {
@@ -777,6 +788,41 @@
                 font-size: 14px;
             }
         }
+        @media (min-width: 768px) {
+            .avatar {
+                width: 140px;
+                height: 140px;
+            }
+        
+            .avatar-decoration {
+                width: 170px;
+                height: 170px;
+                top: -15px;
+                left: -15px;
+            }
+        
+            .profile-name {
+                font-size: 32px;
+                gap: 10px;
+            }
+        
+            .tag {
+                width: 28px;
+                height: 28px;
+            }
+        }
+        
+        /* For very small screens, allow name and tags to wrap */
+        @media (max-width: 400px) {
+            .profile-name {
+                flex-wrap: wrap;
+            }
+            
+            .tags-container {
+                margin-top: 5px;
+                margin-left: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -808,7 +854,9 @@
     <div class="profile-header">
         <div class="avatar">
             <img id="avatarImg" src="" alt="Profile Picture">
-            <div id="avatarDecoration" class="avatar-decoration" style="display: none;"></div>
+        </div>
+        <div id="avatarDecoration" class="avatar-decoration" style="display: none;">
+            <img id="avatarDecorationImg" src="" alt="Avatar Decoration">
         </div>
         <div class="profile-info">
             <div class="profile-name">
@@ -1498,7 +1546,11 @@
         if (page.avatar_decoration) {
             const decorationElement = document.getElementById('avatarDecoration');
             decorationElement.style.display = 'block';
-            decorationElement.innerHTML = `<img src="${page.avatar_decoration}" alt="Decoration">`;
+            const decorationImg = document.createElement('img');
+            decorationImg.src = page.avatar_decoration;
+            decorationImg.alt = "Avatar Decoration";
+            decorationElement.innerHTML = '';
+            decorationElement.appendChild(decorationImg);
         } else {
             document.getElementById('avatarDecoration').style.display = 'none';
         }
