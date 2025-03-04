@@ -14,6 +14,7 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta, date
 from typing import Optional, List, Dict, Any, Union, Set
 from contextlib import asynccontextmanager
+from fastapi import File
 
 from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Depends, Form, Body, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -2509,6 +2510,107 @@ async def get_templates(
         
         return templates
 
+        
+@app.post("/upload")
+@limiter.limit(RateLimits.UPLOAD_LIMIT)
+async def upload_image(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload an image to ImgBB and return the URL"""
+    # Check file size (32MB max according to ImgBB)
+    MAX_SIZE = 32 * 1024 * 1024  # 32MB
+    
+    # Read the file content
+    file_content = await file.read()
+    
+    # Check file size
+    if len(file_content) > MAX_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File too large. Maximum size is 32MB."
+        )
+    
+    # Check file type
+    content_type = file.content_type
+    if not content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files are allowed."
+        )
+    
+    # Prepare the request to ImgBB
+    IMGBB_API_KEY = os.getenv("IMGBB_API_KEY", "")
+    if not IMGBB_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Image upload service is not configured."
+        )
+    
+    try:
+        # Convert image to base64
+        import base64
+        file_base64 = base64.b64encode(file_content).decode("utf-8")
+        
+        # Send the request to ImgBB
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.imgbb.com/1/upload",
+                data={
+                    "key": IMGBB_API_KEY,
+                    "image": file_base64,
+                    "name": file.filename,
+                }
+            )
+            
+            # Check if the request was successful
+            if response.status_code != 200:
+                logger.error(f"ImgBB upload failed: {response.text}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to upload image to external service."
+                )
+            
+            # Parse the response
+            result = response.json()
+            if not result.get("success"):
+                logger.error(f"ImgBB upload error: {result}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to upload image to external service."
+                )
+            
+            # Return the image URL
+            image_url = result.get("data", {}).get("url")
+            if not image_url:
+                logger.error(f"ImgBB response missing URL: {result}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Invalid response from image service."
+                )
+            
+            return {
+                "url": image_url,
+                "display_url": result.get("data", {}).get("display_url"),
+                "thumbnail_url": result.get("data", {}).get("thumb", {}).get("url"),
+                "size": len(file_content),
+                "type": content_type
+            }
+            
+    except httpx.RequestError as e:
+        logger.error(f"Error uploading to ImgBB: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to communicate with image service."
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during image upload: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during image upload."
+        )
+        
 @app.get("/templates/{template_id}", response_model=TemplateResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_template(request: Request, template_id: str):
