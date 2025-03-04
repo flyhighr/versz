@@ -15,8 +15,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const nextButtons = document.querySelectorAll('.btn-next');
     const backButtons = document.querySelectorAll('.btn-back');
     const onboardingMessage = document.getElementById('onboarding-message');
+    const timezoneSelect = document.getElementById('onboarding-timezone');
     
     let currentStep = 1;
+    
+    // Load timezones
+    const loadTimezones = async () => {
+        try {
+            const response = await fetch(`${API_URL}/timezones`);
+            if (!response.ok) {
+                console.error('Failed to load timezones');
+                return;
+            }
+            
+            const data = await response.json();
+            const timezones = data.timezones;
+            
+            // Add timezones to select dropdown
+            timezones.forEach(timezone => {
+                const option = document.createElement('option');
+                option.value = timezone;
+                option.textContent = timezone;
+                timezoneSelect.appendChild(option);
+            });
+            
+            // Try to set user's timezone by default
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (userTimezone && timezones.includes(userTimezone)) {
+                timezoneSelect.value = userTimezone;
+            }
+        } catch (error) {
+            console.error('Error loading timezones:', error);
+        }
+    };
+    
+    // Load timezones on page load
+    loadTimezones();
     
     // Check username availability
     const usernameInput = document.getElementById('onboarding-username');
@@ -191,7 +225,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const username = document.getElementById('onboarding-username').value.trim();
             const avatarUrl = document.getElementById('onboarding-avatar').value.trim();
             const location = document.getElementById('onboarding-location').value.trim();
-            const age = document.getElementById('onboarding-age').value.trim();
+            const timezone = document.getElementById('onboarding-timezone').value;
+            const dateOfBirth = document.getElementById('onboarding-dob').value;
             const gender = document.getElementById('onboarding-gender').value;
             
             let pronouns = document.getElementById('onboarding-pronouns').value;
@@ -203,6 +238,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!/^[a-zA-Z0-9_]+$/.test(username)) {
                 showMessage('Username can only contain letters, numbers, and underscores', 'error');
                 return;
+            }
+            
+            // Validate date of birth if provided
+            if (dateOfBirth) {
+                const dobDate = new Date(dateOfBirth);
+                const today = new Date();
+                
+                // Check if date is valid
+                if (isNaN(dobDate.getTime())) {
+                    showMessage('Please enter a valid date of birth', 'error');
+                    return;
+                }
+                
+                // Check if user is at least 13 years old
+                const age = today.getFullYear() - dobDate.getFullYear();
+                const monthDiff = today.getMonth() - dobDate.getMonth();
+                if (age < 13 || (age === 13 && monthDiff < 0) || (age === 13 && monthDiff === 0 && today.getDate() < dobDate.getDate())) {
+                    showMessage('You must be at least 13 years old to use this service', 'error');
+                    return;
+                }
             }
             
             // Check username availability one more time
@@ -230,7 +285,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         name: name,
                         avatar_url: avatarUrl || null,
                         location: location || null,
-                        age: age ? parseInt(age) : null,
+                        date_of_birth: dateOfBirth || null,
+                        timezone: timezone || null,
                         gender: gender || null,
                         pronouns: pronouns || null
                     })
@@ -242,10 +298,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Update local storage
-                const userData = JSON.parse(localStorage.getItem('user'));
+                const userData = JSON.parse(localStorage.getItem('user')) || {};
                 userData.username = username;
                 userData.name = name;
                 userData.avatar_url = avatarUrl || null;
+                userData.date_of_birth = dateOfBirth || null;
+                userData.timezone = timezone || null;
                 localStorage.setItem('user', JSON.stringify(userData));
                 
                 // Show success message
@@ -293,6 +351,57 @@ document.addEventListener('DOMContentLoaded', function() {
             // Pre-fill email
             if (userData.email) {
                 // If there are any fields that should be pre-filled, do it here
+                
+                // If user has a name, pre-fill it
+                if (userData.name) {
+                    document.getElementById('onboarding-name').value = userData.name;
+                }
+                
+                // If user has an avatar, pre-fill it
+                if (userData.avatar_url) {
+                    document.getElementById('onboarding-avatar').value = userData.avatar_url;
+                    document.getElementById('avatar-preview').src = userData.avatar_url;
+                }
+                
+                // If user has a location, pre-fill it
+                if (userData.location) {
+                    document.getElementById('onboarding-location').value = userData.location;
+                }
+                
+                // If user has a date of birth, pre-fill it
+                if (userData.date_of_birth) {
+                    document.getElementById('onboarding-dob').value = userData.date_of_birth;
+                }
+                
+                // If user has a timezone, pre-fill it
+                if (userData.timezone) {
+                    // Wait for timezones to load
+                    setTimeout(() => {
+                        const timezoneSelect = document.getElementById('onboarding-timezone');
+                        if (timezoneSelect && timezoneSelect.options.length > 0) {
+                            timezoneSelect.value = userData.timezone;
+                        }
+                    }, 500);
+                }
+                
+                // If user has gender, pre-fill it
+                if (userData.gender) {
+                    document.getElementById('onboarding-gender').value = userData.gender;
+                }
+                
+                // If user has pronouns, pre-fill it
+                if (userData.pronouns) {
+                    const pronounsSelect = document.getElementById('onboarding-pronouns');
+                    const standardPronouns = ['he/him', 'she/her', 'they/them'];
+                    
+                    if (standardPronouns.includes(userData.pronouns)) {
+                        pronounsSelect.value = userData.pronouns;
+                    } else {
+                        pronounsSelect.value = 'custom';
+                        document.getElementById('custom-pronouns').style.display = 'block';
+                        document.getElementById('custom-pronouns').value = userData.pronouns;
+                    }
+                }
             }
             
         } catch (error) {
@@ -302,5 +411,5 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize
     loadUserData();
-    goToStep(1);
+    goToStep(1); 
 });

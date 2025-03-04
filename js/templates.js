@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = 'login.html';
         return;
     }
+    
     // Mobile menu toggle
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
     if (mobileMenuToggle) {
@@ -72,8 +73,71 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
+    // Load template categories
+    const loadCategories = async () => {
+        try {
+            // Since the /template-categories endpoint doesn't exist, use hardcoded categories
+            const categories = [
+                { slug: "personal", name: "Personal" },
+                { slug: "business", name: "Business" },
+                { slug: "creative", name: "Creative" },
+                { slug: "portfolio", name: "Portfolio" },
+                { slug: "social", name: "Social" }
+            ];
+            
+            // Populate filter dropdown
+            const filterByTag = document.getElementById('filter-by-tag');
+            filterByTag.innerHTML = '<option value="">All Categories</option>';
+            
+            // Populate category buttons
+            const categoriesContainer = document.getElementById('templates-categories');
+            // Keep the "All" button
+            categoriesContainer.innerHTML = '<button class="category-btn active" data-category="">All</button>';
+            
+            categories.forEach(category => {
+                // Add to dropdown
+                const option = document.createElement('option');
+                option.value = category.slug;
+                option.textContent = category.name;
+                filterByTag.appendChild(option);
+                
+                // Add as button
+                const button = document.createElement('button');
+                button.className = 'category-btn';
+                button.dataset.category = category.slug;
+                button.textContent = category.name;
+                categoriesContainer.appendChild(button);
+            });
+            
+            // Add event listeners to category buttons
+            document.querySelectorAll('.category-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    document.querySelectorAll('.category-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked button
+                    button.classList.add('active');
+                    
+                    // Get category and update filter
+                    const category = button.dataset.category;
+                    filterByTag.value = category;
+                    
+                    // Load templates with this filter
+                    loadTemplates(1, category, document.getElementById('sort-templates').value);
+                });
+            });
+            
+            return categories;
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            return [];
+        }
+    };
+    
     // Load templates
-    const loadTemplates = async (page = 1, tag = '', sortBy = 'popular') => {
+    const loadTemplates = async (page = 1, category = '', sortBy = 'popular') => {
         const templatesGrid = document.getElementById('templates-grid');
         const paginationContainer = document.getElementById('templates-pagination');
         
@@ -88,8 +152,8 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             let url = `${API_URL}/templates?page=${page}&limit=12`;
             
-            if (tag) {
-                url += `&tag=${tag}`;
+            if (category) {
+                url += `&category=${category}`;
             }
             
             // Map UI sort options to API parameters
@@ -119,7 +183,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Failed to fetch templates');
             }
             
-            const templates = await response.json();
+            // Handle the API response - it can be either an array of templates directly
+            // or an object with a templates property
+            const data = await response.json();
+            
+            // Determine if the response is an array or an object with templates property
+            const templates = Array.isArray(data) ? data : (data.templates || []);
+            const totalPages = data.total_pages || 1;
+            const currentPage = data.current_page || 1;
             
             // Clear loading
             templatesGrid.innerHTML = '';
@@ -141,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 templateCard.innerHTML = `
                     <div class="template-image">
-                        <img src="${template.preview_image}" alt="${template.name}">
+                        <img src="${template.preview_image}" alt="${template.name}" onerror="this.src='img/template-placeholder.jpg'">
                         <div class="template-overlay">
                             <div class="template-actions">
                                 <button class="btn btn-sm btn-primary preview-btn" data-id="${template.id}">Preview</button>
@@ -151,10 +222,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="template-info">
                         <h3>${template.name}</h3>
-                        <p>${template.description.substring(0, 60)}${template.description.length > 60 ? '...' : ''}</p>
+                        <p>${template.description ? (template.description.substring(0, 60) + (template.description.length > 60 ? '...' : '')) : ''}</p>
                         <div class="template-meta">
                             <span><i class="fas fa-user"></i> ${template.created_by_username || 'User'}</span>
-                            <span><i class="fas fa-download"></i> ${template.use_count} uses</span>
+                            <span><i class="fas fa-download"></i> ${template.use_count || 0} uses</span>
+                        </div>
+                        <div class="template-tags-mini">
+                            ${template.tags && template.tags.length > 0 ? 
+                                template.tags.slice(0, 3).map(tag => `<span class="template-tag-mini">${tag}</span>`).join('') 
+                                : ''}
                         </div>
                     </div>
                 `;
@@ -190,31 +266,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
-            // Create pagination if needed
-            // For simplicity, we'll just show prev/next buttons
+            // Create pagination
             paginationContainer.innerHTML = '';
             
-            if (templates.length === 12) { // If we got a full page, there might be more
+            if (totalPages > 1) {
                 const paginationDiv = document.createElement('div');
                 paginationDiv.className = 'pagination';
                 
-                if (page > 1) {
+                // Previous button
+                if (currentPage > 1) {
                     const prevBtn = document.createElement('button');
                     prevBtn.className = 'pagination-btn';
                     prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
                     prevBtn.addEventListener('click', () => {
-                        loadTemplates(page - 1, tag, sortBy);
+                        loadTemplates(currentPage - 1, category, sortBy);
                     });
                     paginationDiv.appendChild(prevBtn);
                 }
                 
-                const nextBtn = document.createElement('button');
-                nextBtn.className = 'pagination-btn';
-                nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-                nextBtn.addEventListener('click', () => {
-                    loadTemplates(page + 1, tag, sortBy);
-                });
-                paginationDiv.appendChild(nextBtn);
+                // Page numbers
+                const startPage = Math.max(1, currentPage - 2);
+                const endPage = Math.min(totalPages, startPage + 4);
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                    pageBtn.textContent = i;
+                    
+                    pageBtn.addEventListener('click', () => {
+                        if (i !== currentPage) {
+                            loadTemplates(i, category, sortBy);
+                        }
+                    });
+                    
+                    paginationDiv.appendChild(pageBtn);
+                }
+                
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'pagination-btn';
+                    nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                    nextBtn.addEventListener('click', () => {
+                        loadTemplates(currentPage + 1, category, sortBy);
+                    });
+                    paginationDiv.appendChild(nextBtn);
+                }
                 
                 paginationContainer.appendChild(paginationDiv);
             }
@@ -231,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Open template preview in a new tab
     const openTemplatePreview = (templateId) => {
-        window.open(`/?template=${templateId}`, '_blank');
+        window.open(`https://versz.fun/template?id=${templateId}`, '_blank');
     };
     
     // Open template modal with details
@@ -250,10 +347,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Populate modal with template details
             document.getElementById('preview-template-name').textContent = template.name;
-            document.getElementById('preview-template-image').src = template.preview_image;
+            document.getElementById('preview-template-image').src = template.preview_image || 'img/template-placeholder.jpg';
             document.getElementById('preview-template-description').textContent = template.description;
             document.getElementById('preview-template-creator').textContent = template.created_by_username || 'User';
-            document.getElementById('preview-template-uses').textContent = `${template.use_count} uses`;
+            document.getElementById('preview-template-uses').textContent = `${template.use_count || 0} uses`;
             
             // Format date
             const createdDate = new Date(template.created_at);
@@ -273,6 +370,65 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 tagsContainer.innerHTML = '<span class="no-tags">No tags</span>';
             }
+            
+            // Populate features
+            const featuresList = document.getElementById('template-features-list');
+            featuresList.innerHTML = '';
+            
+            // Extract features from template configuration
+            const features = [];
+            
+            if (template.page_config) {
+                const config = template.page_config;
+                
+                if (config.social_links && config.social_links.length > 0) {
+                    features.push('Pre-configured social links');
+                }
+                
+                if (config.songs && config.songs.length > 0) {
+                    features.push('Built-in music player');
+                }
+                
+                if (config.name_effect && config.name_effect.name !== 'none') {
+                    features.push(`Name text effect: ${config.name_effect.name}`);
+                }
+                
+                if (config.bio_effect && config.bio_effect.name !== 'none') {
+                    features.push(`Bio text effect: ${config.bio_effect.name}`);
+                }
+                
+                if (config.background) {
+                    features.push(`Custom ${config.background.type} background`);
+                }
+                
+                if (config.name_style && config.name_style.font && config.name_style.font.name !== 'Default') {
+                    features.push(`Custom font: ${config.name_style.font.name}`);
+                }
+                
+                if (config.custom_css) {
+                    features.push('Custom CSS styling');
+                }
+                
+                if (config.custom_js) {
+                    features.push('Custom JavaScript');
+                }
+                
+                if (config.timezone) {
+                    features.push(`Default timezone: ${config.timezone}`);
+                }
+            }
+            
+            // If no features were found, add a default one
+            if (features.length === 0) {
+                features.push('Standard layout and styling');
+            }
+            
+            // Add features to list
+            features.forEach(feature => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `<i class="fas fa-check"></i> ${feature}`;
+                featuresList.appendChild(listItem);
+            });
             
             // Set template ID for use form
             document.getElementById('template-id').value = template.id;
@@ -343,103 +499,84 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Handle use template form submission
-    const useTemplateForm = document.getElementById('use-template-form');
-    
-    if (useTemplateForm) {
-        useTemplateForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+   // Handle use template form submission
+const useTemplateForm = document.getElementById('use-template-form');
+
+if (useTemplateForm) {
+    useTemplateForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const templateId = document.getElementById('template-id').value;
+        const url = document.getElementById('template-page-url').value.trim();
+        
+        if (!url) {
+            showNotification('Please enter a URL', 'error');
+            return;
+        }
+        
+        // Check if URL contains only alphanumeric characters and underscores
+        if (!/^[a-zA-Z0-9_]+$/.test(url)) {
+            showNotification('URL can only contain letters, numbers, and underscores', 'error');
+            return;
+        }
+        
+        try {
+            // Check URL availability
+            const checkResponse = await fetch(`${API_URL}/check-url?url=${url}`);
+            const checkData = await checkResponse.json();
             
-            const templateId = document.getElementById('template-id').value;
-            const url = document.getElementById('template-page-url').value.trim();
-            
-            if (!url) {
-                showNotification('Please enter a URL', 'error');
+            if (!checkData.available) {
+                showNotification('URL is already taken', 'error');
                 return;
             }
             
-            // Check if URL contains only alphanumeric characters and underscores
-            if (!/^[a-zA-Z0-9_]+$/.test(url)) {
-                showNotification('URL can only contain letters, numbers, and underscores', 'error');
-                return;
-            }
+            // Submit the form
+            const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Page...';
             
-            try {
-                // Check URL availability
-                const checkResponse = await fetch(`${API_URL}/check-url?url=${url}`);
-                const checkData = await checkResponse.json();
-                
-                if (!checkData.available) {
-                    showNotification('URL is already taken', 'error');
-                    return;
-                }
-                
-                // Submit the form
-                const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Page...';
-                
-                const response = await fetch(`${API_URL}/use-template/${templateId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ url: url })
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Failed to create page from template');
-                }
-                
-                const data = await response.json();
-                
-                // Show success notification
-                showNotification('Page created successfully!', 'success');
-                
-                // Close modal
-                document.getElementById('template-preview-modal').classList.remove('active');
-                
-                // Redirect to new page or customize page
-                setTimeout(() => {
-                    window.location.href = `customize.html?page_id=${data.page_id}`;
-                }, 1000);
-                
-            } catch (error) {
-                console.error('Error using template:', error);
-                showNotification(error.message || 'Failed to create page from template', 'error');
-                
-                // Reset submit button
-                const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Use This Template';
-            }
-        });
-    }
-    
-    // Filter templates by category
-    const categoryButtons = document.querySelectorAll('.category-btn');
-    
-    if (categoryButtons.length > 0) {
-        categoryButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove active class from all buttons
-                categoryButtons.forEach(btn => btn.classList.remove('active'));
-                
-                // Add active class to clicked button
-                button.classList.add('active');
-                
-                // Get category tag
-                const tag = button.dataset.category;
-                
-                // Update filter dropdown
-                document.getElementById('filter-by-tag').value = tag;
-                
-                // Load templates with filter
-                loadTemplates(1, tag, document.getElementById('sort-templates').value);
+            // The backend expects a request body with template_id and url
+            const response = await fetch(`${API_URL}/use-template/${templateId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    template_id: templateId,
+                    url: url
+                })
             });
-        });
-    }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to create page from template');
+            }
+            
+            const data = await response.json();
+            
+            // Show success notification
+            showNotification('Page created successfully!', 'success');
+            
+            // Close modal
+            document.getElementById('template-preview-modal').classList.remove('active');
+            
+            // Redirect to customize page
+            setTimeout(() => {
+                window.location.href = `customize.html?page_id=${data.page_id}`;
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error using template:', error);
+            showNotification(error.message || 'Failed to create page from template', 'error');
+            
+            // Reset submit button
+            const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Use This Template';
+        }
+    });
+}
     
     // Filter and sort dropdowns
     const filterByTag = document.getElementById('filter-by-tag');
@@ -447,24 +584,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (filterByTag) {
         filterByTag.addEventListener('change', () => {
-            const tag = filterByTag.value;
+            const category = filterByTag.value;
             const sortBy = sortTemplates.value;
             
             // Update category buttons
-            categoryButtons.forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.category === tag);
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.category === category);
             });
             
-            loadTemplates(1, tag, sortBy);
+            loadTemplates(1, category, sortBy);
         });
     }
     
     if (sortTemplates) {
         sortTemplates.addEventListener('change', () => {
-            const tag = filterByTag.value;
+            const category = filterByTag.value;
             const sortBy = sortTemplates.value;
             
-            loadTemplates(1, tag, sortBy);
+            loadTemplates(1, category, sortBy);
         });
     }
     
@@ -477,42 +614,121 @@ document.addEventListener('DOMContentLoaded', function() {
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
             
-            searchTimeout = setTimeout(() => {
-                const searchTerm = searchInput.value.trim().toLowerCase();
+            searchTimeout = setTimeout(async () => {
+                const searchTerm = searchInput.value.trim();
                 
-                // For simplicity, we'll just filter the currently displayed templates
-                // In a real app, you might want to send the search term to the server
-                const templateCards = document.querySelectorAll('.template-card');
-                
-                templateCards.forEach(card => {
-                    const templateName = card.querySelector('h3').textContent.toLowerCase();
-                    const templateDesc = card.querySelector('p').textContent.toLowerCase();
-                    
-                    const matches = templateName.includes(searchTerm) || templateDesc.includes(searchTerm);
-                    
-                    card.style.display = matches ? 'block' : 'none';
-                });
-                
-                // Show message if no results
-                const templatesGrid = document.getElementById('templates-grid');
-                const visibleCards = document.querySelectorAll('.template-card[style="display: block"]');
-                
-                if (searchTerm && visibleCards.length === 0) {
-                    // Check if there's already a no-results message
-                    if (!document.querySelector('.no-results')) {
-                        const noResults = document.createElement('div');
-                        noResults.className = 'no-results';
-                        noResults.innerHTML = `<p>No templates found matching "${searchTerm}"</p>`;
-                        templatesGrid.appendChild(noResults);
+                if (searchTerm.length < 2) {
+                    // If search is cleared, reload all templates
+                    if (searchTerm.length === 0) {
+                        const category = filterByTag.value;
+                        const sortBy = sortTemplates.value;
+                        loadTemplates(1, category, sortBy);
                     }
-                } else {
-                    // Remove no-results message if it exists
-                    const noResults = document.querySelector('.no-results');
-                    if (noResults) {
-                        noResults.remove();
-                    }
+                    return;
                 }
-            }, 300);
+                
+                // Show loading
+                const templatesGrid = document.getElementById('templates-grid');
+                templatesGrid.innerHTML = `
+                    <div class="loading-templates">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Searching templates...</p>
+                    </div>
+                `;
+                
+                try {
+                    // API call to search templates
+                    const response = await fetch(`${API_URL}/search-templates?q=${encodeURIComponent(searchTerm)}`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to search templates');
+                    }
+                    
+                    const searchResults = await response.json();
+                    
+                    // Clear loading
+                    templatesGrid.innerHTML = '';
+                    
+                    if (searchResults.length === 0) {
+                        templatesGrid.innerHTML = `
+                            <div class="no-results">
+                                <p>No templates found matching "${searchTerm}"</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Create template cards for search results
+                    searchResults.forEach(template => {
+                        const templateCard = document.createElement('div');
+                        templateCard.className = 'template-card';
+                        templateCard.dataset.id = template.id;
+                        
+                        templateCard.innerHTML = `
+                            <div class="template-image">
+                                <img src="${template.preview_image}" alt="${template.name}" onerror="this.src='img/template-placeholder.jpg'">
+                                <div class="template-overlay">
+                                    <div class="template-actions">
+                                        <button class="btn btn-sm btn-primary preview-btn" data-id="${template.id}">Preview</button>
+                                        <button class="btn btn-sm btn-outline use-btn" data-id="${template.id}">Use</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="template-info">
+                                <h3>${template.name}</h3>
+                                <p>${template.description.substring(0, 60)}${template.description.length > 60 ? '...' : ''}</p>
+                                <div class="template-meta">
+                                    <span><i class="fas fa-user"></i> ${template.created_by_username || 'User'}</span>
+                                    <span><i class="fas fa-download"></i> ${template.use_count || 0} uses</span>
+                                </div>
+                                <div class="template-tags-mini">
+                                    ${template.tags && template.tags.length > 0 ? 
+                                        template.tags.slice(0, 3).map(tag => `<span class="template-tag-mini">${tag}</span>`).join('') 
+                                        : ''}
+                                </div>
+                            </div>
+                        `;
+                        
+                        templatesGrid.appendChild(templateCard);
+                    });
+                    
+                    // Add event listeners to template cards
+                    document.querySelectorAll('.template-card').forEach(card => {
+                        card.addEventListener('click', (e) => {
+                            if (!e.target.closest('.template-actions')) {
+                                const templateId = card.dataset.id;
+                                openTemplateModal(templateId);
+                            }
+                        });
+                    });
+                    
+                    // Add event listeners to preview buttons
+                    document.querySelectorAll('.preview-btn').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const templateId = button.dataset.id;
+                            openTemplatePreview(templateId);
+                        });
+                    });
+                    
+                    // Add event listeners to use buttons
+                    document.querySelectorAll('.use-btn').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const templateId = button.dataset.id;
+                            openTemplateModal(templateId);
+                        });
+                    });
+                    
+                } catch (error) {
+                    console.error('Error searching templates:', error);
+                    templatesGrid.innerHTML = `
+                        <div class="error-message">
+                            <p>Failed to search templates. Please try again later.</p>
+                        </div>
+                    `;
+                }
+            }, 500);
         });
     }
     
@@ -547,6 +763,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set message and type
         notification.textContent = message;
         notification.className = `notification ${type}`;
+        notification.style.display = 'block';
         
         // Show notification
         notification.classList.add('active');
@@ -554,12 +771,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide after 3 seconds
         setTimeout(() => {
             notification.classList.remove('active');
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 300);
         }, 3000);
     };
     
     // Initialize page
     const initTemplatesPage = async () => {
         await loadUserData();
+        await loadCategories();
         
         // Check if template ID is in URL (for direct linking)
         const urlParams = new URLSearchParams(window.location.search);

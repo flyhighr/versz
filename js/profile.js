@@ -38,6 +38,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Load timezones
+    const loadTimezones = async () => {
+        try {
+            const timezoneSelect = document.getElementById('edit-timezone');
+            if (!timezoneSelect) return;
+            
+            const response = await fetch(`${API_URL}/timezones`);
+            if (!response.ok) {
+                console.error('Failed to load timezones');
+                return;
+            }
+            
+            const data = await response.json();
+            const timezones = data.timezones;
+            
+            // Clear existing options except the first one
+            while (timezoneSelect.options.length > 1) {
+                timezoneSelect.remove(1);
+            }
+            
+            // Add timezones to select dropdown
+            timezones.forEach(timezone => {
+                const option = document.createElement('option');
+                option.value = timezone;
+                option.textContent = timezone;
+                timezoneSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading timezones:', error);
+        }
+    };
+    
     // Load user data
     const loadUserData = async () => {
         try {
@@ -70,6 +102,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update profile data
             populateProfileData(userData);
             
+            // Load timezones after getting user data
+            await loadTimezones();
+            
             return userData;
         } catch (error) {
             console.error('Error loading user data:', error);
@@ -86,6 +121,20 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('sidebar-email').textContent = userData.email || 'user@example.com';
     };
     
+    // Format date
+    const formatDate = (dateString) => {
+        if (!dateString) return 'Not specified';
+        
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Not specified';
+        
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+    };
+    
     // Populate profile data
     const populateProfileData = (userData) => {
         // Personal information
@@ -99,9 +148,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('profile-joined').textContent = joinedDate.toLocaleDateString('en-US', options);
         
         document.getElementById('profile-location').textContent = userData.location || 'Not specified';
+        document.getElementById('profile-timezone').textContent = userData.timezone || 'Not specified';
         document.getElementById('profile-bio').textContent = userData.bio || 'No bio provided';
         
         // Additional information
+        document.getElementById('profile-dob').textContent = formatDate(userData.date_of_birth);
         document.getElementById('profile-age').textContent = userData.age || 'Not specified';
         document.getElementById('profile-gender').textContent = userData.gender || 'Not specified';
         document.getElementById('profile-pronouns').textContent = userData.pronouns || 'Not specified';
@@ -115,11 +166,19 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('edit-username').value = userData.username || '';
         document.getElementById('edit-name').value = userData.name || '';
         document.getElementById('edit-location').value = userData.location || '';
+        document.getElementById('edit-timezone').value = userData.timezone || '';
         document.getElementById('edit-bio').value = userData.bio || '';
-        document.getElementById('edit-age').value = userData.age || '';
+        document.getElementById('edit-dob').value = userData.date_of_birth || '';
         document.getElementById('edit-gender').value = userData.gender || '';
         document.getElementById('edit-pronouns').value = userData.pronouns || '';
         document.getElementById('avatar-url').value = userData.avatar_url || '';
+        
+        // Handle custom pronouns
+        if (userData.pronouns && !['he/him', 'she/her', 'they/them', ''].includes(userData.pronouns)) {
+            document.getElementById('edit-pronouns').value = 'custom';
+            document.getElementById('custom-pronouns').value = userData.pronouns;
+            document.getElementById('custom-pronouns').style.display = 'block';
+        }
         
         // Display preferences
         const displayPrefs = userData.display_preferences || {};
@@ -128,20 +187,20 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('pref-show-joined').textContent = displayPrefs.show_joined_date !== false ? 'Yes' : 'No';
         document.getElementById('pref-show-tags').textContent = displayPrefs.show_tags !== false ? 'Yes' : 'No';
         document.getElementById('pref-show-location').textContent = displayPrefs.show_location !== false ? 'Yes' : 'No';
-        document.getElementById('pref-show-age').textContent = displayPrefs.show_age !== false ? 'Yes' : 'No';
+        document.getElementById('pref-show-dob').textContent = displayPrefs.show_dob !== false ? 'Yes' : 'No';
         document.getElementById('pref-show-gender').textContent = displayPrefs.show_gender !== false ? 'Yes' : 'No';
         document.getElementById('pref-show-pronouns').textContent = displayPrefs.show_pronouns !== false ? 'Yes' : 'No';
-        document.getElementById('pref-default-layout').textContent = displayPrefs.default_layout || 'Simple';
+        document.getElementById('pref-show-timezone').textContent = displayPrefs.show_timezone !== false ? 'Yes' : 'No';
         
         // For edit forms
         document.getElementById('edit-show-views').checked = displayPrefs.show_views !== false;
         document.getElementById('edit-show-joined').checked = displayPrefs.show_joined_date !== false;
         document.getElementById('edit-show-tags').checked = displayPrefs.show_tags !== false;
         document.getElementById('edit-show-location').checked = displayPrefs.show_location !== false;
-        document.getElementById('edit-show-age').checked = displayPrefs.show_age !== false;
+        document.getElementById('edit-show-dob').checked = displayPrefs.show_dob !== false;
         document.getElementById('edit-show-gender').checked = displayPrefs.show_gender !== false;
         document.getElementById('edit-show-pronouns').checked = displayPrefs.show_pronouns !== false;
-        document.getElementById('edit-default-layout').value = displayPrefs.default_layout || 'simple';
+        document.getElementById('edit-show-timezone').checked = displayPrefs.show_timezone !== false;
         
         // Stats
         document.getElementById('stat-pages').textContent = userData.page_count || 0;
@@ -270,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('edit-username').value = userData.username || '';
             document.getElementById('edit-name').value = userData.name || '';
             document.getElementById('edit-location').value = userData.location || '';
+            document.getElementById('edit-timezone').value = userData.timezone || '';
             document.getElementById('edit-bio').value = userData.bio || '';
             document.getElementById('avatar-url').value = userData.avatar_url || '';
         });
@@ -288,6 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const username = document.getElementById('edit-username').value;
                 const name = document.getElementById('edit-name').value;
                 const location = document.getElementById('edit-location').value;
+                const timezone = document.getElementById('edit-timezone').value;
                 const bio = document.getElementById('edit-bio').value;
                 
                 // Validate username
@@ -323,6 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         username: username || null,
                         name: name || null,
                         location: location || null,
+                        timezone: timezone || null,
                         bio: bio || null
                     })
                 });
@@ -479,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Reset form values
             const userData = JSON.parse(localStorage.getItem('user') || '{}');
-            document.getElementById('edit-age').value = userData.age || '';
+            document.getElementById('edit-dob').value = userData.date_of_birth || '';
             document.getElementById('edit-gender').value = userData.gender || '';
             document.getElementById('edit-pronouns').value = userData.pronouns || '';
             
@@ -498,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveAdditionalBtn.disabled = true;
                 
                 // Collect form data
-                const age = document.getElementById('edit-age').value;
+                const dateOfBirth = document.getElementById('edit-dob').value;
                 const gender = document.getElementById('edit-gender').value;
                 
                 let pronouns = document.getElementById('edit-pronouns').value;
@@ -506,6 +568,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     pronouns = document.getElementById('custom-pronouns').value;
                     if (!pronouns) {
                         showNotification('Please enter your custom pronouns', 'error');
+                        saveAdditionalBtn.innerHTML = 'Save Changes';
+                        saveAdditionalBtn.disabled = false;
+                        return;
+                    }
+                }
+                
+                // Validate date of birth
+                if (dateOfBirth) {
+                    const dobDate = new Date(dateOfBirth);
+                    const today = new Date();
+                    
+                    if (isNaN(dobDate.getTime())) {
+                        showNotification('Please enter a valid date of birth', 'error');
+                        saveAdditionalBtn.innerHTML = 'Save Changes';
+                        saveAdditionalBtn.disabled = false;
+                        return;
+                    }
+                    
+                    // Check if user is at least 13 years old
+                    const age = today.getFullYear() - dobDate.getFullYear();
+                    const monthDiff = today.getMonth() - dobDate.getMonth();
+                    if (age < 13 || (age === 13 && monthDiff < 0) || (age === 13 && monthDiff === 0 && today.getDate() < dobDate.getDate())) {
+                        showNotification('You must be at least 13 years old to use this service', 'error');
                         saveAdditionalBtn.innerHTML = 'Save Changes';
                         saveAdditionalBtn.disabled = false;
                         return;
@@ -520,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        age: age ? parseInt(age) : null,
+                        date_of_birth: dateOfBirth || null,
                         gender: gender || null,
                         pronouns: pronouns || null
                     })
@@ -582,18 +667,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelPreferencesBtn = document.getElementById('cancel-preferences-btn');
     if (cancelPreferencesBtn) {
         cancelPreferencesBtn.addEventListener('click', () => {
-            // Hide edit fields, show display values
-            const preferencesSection = cancelPreferencesBtn.closest('.profile-section');
-            const preferenceValues = preferencesSection.querySelectorAll('.preference-value');
-            const preferenceEdits = preferencesSection.querySelectorAll('.preference-edit');
-            const editActions = document.getElementById('preferences-edit-actions');
-            
-            preferenceValues.forEach(field => field.style.display = 'block');
-            preferenceEdits.forEach(field => field.style.display = 'none');
-            editActions.style.display = 'none';
-            
-            // Show edit button
-            editPreferencesBtn.style.display = 'inline-flex';
+            // Find the preferences section directly
+            const preferencesSection = document.querySelector('.profile-section:nth-child(3)');
+            if (preferencesSection) {
+                const preferenceValues = preferencesSection.querySelectorAll('.preference-value');
+                const preferenceEdits = preferencesSection.querySelectorAll('.preference-edit');
+                const editActions = document.getElementById('preferences-edit-actions');
+                
+                preferenceValues.forEach(field => field.style.display = 'block');
+                preferenceEdits.forEach(field => field.style.display = 'none');
+                
+                if (editActions) {
+                    editActions.style.display = 'none';
+                }
+                
+                // Show edit button
+                if (editPreferencesBtn) {
+                    editPreferencesBtn.style.display = 'inline-flex';
+                }
+            }
             
             // Reset form values
             const userData = JSON.parse(localStorage.getItem('user') || '{}');
@@ -603,10 +695,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('edit-show-joined').checked = displayPrefs.show_joined_date !== false;
             document.getElementById('edit-show-tags').checked = displayPrefs.show_tags !== false;
             document.getElementById('edit-show-location').checked = displayPrefs.show_location !== false;
-            document.getElementById('edit-show-age').checked = displayPrefs.show_age !== false;
+            document.getElementById('edit-show-dob').checked = displayPrefs.show_dob !== false;
             document.getElementById('edit-show-gender').checked = displayPrefs.show_gender !== false;
             document.getElementById('edit-show-pronouns').checked = displayPrefs.show_pronouns !== false;
-            document.getElementById('edit-default-layout').value = displayPrefs.default_layout || 'simple';
+            document.getElementById('edit-show-timezone').checked = displayPrefs.show_timezone !== false;
         });
     }
     
@@ -624,10 +716,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const showJoined = document.getElementById('edit-show-joined').checked;
                 const showTags = document.getElementById('edit-show-tags').checked;
                 const showLocation = document.getElementById('edit-show-location').checked;
-                const showAge = document.getElementById('edit-show-age').checked;
+                const showDob = document.getElementById('edit-show-dob').checked;
                 const showGender = document.getElementById('edit-show-gender').checked;
                 const showPronouns = document.getElementById('edit-show-pronouns').checked;
-                const defaultLayout = document.getElementById('edit-default-layout').value;
+                const showTimezone = document.getElementById('edit-show-timezone').checked;
                 
                 // Submit update
                 const response = await fetch(`${API_URL}/preferences`, {
@@ -641,13 +733,30 @@ document.addEventListener('DOMContentLoaded', function() {
                         show_joined_date: showJoined,
                         show_tags: showTags,
                         show_location: showLocation,
-                        show_age: showAge,
+                        show_dob: showDob,
                         show_gender: showGender,
                         show_pronouns: showPronouns,
-                        default_layout: defaultLayout,
+                        show_timezone: showTimezone,
+                        default_layout: "standard",
                         default_background: {
                             type: "solid",
                             value: "#ffffff"
+                        },
+                        default_name_style: {
+                            color: "#000000",
+                            font: {
+                                name: "Default",
+                                value: "",
+                                link: ""
+                            }
+                        },
+                        default_username_style: {
+                            color: "#555555",
+                            font: {
+                                name: "Default",
+                                value: "",
+                                link: ""
+                            }
                         }
                     })
                 });
@@ -663,18 +772,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reload user data
                 await loadUserData();
                 
-                // Hide edit fields, show display values
-                const preferencesSection = savePreferencesBtn.closest('.profile-section');
-                const preferenceValues = preferencesSection.querySelectorAll('.preference-value');
-                const preferenceEdits = preferencesSection.querySelectorAll('.preference-edit');
-                const editActions = document.getElementById('preferences-edit-actions');
-                
-                preferenceValues.forEach(field => field.style.display = 'block');
-                preferenceEdits.forEach(field => field.style.display = 'none');
-                editActions.style.display = 'none';
-                
-                // Show edit button
-                editPreferencesBtn.style.display = 'inline-flex';
+                // Find the preferences section directly
+                const preferencesSection = document.querySelector('.profile-section:nth-child(3)');
+                if (preferencesSection) {
+                    const preferenceValues = preferencesSection.querySelectorAll('.preference-value');
+                    const preferenceEdits = preferencesSection.querySelectorAll('.preference-edit');
+                    const editActions = document.getElementById('preferences-edit-actions');
+                    
+                    preferenceValues.forEach(field => field.style.display = 'block');
+                    preferenceEdits.forEach(field => field.style.display = 'none');
+                    
+                    if (editActions) {
+                        editActions.style.display = 'none';
+                    }
+                    
+                    // Show edit button
+                    if (editPreferencesBtn) {
+                        editPreferencesBtn.style.display = 'inline-flex';
+                    }
+                }
                 
             } catch (error) {
                 console.error('Error updating preferences:', error);

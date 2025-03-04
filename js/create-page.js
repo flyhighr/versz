@@ -7,23 +7,35 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = 'login.html';
         return;
     }
+    
     // Mobile menu toggle
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    
     if (mobileMenuToggle) {
         mobileMenuToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
+            sidebar.classList.toggle('show');
         });
     }
     
     // Sidebar toggle for mobile
     const sidebarToggle = document.querySelector('.sidebar-toggle');
-    const sidebar = document.querySelector('.sidebar');
     
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
+            sidebar.classList.remove('show');
         });
     }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768 && 
+            !e.target.closest('.sidebar') && 
+            !e.target.closest('#mobile-menu-toggle') &&
+            sidebar.classList.contains('show')) {
+            sidebar.classList.remove('show');
+        }
+    });
     
     // Logout functionality
     const logoutBtn = document.getElementById('logout-btn');
@@ -69,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return userData;
         } catch (error) {
             console.error('Error loading user data:', error);
+            showNotification('Failed to load user data', 'error');
         }
     };
     
@@ -171,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             let url = `${API_URL}/templates?page=${page}&limit=9`;
-            if (tag) {
+            if (tag && tag !== 'all') {
                 url += `&tag=${tag}`;
             }
             
@@ -189,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (templates.length === 0) {
                 templatesGrid.innerHTML = `
                     <div class="empty-templates">
+                        <i class="fas fa-search"></i>
                         <p>No templates found</p>
                     </div>
                 `;
@@ -201,19 +215,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 templateCard.className = 'template-card';
                 templateCard.dataset.id = template.id;
                 
+                // Add category class if available
+                if (template.tags && template.tags.length > 0) {
+                    template.tags.forEach(tag => {
+                        templateCard.classList.add(tag.toLowerCase());
+                    });
+                }
+                
                 templateCard.innerHTML = `
                     <div class="template-image">
-                        <img src="${template.preview_image}" alt="${template.name}">
+                        <img src="${template.preview_image || 'img/template-placeholder.jpg'}" alt="${template.name}" onerror="this.src='img/template-placeholder.jpg'">
                         <div class="template-overlay">
                             <button class="btn btn-sm btn-primary preview-btn" data-id="${template.id}">Preview</button>
                         </div>
                     </div>
                     <div class="template-info">
-                        <h3>${template.name}</h3>
-                        <p>${template.description.substring(0, 60)}${template.description.length > 60 ? '...' : ''}</p>
+                        <h3>${template.name || 'Untitled Template'}</h3>
+                        <p>${template.description ? (template.description.substring(0, 60) + (template.description.length > 60 ? '...' : '')) : 'No description available'}</p>
                         <div class="template-meta">
                             <span><i class="fas fa-user"></i> ${template.created_by_username || 'User'}</span>
-                            <span><i class="fas fa-download"></i> ${template.use_count} uses</span>
+                            <span><i class="fas fa-download"></i> ${template.use_count || 0} uses</span>
                         </div>
                     </div>
                 `;
@@ -242,6 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error loading templates:', error);
             templatesGrid.innerHTML = `
                 <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
                     <p>Failed to load templates. Please try again.</p>
                 </div>
             `;
@@ -260,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Show loading state
         templateNameEl.textContent = 'Loading...';
-        templateImageEl.src = '';
+        templateImageEl.src = 'img/template-placeholder.jpg';
         templateDescEl.textContent = '';
         templateCreatorEl.textContent = '';
         templateUsesEl.textContent = '';
@@ -275,11 +297,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const template = await response.json();
             
             // Update modal with template details
-            templateNameEl.textContent = template.name;
-            templateImageEl.src = template.preview_image;
-            templateDescEl.textContent = template.description;
+            templateNameEl.textContent = template.name || 'Untitled Template';
+            templateImageEl.src = template.preview_image || 'img/template-placeholder.jpg';
+            templateImageEl.onerror = () => {
+                templateImageEl.src = 'img/template-placeholder.jpg';
+            };
+            templateDescEl.textContent = template.description || 'No description available';
             templateCreatorEl.textContent = template.created_by_username || 'User';
-            templateUsesEl.textContent = `${template.use_count} uses`;
+            templateUsesEl.textContent = `${template.use_count || 0} uses`;
             
             // Set template ID for the form
             templateIdInput.value = template.id;
@@ -287,24 +312,31 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show modal
             modal.classList.add('active');
             
-            // Close modal when clicking outside or on close button
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
-                }
-            });
-            
-            document.querySelector('#template-preview-modal .modal-close').addEventListener('click', () => {
-                modal.classList.remove('active');
-            });
-            
         } catch (error) {
             console.error('Error loading template details:', error);
             // Show error in modal
             templateNameEl.textContent = 'Error';
             templateDescEl.textContent = 'Failed to load template details. Please try again.';
+            modal.classList.add('active');
         }
     };
+    
+    // Close modal when clicking outside or on close button
+    const templateModal = document.getElementById('template-preview-modal');
+    if (templateModal) {
+        templateModal.addEventListener('click', (e) => {
+            if (e.target === templateModal) {
+                templateModal.classList.remove('active');
+            }
+        });
+        
+        const closeBtn = templateModal.querySelector('.modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                templateModal.classList.remove('active');
+            });
+        }
+    }
     
     // Template URL check
     const templateCheckUrlBtn = document.getElementById('template-check-url-btn');
@@ -357,6 +389,10 @@ document.addEventListener('DOMContentLoaded', function() {
         createBlankForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const submitBtn = createBlankForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Page...';
+            
             const title = document.getElementById('page-title').value.trim();
             const url = document.getElementById('page-url').value.trim();
             const layoutType = document.getElementById('page-layout').value;
@@ -384,6 +420,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validate URL again
             if (!/^[a-zA-Z0-9_]+$/.test(url)) {
                 showNotification('URL can only contain letters, numbers, and underscores', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Create Page';
                 return;
             }
             
@@ -394,6 +432,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (!checkData.available) {
                     showNotification('URL is already taken', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Create Page';
                     return;
                 }
                 
@@ -416,6 +456,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             shadow: true
                         }
                     },
+                    social_links: [],
+                    songs: [],
                     show_joined_date: true,
                     show_views: true
                 };
@@ -431,7 +473,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 if (!createResponse.ok) {
-                    throw new Error('Failed to create page');
+                    const errorData = await createResponse.json();
+                    throw new Error(errorData.detail || 'Failed to create page');
                 }
                 
                 const createdPage = await createResponse.json();
@@ -445,17 +488,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             } catch (error) {
                 console.error('Error creating page:', error);
-                showNotification('Failed to create page', 'error');
+                showNotification(error.message || 'Failed to create page', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Create Page';
             }
         });
     }
     
     // Use template form submission
     const useTemplateForm = document.getElementById('use-template-form');
-    
+
     if (useTemplateForm) {
         useTemplateForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Page...';
             
             const templateId = document.getElementById('template-id').value;
             const url = document.getElementById('template-page-url').value.trim();
@@ -463,6 +512,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validate URL again
             if (!/^[a-zA-Z0-9_]+$/.test(url)) {
                 showNotification('URL can only contain letters, numbers, and underscores', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Use This Template';
                 return;
             }
             
@@ -473,10 +524,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (!checkData.available) {
                     showNotification('URL is already taken', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Use This Template';
                     return;
                 }
                 
-                // Use the template
+                // Use the template - send JSON data as expected by the updated backend
                 const useResponse = await fetch(`${API_URL}/use-template/${templateId}`, {
                     method: 'POST',
                     headers: {
@@ -487,7 +540,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 if (!useResponse.ok) {
-                    throw new Error('Failed to use template');
+                    const errorData = await useResponse.json();
+                    throw new Error(errorData.detail || 'Failed to use template');
                 }
                 
                 const result = await useResponse.json();
@@ -504,7 +558,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             } catch (error) {
                 console.error('Error using template:', error);
-                showNotification('Failed to apply template', 'error');
+                showNotification(error.message || 'Failed to apply template', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Use This Template';
             }
         });
     }
@@ -514,38 +570,74 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterTemplatesSelect = document.getElementById('filter-templates');
     
     if (searchTemplatesInput) {
+        let searchTimeout;
+        
         searchTemplatesInput.addEventListener('input', () => {
-            const searchTerm = searchTemplatesInput.value.trim().toLowerCase();
-            const category = filterTemplatesSelect.value;
+            clearTimeout(searchTimeout);
             
-            // Filter template cards
-            document.querySelectorAll('.template-card').forEach(card => {
-                const title = card.querySelector('h3').textContent.toLowerCase();
-                const description = card.querySelector('p').textContent.toLowerCase();
+            searchTimeout = setTimeout(() => {
+                const searchTerm = searchTemplatesInput.value.trim().toLowerCase();
+                const category = filterTemplatesSelect.value;
                 
-                // Check if card matches search term
-                const matchesSearch = title.includes(searchTerm) || description.includes(searchTerm);
+                // Filter template cards
+                document.querySelectorAll('.template-card').forEach(card => {
+                    const title = card.querySelector('h3').textContent.toLowerCase();
+                    const description = card.querySelector('p').textContent.toLowerCase();
+                    
+                    // Check if card matches search term
+                    const matchesSearch = searchTerm === '' || 
+                                         title.includes(searchTerm) || 
+                                         description.includes(searchTerm);
+                    
+                    // Check if card matches category filter
+                    const matchesCategory = category === 'all' || card.classList.contains(category);
+                    
+                    // Show/hide card
+                    card.style.display = (matchesSearch && matchesCategory) ? 'block' : 'none';
+                });
                 
-                // Check if card matches category filter
-                const matchesCategory = category === 'all' || card.classList.contains(category);
+                // Check if no results
+                const visibleCards = document.querySelectorAll('.template-card[style="display: block"]');
+                const templatesGrid = document.getElementById('templates-grid');
                 
-                // Show/hide card
-                if (matchesSearch && matchesCategory) {
-                    card.style.display = 'block';
+                if (visibleCards.length === 0) {
+                    // If no empty state exists, add it
+                    if (!document.querySelector('.empty-templates')) {
+                        const emptyState = document.createElement('div');
+                        emptyState.className = 'empty-templates';
+                        emptyState.innerHTML = `
+                            <i class="fas fa-search"></i>
+                            <p>No templates found matching "${searchTerm}"</p>
+                        `;
+                        templatesGrid.appendChild(emptyState);
+                    }
                 } else {
-                    card.style.display = 'none';
+                    // Remove empty state if it exists
+                    const emptyState = document.querySelector('.empty-templates');
+                    if (emptyState) {
+                        emptyState.remove();
+                    }
                 }
-            });
+            }, 300);
         });
     }
     
     if (filterTemplatesSelect) {
         filterTemplatesSelect.addEventListener('change', () => {
-            const searchTerm = searchTemplatesInput.value.trim().toLowerCase();
             const category = filterTemplatesSelect.value;
             
-            // Reload templates with category filter
-            loadTemplates(1, category);
+            // Reload templates with category filter if we're changing category
+            if (category !== 'all') {
+                loadTemplates(1, category);
+            } else {
+                // Just reload all templates
+                loadTemplates(1);
+            }
+            
+            // Clear search input
+            if (searchTemplatesInput) {
+                searchTemplatesInput.value = '';
+            }
         });
     }
     
@@ -562,6 +654,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set message and type
         notification.textContent = message;
         notification.className = `notification ${type}`;
+        notification.style.display = 'block';
         
         // Show notification
         notification.classList.add('active');
@@ -569,6 +662,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide after 3 seconds
         setTimeout(() => {
             notification.classList.remove('active');
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 300);
         }, 3000);
     };
     
@@ -576,6 +672,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const initCreatePage = async () => {
         // Load user data
         await loadUserData();
+        
+        // Add a default gradient icon if Font Awesome doesn't have one
+        const gradientIcons = document.querySelectorAll('.bg-icon .fa-gradient');
+        if (gradientIcons.length > 0) {
+            gradientIcons.forEach(icon => {
+                const parent = icon.parentNode;
+                parent.innerHTML = '<div style="background: linear-gradient(to right, #4ecdc4, #556270); width: 20px; height: 20px; border-radius: 3px;"></div>';
+            });
+        }
     };
     
     initCreatePage();

@@ -30,8 +30,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load user data
     loadUserData();
     
-    // Load social platforms
+    // Load fonts, timezones, and social platforms
+    loadFonts();
+    loadTimezones();
     loadSocialPlatforms();
+    loadEffects();
     
     // Initialize event listeners
     initEventListeners();
@@ -71,6 +74,84 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    async function loadFonts() {
+        try {
+            const response = await fetch(`${API_URL}/fonts`);
+            if (!response.ok) {
+                console.error('Failed to load fonts');
+                return;
+            }
+            
+            const data = await response.json();
+            const fonts = data.fonts;
+            
+            const nameFontSelect = document.getElementById('name-font');
+            const usernameFontSelect = document.getElementById('username-font');
+            
+            // Clear existing options except the first one
+            while (nameFontSelect.options.length > 1) {
+                nameFontSelect.remove(1);
+            }
+            
+            while (usernameFontSelect.options.length > 1) {
+                usernameFontSelect.remove(1);
+            }
+            
+            // Add fonts to the dropdowns
+            fonts.forEach(font => {
+                // For name font
+                const nameOption = document.createElement('option');
+                nameOption.value = font.name;
+                nameOption.textContent = font.name;
+                nameFontSelect.appendChild(nameOption);
+                
+                // For username font
+                const usernameOption = document.createElement('option');
+                usernameOption.value = font.name;
+                usernameOption.textContent = font.name;
+                usernameFontSelect.appendChild(usernameOption);
+            });
+        } catch (error) {
+            console.error('Error loading fonts:', error);
+        }
+    }
+    
+    async function loadTimezones() {
+        try {
+            const response = await fetch(`${API_URL}/timezones`);
+            if (!response.ok) {
+                console.error('Failed to load timezones');
+                return;
+            }
+            
+            const data = await response.json();
+            const timezones = data.timezones;
+            
+            const timezoneSelect = document.getElementById('template-timezone');
+            
+            // Clear existing options except the first one
+            while (timezoneSelect.options.length > 1) {
+                timezoneSelect.remove(1);
+            }
+            
+            // Add timezones to the dropdown
+            timezones.forEach(timezone => {
+                const option = document.createElement('option');
+                option.value = timezone;
+                option.textContent = timezone;
+                timezoneSelect.appendChild(option);
+            });
+            
+            // Try to set user's timezone by default
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (userTimezone && timezones.includes(userTimezone)) {
+                timezoneSelect.value = userTimezone;
+            }
+        } catch (error) {
+            console.error('Error loading timezones:', error);
+        }
+    }
+    
     async function loadSocialPlatforms() {
         try {
             const response = await fetch(`${API_URL}/social-platforms`);
@@ -89,6 +170,43 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } catch (error) {
             console.error('Error loading social platforms:', error);
+        }
+    }
+    
+    async function loadEffects() {
+        try {
+            const response = await fetch(`${API_URL}/effects`);
+            if (!response.ok) {
+                console.error('Failed to load effects');
+                return;
+            }
+            
+            const data = await response.json();
+            const effects = data.effects;
+            
+            const nameEffectSelect = document.getElementById('name-effect');
+            const bioEffectSelect = document.getElementById('bio-effect');
+            
+            // Clear existing options
+            nameEffectSelect.innerHTML = '';
+            bioEffectSelect.innerHTML = '';
+            
+            // Add effects to the dropdowns
+            effects.forEach(effect => {
+                // For name effect
+                const nameOption = document.createElement('option');
+                nameOption.value = effect.name;
+                nameOption.textContent = effect.label;
+                nameEffectSelect.appendChild(nameOption);
+                
+                // For bio effect
+                const bioOption = document.createElement('option');
+                bioOption.value = effect.name;
+                bioOption.textContent = effect.label;
+                bioEffectSelect.appendChild(bioOption);
+            });
+        } catch (error) {
+            console.error('Error loading effects:', error);
         }
     }
     
@@ -164,12 +282,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Remove preview-related buttons functionality
-        const previewSection = document.querySelector('.template-preview-section');
-        if (previewSection) {
-            previewSection.remove();
-        }
-        
         // Social links
         document.getElementById('add-social-btn').addEventListener('click', function() {
             const modal = document.getElementById('add-social-modal');
@@ -194,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const selectedOption = document.querySelector(`#social-platform option[value="${platform}"]`);
-            const icon = selectedOption.dataset.icon;
+            const icon = selectedOption.dataset.icon || 'fab fa-link';
             
             addSocialLink({
                 platform: platform,
@@ -411,12 +523,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const containerRadius = document.getElementById('container-radius').value;
         const containerShadow = document.getElementById('container-shadow').checked;
         
+        // Get text styling
+        const nameColor = document.getElementById('name-color').value;
+        const nameFont = document.getElementById('name-font').value;
+        const usernameColor = document.getElementById('username-color').value;
+        const usernameFont = document.getElementById('username-font').value;
+        
         // Get social links
         const socialLinks = [];
         document.querySelectorAll('.social-item').forEach(item => {
             const platform = item.querySelector('.social-platform').textContent;
             const url = item.querySelector('.social-url').textContent;
-            const icon = item.querySelector('.social-icon i').className;
             
             socialLinks.push({
                 platform: platform,
@@ -463,14 +580,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: document.getElementById('template-name-display').value || 'Your Name',
                 bio: document.getElementById('template-bio').value || '',
                 avatar_url: document.getElementById('template-avatar-url').value || '',
-                avatar_animation: document.getElementById('template-avatar-animation').value,
+                timezone: document.getElementById('template-timezone').value || null,
+                name_style: {
+                    color: nameColor,
+                    font: {
+                        name: nameFont,
+                        value: "",
+                        link: ""
+                    }
+                },
+                username_style: {
+                    color: usernameColor,
+                    font: {
+                        name: usernameFont,
+                        value: "",
+                        link: ""
+                    }
+                },
                 background: {
                     type: backgroundType,
                     value: backgroundValue,
                     opacity: parseFloat(document.getElementById('bg-opacity').value)
                 },
                 layout: {
-                    type: document.getElementById('template-layout').value,
+                    type: "standard",
                     container_style: {
                         enabled: containerEnabled,
                         background_color: containerBg,
@@ -483,6 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 songs: songs,
                 show_joined_date: document.getElementById('show-joined-date').checked,
                 show_views: document.getElementById('show-views').checked,
+                show_timezone: document.getElementById('show-timezone').checked,
                 name_effect: {
                     name: document.getElementById('name-effect').value
                 },
@@ -601,6 +735,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set message and type
         notification.textContent = message;
         notification.className = `notification ${type}`;
+        notification.style.display = 'block';
         
         // Show notification
         notification.classList.add('active');
@@ -608,6 +743,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide after 3 seconds
         setTimeout(() => {
             notification.classList.remove('active');
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 300);
         }, 3000);
     }
 });
