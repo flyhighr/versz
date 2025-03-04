@@ -2182,15 +2182,51 @@
         
         songsContainer.style.display = 'block';
         
-        // Handle container styling for songs based on layout
-        const containerEnabled = layout && layout.container_style && layout.container_style.enabled;
+        // Add section title
+        const titleElement = document.createElement('div');
+        titleElement.className = 'section-title';
+        
+        const iconElement = document.createElement('img');
+        iconElement.src = "https://cdn-icons-png.flaticon.com/512/2995/2995101.png";
+        iconElement.alt = "Music";
+        iconElement.className = 'section-icon';
+        
+        titleElement.appendChild(iconElement);
+        titleElement.appendChild(document.createTextNode('Music'));
+        songsList.appendChild(titleElement);
         
         const audioPlayer = document.getElementById('audioPlayer');
         songsData = songs; // Store songs for global reference
         
+        // Check if container style is enabled
+        const containerEnabled = layout && layout.container_style && layout.container_style.enabled;
+        
         songs.forEach((song, index) => {
             const songItem = document.createElement('div');
             songItem.className = 'song-item';
+            
+            // Apply container style if enabled
+            if (containerEnabled) {
+                if (layout.container_style.background_color) {
+                    songItem.style.backgroundColor = layout.container_style.background_color;
+                }
+                
+                if (layout.container_style.border_radius !== undefined) {
+                    songItem.style.borderRadius = `${layout.container_style.border_radius}px`;
+                }
+                
+                if (layout.container_style.opacity !== undefined) {
+                    songItem.style.opacity = layout.container_style.opacity;
+                }
+                
+                if (layout.container_style.shadow) {
+                    songItem.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+                }
+            } else {
+                // If containers disabled, use default styling
+                songItem.style.backgroundColor = '#f9f9f9';
+                songItem.style.boxShadow = 'none';
+            }
             
             const songCover = document.createElement('div');
             songCover.className = 'song-cover';
@@ -2280,83 +2316,9 @@
             songItem.appendChild(songInfo);
             songItem.appendChild(playButton);
             
-            // Apply container styling if enabled
-            if (containerEnabled) {
-                // Create a container div with proper styling
-                const songContainer = document.createElement('div');
-                songContainer.className = 'profile-container';
-                
-                // Apply same container styles as the profile container
-                if (layout.container_style.background_color) {
-                    songContainer.style.backgroundColor = layout.container_style.background_color;
-                }
-                
-                if (layout.container_style.gradient) {
-                    songContainer.style.background = layout.container_style.gradient;
-                }
-                
-                if (layout.container_style.opacity !== undefined) {
-                    songContainer.style.opacity = layout.container_style.opacity;
-                }
-                
-                if (layout.container_style.border_radius !== undefined) {
-                    songContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
-                }
-                
-                if (layout.container_style.border_color) {
-                    songContainer.style.borderColor = layout.container_style.border_color;
-                }
-                
-                if (layout.container_style.shadow) {
-                    songContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
-                } else {
-                    songContainer.style.boxShadow = 'none';
-                }
-                
-                // Add the section title inside the container
-                if (index === 0) {
-                    const titleElement = document.createElement('div');
-                    titleElement.className = 'section-title';
-                    
-                    const iconElement = document.createElement('img');
-                    iconElement.src = "https://cdn-icons-png.flaticon.com/512/2995/2995101.png";
-                    iconElement.alt = "Music";
-                    iconElement.className = 'section-icon';
-                    
-                    titleElement.appendChild(iconElement);
-                    titleElement.appendChild(document.createTextNode('Music'));
-                    
-                    songContainer.appendChild(titleElement);
-                }
-                
-                // Add the song item to the container
-                songContainer.appendChild(songItem);
-                
-                // Add the container to the songs list
-                songsList.appendChild(songContainer);
-            } else {
-                // If containers are disabled, just add song items directly
-                if (index === 0) {
-                    // Add title without container
-                    const titleElement = document.createElement('div');
-                    titleElement.className = 'section-title';
-                    
-                    const iconElement = document.createElement('img');
-                    iconElement.src = "https://cdn-icons-png.flaticon.com/512/2995/2995101.png";
-                    iconElement.alt = "Music";
-                    iconElement.className = 'section-icon';
-                    
-                    titleElement.appendChild(iconElement);
-                    titleElement.appendChild(document.createTextNode('Music'));
-                    
-                    songsList.appendChild(titleElement);
-                }
-                
-                songsList.appendChild(songItem);
-            }
+            songsList.appendChild(songItem);
         });
     }
-
     // Function to render tags
     function renderTags(tags) {
         const tagsContainer = document.querySelector('.tags-container');
