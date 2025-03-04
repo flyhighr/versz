@@ -128,6 +128,16 @@
                                     </div>
                                 </div>
                                 <div class="profile-field">
+                                    <div class="field-label">Timezone</div>
+                                    <div class="field-value" id="profile-timezone">Not specified</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <select id="edit-timezone" name="timezone">
+                                            <option value="">Select timezone</option>
+                                            <!-- Will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="profile-field">
                                     <div class="field-label">Bio</div>
                                     <div class="field-value" id="profile-bio">No bio provided</div>
                                     <div class="field-edit" style="display: none;">
@@ -152,11 +162,15 @@
                         <div class="profile-info-card">
                             <div class="profile-details">
                                 <div class="profile-field">
+                                    <div class="field-label">Date of Birth</div>
+                                    <div class="field-value" id="profile-dob">Not specified</div>
+                                    <div class="field-edit" style="display: none;">
+                                        <input type="date" id="edit-dob" name="date_of_birth">
+                                    </div>
+                                </div>
+                                <div class="profile-field">
                                     <div class="field-label">Age</div>
                                     <div class="field-value" id="profile-age">Not specified</div>
-                                    <div class="field-edit" style="display: none;">
-                                        <input type="number" id="edit-age" name="age" min="13" max="120">
-                                    </div>
                                 </div>
                                 <div class="profile-field">
                                     <div class="field-label">Gender</div>
@@ -243,11 +257,11 @@
                                     </div>
                                 </div>
                                 <div class="preference-item">
-                                    <div class="preference-label">Show Age</div>
-                                    <div class="preference-value" id="pref-show-age">Yes</div>
+                                    <div class="preference-label">Show Date of Birth</div>
+                                    <div class="preference-value" id="pref-show-dob">Yes</div>
                                     <div class="preference-edit" style="display: none;">
                                         <label class="switch">
-                                            <input type="checkbox" id="edit-show-age" checked>
+                                            <input type="checkbox" id="edit-show-dob" checked>
                                             <span class="slider round"></span>
                                         </label>
                                     </div>
@@ -273,164 +287,162 @@
                                     </div>
                                 </div>
                                 <div class="preference-item">
-                                    <div class="preference-label">Default Layout</div>
-                                    <div class="preference-value" id="pref-default-layout">Simple</div>
+                                    <div class="preference-label">Show Timezone</div>
+                                    <div class="preference-value" id="pref-show-timezone">Yes</div>
                                     <div class="preference-edit" style="display: none;">
-                                        <select id="edit-default-layout">
-                                            <option value="simple">Simple</option>
-                                            <option value="card">Card</option>
-                                            <option value="modern">Modern</option>
-                                            <option value="minimalist">Minimalist</option>
-                                            <option value="creative">Creative</option>
-                                        </select>
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-timezone" checked>
+                                            <span class="slider round"></span>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="edit-actions" id="preferences-edit-actions" style="display: none;">
-                            <button type="button" id="cancel-preferences-btn" class="btn btn-outline">Cancel</button>
-                            <button type="button" id="save-preferences-btn" class="btn btn-primary">Save Changes</button>
-                        </div>
                     </div>
-
-                    <div class="profile-section">
-                        <div class="section-header">
-                            <h2>Account</h2>
-                        </div>
-                        <div class="profile-info-card">
-                            <div class="account-actions">
-                                <button type="button" id="change-password-btn" class="btn btn-outline">
-                                    <i class="fas fa-key"></i> Change Password
-                                </button>
-                                <button type="button" id="resend-verification-btn" class="btn btn-outline" style="display: none;">
-                                    <i class="fas fa-envelope"></i> Resend Verification Email
-                                </button>
-                            </div>
-                        </div>
+                    <div class="edit-actions" id="preferences-edit-actions" style="display: none;">
+                        <button type="button" id="cancel-preferences-btn" class="btn btn-outline">Cancel</button>
+                        <button type="button" id="save-preferences-btn" class="btn btn-primary">Save Changes</button>
                     </div>
                 </div>
 
-                <div class="profile-sidebar">
-                    <div class="profile-card">
-                        <div class="card-header">
-                            <h3>User Tags</h3>
-                        </div>
-                        <div class="tags-container" id="user-tags">
-                            <!-- Tags will be loaded dynamically -->
-                            <div class="empty-tags">
-                                <p>No tags assigned yet</p>
-                            </div>
-                        </div>
+                <div class="profile-section">
+                    <div class="section-header">
+                        <h2>Account</h2>
                     </div>
-
-                    <div class="profile-card">
-                        <div class="card-header">
-                            <h3>Account Stats</h3>
-                        </div>
-                        <div class="stats-container">
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <i class="fas fa-file-alt"></i>
-                                </div>
-                                <div class="stat-details">
-                                    <div class="stat-value" id="stat-pages">0</div>
-                                    <div class="stat-label">Pages Created</div>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <i class="fas fa-eye"></i>
-                                </div>
-                                <div class="stat-details">
-                                    <div class="stat-value" id="stat-views">0</div>
-                                    <div class="stat-label">Total Views</div>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <i class="fas fa-layer-group"></i>
-                                </div>
-                                <div class="stat-details">
-                                    <div class="stat-value" id="stat-templates">0</div>
-                                    <div class="stat-label">Templates Used</div>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <i class="fas fa-user-check"></i>
-                                </div>
-                                <div class="stat-details">
-                                    <div class="stat-value" id="stat-status">Active</div>
-                                    <div class="stat-label">Account Status</div>
-                                </div>
-                            </div>
+                    <div class="profile-info-card">
+                        <div class="account-actions">
+                            <button type="button" id="change-password-btn" class="btn btn-outline">
+                                <i class="fas fa-key"></i> Change Password
+                            </button>
+                            <button type="button" id="resend-verification-btn" class="btn btn-outline" style="display: none;">
+                                <i class="fas fa-envelope"></i> Resend Verification Email
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
 
-    <!-- Change Password Modal -->
-    <div class="modal" id="change-password-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Change Password</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="change-password-form">
-                    <div class="form-group">
-                        <label for="current-password">Current Password</label>
-                        <div class="input-icon-wrapper">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" id="current-password" name="current_password" required>
-                            <button type="button" class="password-toggle">
-                                <i class="fas fa-eye"></i>
-                            </button>
+            <div class="profile-sidebar">
+                <div class="profile-card">
+                    <div class="card-header">
+                        <h3>User Tags</h3>
+                    </div>
+                    <div class="tags-container" id="user-tags">
+                        <!-- Tags will be loaded dynamically -->
+                        <div class="empty-tags">
+                            <p>No tags assigned yet</p>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="new-password">New Password</label>
-                        <div class="input-icon-wrapper">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" id="new-password" name="new_password" required>
-                            <button type="button" class="password-toggle">
+                </div>
+
+                <div class="profile-card">
+                    <div class="card-header">
+                        <h3>Account Stats</h3>
+                    </div>
+                    <div class="stats-container">
+                        <div class="stat-item">
+                            <div class="stat-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="stat-details">
+                                <div class="stat-value" id="stat-pages">0</div>
+                                <div class="stat-label">Pages Created</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon">
                                 <i class="fas fa-eye"></i>
-                            </button>
+                            </div>
+                            <div class="stat-details">
+                                <div class="stat-value" id="stat-views">0</div>
+                                <div class="stat-label">Total Views</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            <div class="stat-details">
+                                <div class="stat-value" id="stat-templates">0</div>
+                                <div class="stat-label">Templates Used</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-details">
+                                <div class="stat-value" id="stat-status">Active</div>
+                                <div class="stat-label">Account Status</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="confirm-password">Confirm New Password</label>
-                        <div class="input-icon-wrapper">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" id="confirm-password" name="confirm_password" required>
-                            <button type="button" class="password-toggle">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="password-requirements">
-                        <p>Password must contain:</p>
-                        <ul>
-                            <li id="pw-req-length"><i class="fas fa-times"></i> At least 8 characters</li>
-                            <li id="pw-req-uppercase"><i class="fas fa-times"></i> One uppercase letter</li>
-                            <li id="pw-req-lowercase"><i class="fas fa-times"></i> One lowercase letter</li>
-                            <li id="pw-req-number"><i class="fas fa-times"></i> One number</li>
-                        </ul>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Change Password</button>
-                    </div>
-                    <div class="auth-message" id="password-message"></div>
-                </form>
+                </div>
             </div>
         </div>
+    </main>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal" id="change-password-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Change Password</h2>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="change-password-form">
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="current-password" name="current_password" required>
+                        <button type="button" class="password-toggle">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="new-password" name="new_password" required>
+                        <button type="button" class="password-toggle">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm New Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="confirm-password" name="confirm_password" required>
+                        <button type="button" class="password-toggle">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="password-requirements">
+                    <p>Password must contain:</p>
+                    <ul>
+                        <li id="pw-req-length"><i class="fas fa-times"></i> At least 8 characters</li>
+                        <li id="pw-req-uppercase"><i class="fas fa-times"></i> One uppercase letter</li>
+                        <li id="pw-req-lowercase"><i class="fas fa-times"></i> One lowercase letter</li>
+                        <li id="pw-req-number"><i class="fas fa-times"></i> One number</li>
+                    </ul>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </div>
+                <div class="auth-message" id="password-message"></div>
+            </form>
+        </div>
     </div>
+</div>
 
-    <!-- Notification element -->
-    <div class="notification"></div>
+<!-- Notification element -->
+<div class="notification"></div>
 
-    <script src="js/profile.js"></script>
+<script src="js/profile.js"></script>
 </body>
 </html>

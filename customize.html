@@ -144,17 +144,21 @@
                                 <input type="url" id="edit-avatar-decoration" name="avatar_decoration" placeholder="https://example.com/decoration.png">
                                 <p class="input-help">Upload a transparent PNG or GIF that will be displayed over your avatar</p>
                             </div>
+                            
+                            <div class="form-group">
+                                <label for="edit-timezone">Timezone</label>
+                                <select id="edit-timezone" name="timezone">
+                                    <option value="">Select Timezone</option>
+                                    <!-- Timezones will be loaded dynamically -->
+                                </select>
+                            </div>
                         </div>
 
                         <div class="editor-tab-content" id="appearance-tab">
                             <div class="form-group">
                                 <label for="edit-layout">Layout Style</label>
                                 <select id="edit-layout" name="layout_type">
-                                    <option value="simple">Simple</option>
-                                    <option value="card">Card</option>
-                                    <option value="modern">Modern</option>
-                                    <option value="minimalist">Minimalist</option>
-                                    <option value="creative">Creative</option>
+                                    <option value="standard">Standard</option>
                                 </select>
                             </div>
                             
@@ -244,6 +248,31 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div class="form-group">
+                                <label>Text Styling</label>
+                                <div class="text-style-settings">
+                                    <h4>Name Style</h4>
+                                    <label for="edit-name-color">Text Color</label>
+                                    <input type="color" id="edit-name-color" name="name_color" value="#000000">
+                                    
+                                    <label for="edit-name-font">Font</label>
+                                    <select id="edit-name-font" name="name_font">
+                                        <option value="Default">Default</option>
+                                        <!-- Fonts will be loaded dynamically -->
+                                    </select>
+                                    
+                                    <h4>Username Style</h4>
+                                    <label for="edit-username-color">Text Color</label>
+                                    <input type="color" id="edit-username-color" name="username_color" value="#555555">
+                                    
+                                    <label for="edit-username-font">Font</label>
+                                    <select id="edit-username-font" name="username_font">
+                                        <option value="Default">Default</option>
+                                        <!-- Fonts will be loaded dynamically -->
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="editor-tab-content" id="content-tab">
@@ -284,6 +313,16 @@
                                     <label for="show-views">Show Page Views</label>
                                     <label class="switch">
                                         <input type="checkbox" id="show-views" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="switch-group">
+                                    <label for="show-timezone">Show Timezone</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="show-timezone" checked>
                                         <span class="slider round"></span>
                                     </label>
                                 </div>

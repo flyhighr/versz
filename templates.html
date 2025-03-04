@@ -85,11 +85,7 @@
                     <div class="filter-options">
                         <select id="filter-by-tag">
                             <option value="">All Categories</option>
-                            <option value="portfolio">Portfolio</option>
-                            <option value="personal">Personal</option>
-                            <option value="business">Business</option>
-                            <option value="creative">Creative</option>
-                            <option value="minimal">Minimal</option>
+                            <!-- Categories will be loaded dynamically -->
                         </select>
                         <select id="sort-templates">
                             <option value="popular">Most Popular</option>
@@ -99,13 +95,9 @@
                     </div>
                 </div>
 
-                <div class="templates-categories">
+                <div class="templates-categories" id="templates-categories">
                     <button class="category-btn active" data-category="">All</button>
-                    <button class="category-btn" data-category="portfolio">Portfolio</button>
-                    <button class="category-btn" data-category="personal">Personal</button>
-                    <button class="category-btn" data-category="business">Business</button>
-                    <button class="category-btn" data-category="creative">Creative</button>
-                    <button class="category-btn" data-category="minimal">Minimal</button>
+                    <!-- Categories will be loaded dynamically -->
                 </div>
 
                 <div class="templates-grid" id="templates-grid">
@@ -154,6 +146,13 @@
                         <!-- Tags will be loaded dynamically -->
                     </div>
 
+                    <div class="template-features">
+                        <h4>Template Features</h4>
+                        <ul id="template-features-list">
+                            <!-- Features will be loaded dynamically -->
+                        </ul>
+                    </div>
+
                     <div class="template-actions">
                         <button id="template-view-preview-btn" class="btn btn-outline">
                             <i class="fas fa-eye"></i> Preview Template
@@ -178,6 +177,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Notification element -->
+    <div class="notification" style="display: none;"></div>
 
     <script src="js/templates.js"></script>
 </body>
