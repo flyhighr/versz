@@ -304,6 +304,139 @@ document.addEventListener('DOMContentLoaded', function() {
             editPersonalBtn.style.display = 'none';
         });
     }
+
+    
+
+
+    // Avatar file upload
+    const avatarFileInput = document.getElementById('avatar-file');
+    const avatarUrlInput = document.getElementById('avatar-url');
+    const avatarPreview = document.getElementById('profile-avatar');
+    const avatarUploadStatus = document.getElementById('avatar-upload-status');
+
+    if (avatarFileInput) {
+        avatarFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Check if file is an image
+            if (!file.type.startsWith('image/')) {
+                avatarUploadStatus.textContent = 'Please select an image file';
+                avatarUploadStatus.className = 'upload-status error';
+                return;
+            }
+            
+            // Check file size (max 32MB)
+            const MAX_SIZE = 32 * 1024 * 1024; // 32MB
+            if (file.size > MAX_SIZE) {
+                avatarUploadStatus.textContent = 'File too large (max 32MB)';
+                avatarUploadStatus.className = 'upload-status error';
+                return;
+            }
+            
+            // Update status
+            avatarUploadStatus.textContent = 'Uploading';
+            avatarUploadStatus.className = 'upload-status loading';
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                // Upload to server
+                const response = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+                
+                const data = await response.json();
+                
+                // Update avatar preview and input
+                avatarPreview.src = data.url;
+                avatarUrlInput.value = data.url;
+                
+                // Show success message
+                avatarUploadStatus.textContent = 'Upload successful!';
+                avatarUploadStatus.className = 'upload-status success';
+                
+                // Update the URL field with the new image URL
+                document.getElementById('avatar-url').value = data.url;
+                
+                // Show URL as expandable
+                const showUrlBtn = document.getElementById('show-avatar-url');
+                if (showUrlBtn) {
+                    showUrlBtn.querySelector('i').classList.remove('fa-chevron-down');
+                    showUrlBtn.querySelector('i').classList.add('fa-chevron-up');
+                }
+                
+                // Clear the file input
+                avatarFileInput.value = '';
+                
+                // Auto-hide the message after 3 seconds
+                setTimeout(() => {
+                    avatarUploadStatus.textContent = '';
+                    avatarUploadStatus.className = 'upload-status';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                
+                // Show error message
+                avatarUploadStatus.textContent = 'Upload failed. Please try again or use a URL instead.';
+                avatarUploadStatus.className = 'upload-status error';
+                
+                // Clear the file input
+                avatarFileInput.value = '';
+            }
+        });
+    }
+
+    // Toggle URL input visibility
+    const showAvatarUrlBtn = document.getElementById('show-avatar-url');
+    if (showAvatarUrlBtn) {
+        showAvatarUrlBtn.addEventListener('click', () => {
+            const urlInput = document.querySelector('.avatar-url-input');
+            urlInput.classList.toggle('expanded');
+            
+            // Toggle icon
+            const icon = showAvatarUrlBtn.querySelector('i');
+            if (icon.classList.contains('fa-chevron-down')) {
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        });
+    }
+
+    // Update avatar URL input preview
+    if (avatarUrlInput && avatarPreview) {
+        avatarUrlInput.addEventListener('blur', () => {
+            const url = avatarUrlInput.value.trim();
+            if (url) {
+                avatarPreview.src = url;
+                avatarPreview.onerror = () => {
+                    avatarPreview.src = 'img/default-avatar.png';
+                    avatarUploadStatus.textContent = 'Invalid image URL';
+                    avatarUploadStatus.className = 'upload-status error';
+                };
+                avatarPreview.onload = () => {
+                    avatarUploadStatus.textContent = '';
+                    avatarUploadStatus.className = 'upload-status';
+                };
+            } else {
+                avatarPreview.src = 'img/default-avatar.png';
+            }
+        });
+    }
     
     // Cancel personal edit
     const cancelPersonalBtn = document.getElementById('cancel-personal-btn');
@@ -433,13 +566,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const avatarUrl = document.getElementById('avatar-url').value;
                 
                 if (!avatarUrl) {
-                    showNotification('Please enter an avatar URL', 'error');
+                    avatarUploadStatus.textContent = 'Please enter an avatar URL or upload an image';
+                    avatarUploadStatus.className = 'upload-status error';
                     return;
                 }
                 
                 // Show loading state
                 updateAvatarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
                 updateAvatarBtn.disabled = true;
+                avatarUploadStatus.textContent = 'Updating profile...';
+                avatarUploadStatus.className = 'upload-status loading';
                 
                 // Submit update
                 const response = await fetch(`${API_URL}/update-profile`, {
@@ -470,10 +606,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('user', JSON.stringify(userData));
                 
                 // Show success message
+                avatarUploadStatus.textContent = 'Avatar updated successfully!';
+                avatarUploadStatus.className = 'upload-status success';
                 showNotification('Avatar updated successfully', 'success');
+                
+                // Auto-hide the message after 3 seconds
+                setTimeout(() => {
+                    avatarUploadStatus.textContent = '';
+                    avatarUploadStatus.className = 'upload-status';
+                }, 3000);
                 
             } catch (error) {
                 console.error('Error updating avatar:', error);
+                avatarUploadStatus.textContent = error.message || 'Failed to update avatar';
+                avatarUploadStatus.className = 'upload-status error';
                 showNotification(error.message || 'Failed to update avatar', 'error');
             } finally {
                 updateAvatarBtn.innerHTML = 'Update';

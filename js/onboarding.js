@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const timezoneSelect = document.getElementById('onboarding-timezone');
     
     let currentStep = 1;
+
+    
     
     // Load timezones
     const loadTimezones = async () => {
@@ -95,10 +97,107 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Avatar preview
+    // Add this after the other variable declarations at the top
+    const avatarUpload = document.getElementById('avatar-upload');
     const avatarUrlInput = document.getElementById('onboarding-avatar');
     const avatarPreview = document.getElementById('avatar-preview');
-    
+    const avatarUploadStatus = document.getElementById('avatar-upload-status');
+    const showAvatarUrlBtn = document.getElementById('show-avatar-url');
+
+    // Add this to handle file uploads
+    if (avatarUpload) {
+        avatarUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Check if file is an image
+            if (!file.type.startsWith('image/')) {
+                avatarUploadStatus.textContent = 'Please select an image file';
+                avatarUploadStatus.className = 'upload-status error';
+                return;
+            }
+            
+            // Check file size (max 32MB)
+            const MAX_SIZE = 32 * 1024 * 1024; // 32MB
+            if (file.size > MAX_SIZE) {
+                avatarUploadStatus.textContent = 'File too large (max 32MB)';
+                avatarUploadStatus.className = 'upload-status error';
+                return;
+            }
+            
+            // Update status
+            avatarUploadStatus.textContent = 'Uploading';
+            avatarUploadStatus.className = 'upload-status loading';
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                // Upload to server
+                const response = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+                
+                const data = await response.json();
+                
+                // Update avatar preview and input
+                avatarPreview.src = data.url;
+                avatarUrlInput.value = data.url;
+                
+                // Show success message
+                avatarUploadStatus.textContent = 'Upload successful!';
+                avatarUploadStatus.className = 'upload-status success';
+                
+                // Clear the file input
+                avatarUpload.value = '';
+                
+                // Auto-hide the message after 3 seconds
+                setTimeout(() => {
+                    avatarUploadStatus.textContent = '';
+                    avatarUploadStatus.className = 'upload-status';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                
+                // Show error message
+                avatarUploadStatus.textContent = 'Upload failed. Please try again or use a URL instead.';
+                avatarUploadStatus.className = 'upload-status error';
+                
+                // Clear the file input
+                avatarUpload.value = '';
+            }
+        });
+    }
+
+    // Add this to toggle URL input visibility
+    if (showAvatarUrlBtn) {
+        showAvatarUrlBtn.addEventListener('click', () => {
+            const urlInput = document.querySelector('.avatar-url-input');
+            urlInput.classList.toggle('expanded');
+            
+            // Toggle icon
+            const icon = showAvatarUrlBtn.querySelector('i');
+            if (icon.classList.contains('fa-chevron-down')) {
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        });
+    }
+
+    // Update the existing avatar URL preview functionality
     if (avatarUrlInput && avatarPreview) {
         avatarUrlInput.addEventListener('blur', () => {
             const url = avatarUrlInput.value.trim();
@@ -106,6 +205,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 avatarPreview.src = url;
                 avatarPreview.onerror = () => {
                     avatarPreview.src = 'img/default-avatar.png';
+                    avatarUploadStatus.textContent = 'Invalid image URL';
+                    avatarUploadStatus.className = 'upload-status error';
+                };
+                avatarPreview.onload = () => {
+                    avatarUploadStatus.textContent = '';
+                    avatarUploadStatus.className = 'upload-status';
                 };
             } else {
                 avatarPreview.src = 'img/default-avatar.png';
