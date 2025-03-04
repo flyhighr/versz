@@ -158,15 +158,20 @@
         }
 
         /* Updated avatar decoration styles */
+        .avatar-container {
+            position: relative;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
         .avatar {
             width: 100px;
             height: 100px;
             border-radius: 50%;
             background-color: #000;
-            margin-right: 15px;
             overflow: hidden;
             position: relative;
-            flex-shrink: 0;
+            z-index: 1;
         }
         
         .avatar img {
@@ -177,20 +182,18 @@
         
         .avatar-decoration {
             position: absolute;
-            top: -15px;
-            left: -15px;
-            width: 130px;
-            height: 130px;
+            top: -20px;
+            left: -20px;
+            width: 140px;
+            height: 140px;
             pointer-events: none;
             z-index: 2;
-            overflow: visible; /* Allow decoration to extend beyond avatar */
         }
         
         .avatar-decoration img {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* Changed to contain to prevent cropping */
-            border-radius: 0; /* Remove border-radius to allow any shape */
+            object-fit: contain;
         }
 
         .profile-info {
@@ -231,9 +234,9 @@
             gap: 5px;
         }
 
-        /* Tags section */
+        /* Tags section - Updated with improved styling */
         .tags-container {
-            display: inline-flex; /* Changed to inline-flex */
+            display: inline-flex;
             align-items: center;
             margin-left: 5px;
             gap: 5px;
@@ -251,7 +254,37 @@
             background-color: #f0f0f0;
             color: #000;
             font-size: 14px;
-            flex-shrink: 0; /* Prevent shrinking */
+            flex-shrink: 0;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        .tag-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            margin-bottom: 5px;
+            z-index: 100;
+        }
+
+        .tag:hover .tag-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px);
         }
 
         .tag-cyan {
@@ -444,48 +477,36 @@
         }
 
         .pause-icon {
-            width: 15px;
-            height: 15px;
-            background: #000;
-            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
         }
 
-        .pause-icon:before {
+        .pause-icon:before, .pause-icon:after {
             content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
+            display: block;
             width: 6px;
             height: 15px;
-            background: #000;
+            background-color: #000;
         }
 
-        .pause-icon:after {
-            content: "";
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 6px;
-            height: 15px;
-            background: #000;
-        }
-
-        /* Now playing indicator */
+        /* Now playing indicator - Improved visibility */
         .now-playing {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 8px 16px;
+            padding: 10px 16px;
             border-radius: 30px;
             display: none;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             z-index: 100;
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             max-width: 300px;
         }
 
@@ -508,7 +529,7 @@
         .now-playing-controls {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
         }
 
         .control-button {
@@ -526,11 +547,13 @@
 
         .control-button:hover {
             opacity: 1;
+            transform: scale(1.1);
         }
 
         .control-icon {
             width: 16px;
             height: 16px;
+            filter: invert(1);
         }
 
         /* Views counter */
@@ -576,6 +599,7 @@
             width: 16px;
             height: 16px;
             opacity: 0.7;
+            filter: invert(1);
         }
 
         /* Audio player */
@@ -699,10 +723,10 @@
             }
 
             .avatar-decoration {
-                width: 160px;
-                height: 160px;
-                top: -10px;
-                left: -10px;
+                width: 180px;
+                height: 180px;
+                top: -20px;
+                left: -20px;
             }
 
             .profile-name {
@@ -795,10 +819,10 @@
             }
         
             .avatar-decoration {
-                width: 170px;
-                height: 170px;
-                top: -15px;
-                left: -15px;
+                width: 180px;
+                height: 180px;
+                top: -20px;
+                left: -20px;
             }
         
             .profile-name {
@@ -821,6 +845,18 @@
             .tags-container {
                 margin-top: 5px;
                 margin-left: 0;
+            }
+            
+            .avatar {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .avatar-decoration {
+                width: 110px;
+                height: 110px;
+                top: -15px;
+                left: -15px;
             }
         }
     </style>
@@ -852,16 +888,19 @@
     <div id="backgroundContainer"></div>
 
     <div class="profile-header">
-        <div class="avatar">
-            <img id="avatarImg" src="" alt="Profile Picture">
-        </div>
-        <div id="avatarDecoration" class="avatar-decoration" style="display: none;">
-            <img id="avatarDecorationImg" src="" alt="Avatar Decoration">
+        <div class="avatar-container">
+            <div class="avatar">
+                <img id="avatarImg" src="" alt="Profile Picture">
+            </div>
+            <div id="avatarDecoration" class="avatar-decoration" style="display: none;">
+                <img id="avatarDecorationImg" src="" alt="Avatar Decoration">
+            </div>
         </div>
         <div class="profile-info">
             <div class="profile-name">
                 <span id="profileName">Fly</span>
                 <div class="tags-container">
+                    <!-- Tags will be inserted here -->
                 </div>
             </div>
             <div class="username" id="username">@Myhigh</div>
@@ -1018,6 +1057,14 @@
             audioPlayer.currentTime = 0;
             nowPlaying.style.display = 'none';
             isPlaying = false;
+            
+            // Reset all play buttons to play icon
+            document.querySelectorAll('.song-item').forEach(item => {
+                const playButton = item.querySelector('.play-button');
+                if (playButton) {
+                    playButton.innerHTML = '<div class="play-icon"></div>';
+                }
+            });
         });
         
         // Update time display and progress
@@ -1063,27 +1110,42 @@
         }
     }
 
-    function createBadgeElement(tag) {
-        const badgeElement = document.createElement('div');
-        badgeElement.className = 'tag';
+    function createTagElement(tag) {
+        // Create the tag container
+        const tagElement = document.createElement('div');
+        tagElement.className = 'tag';
         
+        // Create the tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tag-tooltip';
+        tooltip.textContent = tag.text;
+        tagElement.appendChild(tooltip);
+        
+        // Add the icon based on its type
         if (tag.icon_type === 'emoji') {
-            badgeElement.textContent = tag.icon;
-            badgeElement.title = tag.text;
+            tagElement.textContent = tag.icon;
+            // Clear out any tooltip text from the main element
+            tagElement.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    tagElement.removeChild(node);
+                }
+            });
         } else if (tag.icon_type === 'svg') {
-            badgeElement.innerHTML = tag.icon;
-            badgeElement.title = tag.text;
+            // For SVG, use innerHTML but ensure the tooltip isn't overwritten
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = tag.icon;
+            const svgElement = tempDiv.firstChild;
+            tagElement.insertBefore(svgElement, tooltip);
         } else if (tag.icon_type === 'image') {
             const imgElement = document.createElement('img');
             imgElement.src = tag.icon;
             imgElement.alt = tag.text;
             imgElement.style.width = '100%';
             imgElement.style.height = '100%';
-            badgeElement.appendChild(imgElement);
-            badgeElement.title = tag.text;
+            tagElement.insertBefore(imgElement, tooltip);
         }
         
-        return badgeElement;
+        return tagElement;
     }
 
     function updateStatsBadge(data) {
@@ -1178,10 +1240,7 @@
                     
                     // Update all song item play buttons to show play icon
                     document.querySelectorAll('.play-button').forEach(button => {
-                        const playIcon = document.createElement('div');
-                        playIcon.className = 'play-icon';
-                        button.innerHTML = '';
-                        button.appendChild(playIcon);
+                        button.innerHTML = '<div class="play-icon"></div>';
                     });
                     
                     // Update the current song's play button to show pause
@@ -1546,11 +1605,9 @@
         if (page.avatar_decoration) {
             const decorationElement = document.getElementById('avatarDecoration');
             decorationElement.style.display = 'block';
-            const decorationImg = document.createElement('img');
+            const decorationImg = document.getElementById('avatarDecorationImg');
             decorationImg.src = page.avatar_decoration;
             decorationImg.alt = "Avatar Decoration";
-            decorationElement.innerHTML = '';
-            decorationElement.appendChild(decorationImg);
         } else {
             document.getElementById('avatarDecoration').style.display = 'none';
         }
@@ -1883,7 +1940,15 @@
             'pinterest': 'https://upload.wikimedia.org/wikipedia/commons/0/08/Pinterest-logo.png',
             'reddit': 'https://www.redditinc.com/assets/images/site/reddit-logo.png',
             'email': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Gmail_icon_%282020%29.svg/2560px-Gmail_icon_%282020%29.svg.png',
-            'website': 'https://cdn-icons-png.flaticon.com/512/1150/1150626.png'
+            'website': 'https://cdn-icons-png.flaticon.com/512/1150/1150626.png',
+            'tumblr': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Tumblr_logo.svg/1280px-Tumblr_logo.svg.png',
+            'medium': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Medium_logo_Monogram.svg/1200px-Medium_logo_Monogram.svg.png',
+            'behance': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Behance_logo.svg/1280px-Behance_logo.svg.png',
+            'dribbble': 'https://cdn.dribbble.com/assets/dribbble-ball-icon-4e54c54abecf8efe027abe6f8bc7794553b8abef3bdb49cd15797067c65fda43.svg',
+            'soundcloud': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Soundcloud_logo.svg/2560px-Soundcloud_logo.svg.png',
+            'vimeo': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Vimeo_Logo.svg/1024px-Vimeo_Logo.svg.png',
+            'telegram': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/2048px-Telegram_logo.svg.png',
+            'whatsapp': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/767px-WhatsApp.svg.png'
         };
         
         links.forEach(link => {
@@ -1935,7 +2000,7 @@
             songCover.className = 'song-cover';
             
             const coverImg = document.createElement('img');
-            coverImg.src = song.cover_url;
+            coverImg.src = song.cover_url || 'https://via.placeholder.com/60?text=Music';
             coverImg.alt = song.title;
             coverImg.onerror = () => {
                 coverImg.src = 'https://via.placeholder.com/60?text=Music';
@@ -2002,7 +2067,15 @@
                     // Play new song
                     loadAndPlaySong(song);
                     
-                    // Update play button icon
+                    // Update all play buttons to play icon
+                    document.querySelectorAll('.song-item').forEach(item => {
+                        const btn = item.querySelector('.play-button');
+                        if (btn) {
+                            btn.innerHTML = '<div class="play-icon"></div>';
+                        }
+                    });
+                    
+                    // Update this button to pause icon
                     playButton.innerHTML = '';
                     const pauseIcon = document.createElement('div');
                     pauseIcon.className = 'pause-icon';
@@ -2016,39 +2089,6 @@
             
             songsList.appendChild(songItem);
         });
-        
-        // When song ends, play next song
-        audioPlayer.onended = function() {
-            currentSongIndex = (currentSongIndex + 1) % songs.length;
-            const nextSong = songs[currentSongIndex];
-            
-            // Only auto-play next song if it has a direct audio URL
-            let canPlayNext = false;
-            if (nextSong.youtube_url && isDirectMediaUrl(nextSong.youtube_url)) {
-                canPlayNext = true;
-            } else if (nextSong.audio_url && isDirectMediaUrl(nextSong.audio_url)) {
-                canPlayNext = true;
-            }
-            
-            if (canPlayNext) {
-                loadAndPlaySong(nextSong);
-                
-                // Update play buttons
-                document.querySelectorAll('.song-item').forEach((item, idx) => {
-                    const button = item.querySelector('.play-button');
-                    if (button) {
-                        button.innerHTML = '';
-                        const icon = document.createElement('div');
-                        if (idx === currentSongIndex) {
-                            icon.className = 'pause-icon';
-                        } else {
-                            icon.className = 'play-icon';
-                        }
-                        button.appendChild(icon);
-                    }
-                });
-            }
-        };
     }
 
     // Function to render tags
@@ -2058,25 +2098,7 @@
         
         // Create tags from user data
         tags.forEach(tag => {
-            const tagElement = document.createElement('div');
-            tagElement.className = 'tag';
-            
-            if (tag.icon_type === 'emoji') {
-                tagElement.textContent = tag.icon;
-                tagElement.title = tag.text;
-            } else if (tag.icon_type === 'svg') {
-                tagElement.innerHTML = tag.icon;
-                tagElement.title = tag.text;
-            } else if (tag.icon_type === 'image') {
-                const imgElement = document.createElement('img');
-                imgElement.src = tag.icon;
-                imgElement.alt = tag.text;
-                imgElement.style.width = '100%';
-                imgElement.style.height = '100%';
-                tagElement.appendChild(imgElement);
-                tagElement.title = tag.text;
-            }
-            
+            const tagElement = createTagElement(tag);
             tagsContainer.appendChild(tagElement);
         });
     }
