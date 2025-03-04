@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         switch (action) {
             case 'view':
-                window.open(`https://versz.fun/p/${url}`, '_blank');
+                window.open(`https://versz.fun/${url}`, '_blank');
                 break;
             case 'edit':
                 window.location.href = `customize.html?page_id=${pageId}`;
@@ -266,13 +266,13 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
         
         // Set up button actions
-        newViewBtn.href = `https://versz.fun/p/${url}`;
+        newViewBtn.href = `https://versz.fun/${url}`;
         newViewBtn.target = "_blank";
         newEditBtn.href = `customize.html?page_id=${pageId}`;
         
         // Set up copy URL action
         newCopyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(`https://versz.fun/p/${url}`);
+            navigator.clipboard.writeText(`https://versz.fun/${url}`);
             newCopyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
             setTimeout(() => {
                 newCopyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy URL';
