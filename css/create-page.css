@@ -498,3 +498,451 @@
         flex-direction: column;
     }
 }
+/* Fix for mobile header and sidebar */
+@media (max-width: 768px) {
+    .mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background-color: var(--darker-bg);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 99;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .sidebar {
+        transform: translateX(-100%);
+        z-index: 1000;
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .main-content {
+        margin-left: 0;
+        padding-top: 4.5rem;
+    }
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 500;
+    z-index: 9999;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    display: none;
+}
+
+.notification.active {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.notification.success {
+    background-color: #4caf50;
+}
+
+.notification.error {
+    background-color: #f44336;
+}
+
+.notification.info {
+    background-color: #2196f3;
+}
+
+.notification.warning {
+    background-color: #ff9800;
+}
+
+/* Fix for url input group */
+.url-input-group {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 0.5rem;
+}
+
+.url-prefix {
+    background-color: var(--border-color);
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+.url-input-group input {
+    flex-grow: 1;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+}
+
+.url-input-group button {
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    margin-left: 0;
+}
+
+/* Fix for background options */
+.background-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.background-option {
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    background-color: var(--lighter-bg);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    border: 1px solid transparent;
+    text-align: center;
+}
+
+.background-option .bg-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.background-option.active {
+    background-color: rgba(78, 205, 196, 0.1);
+    border-color: var(--primary-color);
+}
+
+/* Fix for template cards */
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.template-card {
+    box-shadow: var(--box-shadow);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.template-image {
+    position: relative;
+    padding-top: 56.25%; /* 16:9 aspect ratio */
+    overflow: hidden;
+}
+
+.template-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.template-info p {
+    flex-grow: 1;
+}
+
+/* Error state */
+.error-message {
+    grid-column: 1 / -1;
+    padding: 2rem;
+    text-align: center;
+    background-color: rgba(244, 67, 54, 0.05);
+    border: 1px solid rgba(244, 67, 54, 0.2);
+    border-radius: var(--border-radius);
+    color: var(--error-color);
+}
+
+.error-message i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--error-color);
+}
+
+/* Loading state */
+.loading-templates {
+    grid-column: 1 / -1;
+    padding: 3rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.loading-templates i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+/* Empty state */
+.empty-templates {
+    grid-column: 1 / -1;
+    padding: 3rem;
+    text-align: center;
+    color: var(--text-muted);
+    background-color: var(--lighter-bg);
+    border-radius: var(--border-radius);
+}
+
+.empty-templates i {
+    font-size: 2rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+/* Form actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.form-actions button {
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.form-actions button i {
+    font-size: 1rem;
+}
+
+/* Modal improvements */
+.modal {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.active {
+    opacity: 1;
+    visibility: visible;
+    display: flex;
+}
+
+.modal-content {
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.modal.active .modal-content {
+    transform: scale(1);
+}
+
+/* Improved form styling */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+    outline: none;
+}
+
+/* Color input improvements */
+input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: none;
+    cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 4px;
+}
+
+/* Better select styling */
+select {
+    cursor: pointer;
+}
+
+/* Template preview modal improvements */
+.template-preview {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.template-preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* Fix for mobile screens */
+@media (max-width: 768px) {
+    .option-tabs {
+        flex-direction: column;
+    }
+    
+    .option-tab {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .option-tab.active {
+        border-bottom: 1px solid var(--primary-color);
+    }
+    
+    .url-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .url-prefix {
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    
+    .url-input-group input {
+        border-radius: 0;
+        border-left: 2px solid var(--border-color);
+    }
+    
+    .url-input-group button {
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        width: 100%;
+        margin-top: -1px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions button {
+        width: 100%;
+    }
+    
+    .background-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .templates-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        width: 95%;
+        max-height: 80vh;
+    }
+}
+
+/* Fix for small screens */
+@media (max-width: 480px) {
+    .option-content {
+        padding: 1rem;
+    }
+    
+    .create-page-form {
+        max-width: 100%;
+    }
+    
+    .template-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+/* Add placeholder for template image */
+.template-image img {
+    background-color: #f0f0f0;
+    min-height: 100px;
+}
+
+/* Add fade to template cards on hover */
+.template-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.template-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Fix for template overlay */
+.template-overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.template-card:hover .template-overlay {
+    opacity: 1;
+}
+
+.template-overlay .btn {
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.template-card:hover .template-overlay .btn {
+    transform: translateY(0);
+}
+
+/* Spinner animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.fa-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Custom gradient icon */
+.fa-gradient {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(to right, #4ecdc4, #556270);
+    border-radius: 3px;
+}

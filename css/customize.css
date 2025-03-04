@@ -747,3 +747,218 @@ select option {
         width: 100%;
     }
 }
+/* Fix for avatar decoration positioning */
+.avatar-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: visible; /* Changed from hidden to visible */
+    border: 3px solid var(--border-color);
+    background-color: var(--lighter-bg);
+    position: relative;
+}
+
+.avatar-preview img:first-child {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%; /* Added border-radius to the image itself */
+    position: relative;
+    z-index: 1;
+}
+
+#avatar-decoration-preview {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center the decoration */
+    width: 150px;
+    height: 150px;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Fix for check button styling */
+.url-input-group button {
+    padding: 0.75rem 1rem;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    border: 2px solid var(--border-color);
+    border-left: none;
+    background-color: var(--primary-color);
+    color: white;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.url-input-group button:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Fix for URL input group */
+.url-input-group {
+    display: flex;
+    align-items: stretch; /* Changed from center to stretch */
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.url-prefix {
+    background-color: var(--border-color);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+.url-input-group input {
+    flex-grow: 1;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+}
+
+/* Fix for button styling */
+.btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+/* Fix for notification styling */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: var(--border-radius);
+    background-color: var(--light-bg);
+    color: var(--text-color);
+    box-shadow: var(--box-shadow);
+    z-index: 1001;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    display: none;
+}
+
+.notification.active {
+    transform: translateY(0);
+    opacity: 1;
+    display: block;
+}
+
+.notification.success {
+    background-color: #4ecdc4;
+    color: white;
+}
+
+.notification.error {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.notification.info {
+    background-color: #38b6ff;
+    color: white;
+}
+
+.notification.warning {
+    background-color: #ffbe0b;
+    color: white;
+}
+
+/* Fix for mobile layout */
+@media (max-width: 768px) {
+    .editor-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .url-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .url-prefix {
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    
+    .url-input-group input {
+        border-radius: 0;
+        border-left: 2px solid var(--border-color);
+        border-right: 2px solid var(--border-color);
+        border-top: none;
+    }
+    
+    .url-input-group button {
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        border: 2px solid var(--border-color);
+        border-top: none;
+    }
+    
+    .editor-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* For Firefox */
+        -ms-overflow-style: none; /* For Internet Explorer and Edge */
+    }
+    
+    .editor-tabs::-webkit-scrollbar {
+        display: none; /* For Chrome, Safari, and Opera */
+    }
+    
+    .sidebar {
+        width: 100%;
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+}
+
+/* Add missing gradient icon */
+.fa-gradient {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(to right, #4ecdc4, #556270);
+    border-radius: 4px;
+}
+
+/* Mobile header styles */
+.mobile-header {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background-color: var(--darker-bg);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 99;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .main-content {
+        padding-top: 4.5rem;
+    }
+}

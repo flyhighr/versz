@@ -1235,3 +1235,211 @@
         padding-top: 4rem;
     }
 }
+
+/* Additional CSS for my-pages.html */
+
+
+
+/* Loading indicator */
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background-color: var(--light-bg);
+  border-radius: var(--card-radius);
+  margin-bottom: 1.5rem;
+}
+
+.loading-indicator i {
+  font-size: 2rem;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.loading-indicator p {
+  color: var(--text-muted);
+}
+
+/* Improve page items */
+.page-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.page-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.page-url {
+  color: var(--primary-color);
+  font-weight: 500;
+  margin: 5px 0;
+  font-size: 0.9rem;
+}
+
+/* Action buttons */
+.action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(78, 205, 196, 0.1);
+  color: var(--primary-color);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Modal improvements */
+.modal {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.active {
+  opacity: 1;
+  visibility: visible;
+  display: flex;
+}
+
+.modal-content {
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.modal.active .modal-content {
+  transform: scale(1);
+}
+
+/* Improve modal actions */
+.action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.action-buttons .btn {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.2s ease;
+}
+
+.action-buttons .btn:hover {
+  transform: translateY(-2px);
+}
+
+.action-buttons .btn i {
+  font-size: 1.1rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.modal-actions .btn {
+  min-width: 100px;
+}
+
+/* Empty state improvements */
+.empty-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background-color: var(--light-bg);
+  border-radius: var(--card-radius);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  max-width: 400px;
+}
+
+.empty-state .btn {
+  padding: 10px 20px;
+}
+
+/* Mobile header enhancements */
+@media (max-width: 768px) {
+  .mobile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background-color: var(--darker-bg);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .sidebar {
+      transform: translateX(-100%);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+  }
+  
+  .sidebar.show {
+      transform: translateX(0);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .main-content {
+      margin-left: 0;
+      padding-top: 4.5rem;
+  }
+  
+  .action-buttons {
+      grid-template-columns: 1fr;
+  }
+  
+  .page-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+  }
+  
+  .page-item {
+      flex-direction: column;
+  }
+  
+  .page-actions {
+      align-self: flex-end;
+      margin-top: 10px;
+  }
+}

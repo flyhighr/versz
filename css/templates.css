@@ -541,3 +541,111 @@
         gap: 0.5rem;
     }
 }
+/* Template Features List */
+.template-features {
+    margin-bottom: 1.5rem;
+}
+
+.template-features h4 {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.template-features ul {
+    padding-left: 0.5rem;
+    list-style: none;
+}
+
+.template-features li {
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.template-features li i {
+    color: var(--success-color);
+    font-size: 0.875rem;
+}
+
+/* Mini tags for template cards */
+.template-tags-mini {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.template-tag-mini {
+    background-color: rgba(78, 205, 196, 0.1);
+    color: var(--primary-color);
+    padding: 0.125rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+/* Enhanced pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}
+
+.pagination-btn {
+    min-width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--lighter-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.875rem;
+}
+
+.pagination-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.pagination-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .template-features li {
+        font-size: 0.875rem;
+    }
+    
+    .template-meta {
+        flex-direction: column;
+        gap: 0.25rem;
+        align-items: flex-start;
+    }
+    
+    .pagination-btn {
+        min-width: 36px;
+        height: 36px;
+        font-size: 0.8125rem;
+    }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .template-tag-mini {
+        background-color: rgba(78, 205, 196, 0.2);
+    }
+    
+    .template-features li i {
+        color: #4ecdc4;
+    }
+}
