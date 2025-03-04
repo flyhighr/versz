@@ -116,77 +116,6 @@ class Settings:
         }
     ]
     TIMEZONES = list(pytz.all_timezones)
-    # New profile effects options
-    PROFILE_EFFECTS = [
-        {
-            "name": "none",
-            "label": "None",
-            "description": "No special effects"
-        },
-        {
-            "name": "cherry_blossom",
-            "label": "Cherry Blossom",
-            "description": "Pink petals falling across the screen"
-        },
-        {
-            "name": "snowflakes",
-            "label": "Snowflakes",
-            "description": "Winter snow effect with falling snowflakes"
-        },
-        {
-            "name": "autumn_leaves",
-            "label": "Autumn Leaves",
-            "description": "Golden and red autumn leaves falling"
-        }
-    ]
-    # Default cursor options
-    DEFAULT_CURSORS = [
-        {
-            "name": "default",
-            "label": "Default",
-            "value": ""
-        },
-        {
-            "name": "pointer",
-            "label": "Pointer",
-            "value": "pointer"
-        },
-        {
-            "name": "crosshair",
-            "label": "Crosshair",
-            "value": "crosshair"
-        },
-        {
-            "name": "text",
-            "label": "Text",
-            "value": "text"
-        },
-        {
-            "name": "move",
-            "label": "Move",
-            "value": "move"
-        },
-        {
-            "name": "not-allowed",
-            "label": "Not Allowed",
-            "value": "not-allowed"
-        },
-        {
-            "name": "grab",
-            "label": "Grab",
-            "value": "grab"
-        },
-        {
-            "name": "zoom-in",
-            "label": "Zoom In",
-            "value": "zoom-in"
-        },
-        {
-            "name": "wait",
-            "label": "Wait",
-            "value": "wait"
-        }
-    ]
 
 settings = Settings()
 
@@ -249,19 +178,6 @@ page_cache = TTLCache(maxsize=1000, ttl=300)
 views_cache = TTLCache(maxsize=1000, ttl=300)
 template_cache = TTLCache(maxsize=100, ttl=600)
 preview_cache = TTLCache(maxsize=100, ttl=300)
-
-# NEW MODELS FOR PROFILE EFFECTS AND CURSOR
-
-class ProfileEffect(BaseModel):
-    type: str = Field("none", description="Type of profile effect: none, cherry_blossom, snowflakes, autumn_leaves")
-    intensity: int = Field(50, ge=1, le=100, description="Intensity of the effect (1-100)")
-    enabled: bool = Field(False, description="Whether the effect is enabled")
-    custom_effect_url: Optional[str] = Field(None, description="URL to custom effect script or CSS")
-
-class CursorConfig(BaseModel):
-    type: str = Field("default", description="Type of cursor: default or custom")
-    value: str = Field("", description="CSS cursor value or URL to cursor image")
-    custom_cursor_url: Optional[str] = Field(None, description="URL to custom cursor image")
 
 # Pydantic models
 class Token(BaseModel):
@@ -339,9 +255,6 @@ class ProfilePage(BaseModel):
     custom_js: Optional[str] = None
     name_style: Optional[TextStyleConfig] = None
     username_style: Optional[TextStyleConfig] = None
-    # New fields for profile effects and cursor
-    profile_effect: ProfileEffect = Field(default_factory=lambda: ProfileEffect())
-    cursor: CursorConfig = Field(default_factory=lambda: CursorConfig())
 
 class PageUpdate(BaseModel):
     title: Optional[str] = None
@@ -365,9 +278,6 @@ class PageUpdate(BaseModel):
     custom_js: Optional[str] = None
     name_style: Optional[TextStyleConfig] = None
     username_style: Optional[TextStyleConfig] = None
-    # New fields for profile effects and cursor
-    profile_effect: Optional[ProfileEffect] = None
-    cursor: Optional[CursorConfig] = None
 
 class PreviewRequest(BaseModel):
     page_data: ProfilePage
@@ -398,9 +308,6 @@ class DisplayPreferences(BaseModel):
     )
     default_name_style: TextStyleConfig = TextStyleConfig()
     default_username_style: TextStyleConfig = TextStyleConfig()
-    # New fields for default profile effects and cursor
-    default_profile_effect: ProfileEffect = ProfileEffect()
-    default_cursor: CursorConfig = CursorConfig()
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -429,9 +336,6 @@ class UserOnboarding(BaseModel):
     timezone: Optional[str] = None
     gender: Optional[str] = None
     pronouns: Optional[str] = None
-    # Added profile effect and cursor preferences
-    profile_effect: Optional[ProfileEffect] = None
-    cursor: Optional[CursorConfig] = None
     
     @validator('username')
     def validate_username(cls, v):
@@ -477,9 +381,6 @@ class UserResponse(UserBase):
     gender: Optional[str] = None
     pronouns: Optional[str] = None
     bio: Optional[str] = None
-    # Added user-level profile effect and cursor
-    profile_effect: Optional[ProfileEffect] = None
-    cursor: Optional[CursorConfig] = None
 
 class UserPasswordReset(BaseModel):
     email: EmailStr
@@ -506,9 +407,6 @@ class Template(BaseModel):
     use_count: int = 0
     page_config: ProfilePage
     tags: List[str] = []
-    # Added template-level profile effect and cursor 
-    profile_effect: Optional[ProfileEffect] = None
-    cursor: Optional[CursorConfig] = None
 
 class TemplateResponse(BaseModel):
     id: str
@@ -520,9 +418,6 @@ class TemplateResponse(BaseModel):
     created_at: datetime
     use_count: int
     tags: List[str] = []
-    # Added template-level profile effect and cursor for response
-    profile_effect: Optional[ProfileEffect] = None
-    cursor: Optional[CursorConfig] = None
 
 class URLCheckResponse(BaseModel):
     url: str
@@ -842,54 +737,6 @@ async def validate_font(font_link: str) -> bool:
         logger.error(f"Error validating font link: {str(e)}")
         return False
 
-async def validate_custom_cursor(cursor_url: str) -> bool:
-    """Validate if the custom cursor URL is valid and the file is appropriate"""
-    if not cursor_url:
-        return True
-        
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.head(cursor_url, follow_redirects=True)
-            
-            if response.status_code != 200:
-                return False
-                
-            content_type = response.headers.get("content-type", "")
-            
-            # Check if it's an image (PNG or CUR/ICO format)
-            valid_types = ["image/png", "image/x-icon", "image/vnd.microsoft.icon", "image/cur"]
-            if not any(content_type == valid_type for valid_type in valid_types):
-                return False
-                
-            return True
-    except Exception as e:
-        logger.error(f"Error validating custom cursor: {str(e)}")
-        return False
-
-async def validate_custom_effect(effect_url: str) -> bool:
-    """Validate if the custom effect URL is valid and points to a CSS or JS file"""
-    if not effect_url:
-        return True
-        
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.head(effect_url, follow_redirects=True)
-            
-            if response.status_code != 200:
-                return False
-                
-            content_type = response.headers.get("content-type", "")
-            
-            # Check if it's a CSS or JavaScript file
-            valid_types = ["text/css", "text/javascript", "application/javascript"]
-            if not any(valid_type in content_type for valid_type in valid_types):
-                return False
-                
-            return True
-    except Exception as e:
-        logger.error(f"Error validating custom effect: {str(e)}")
-        return False
-
 async def cleanup_expired_previews():
     """Cleanup function to remove expired preview pages"""
     async with get_database() as db:
@@ -1042,31 +889,7 @@ async def register_user(
                         "value": "",
                         "link": ""
                     }
-                },
-                # Add default profile effect and cursor preferences
-                "default_profile_effect": {
-                    "type": "none",
-                    "intensity": 50,
-                    "enabled": False,
-                    "custom_effect_url": None
-                },
-                "default_cursor": {
-                    "type": "default",
-                    "value": "",
-                    "custom_cursor_url": None
                 }
-            },
-            # Add user-level profile effect and cursor
-            "profile_effect": {
-                "type": "none",
-                "intensity": 50,
-                "enabled": False,
-                "custom_effect_url": None
-            },
-            "cursor": {
-                "type": "default",
-                "value": "",
-                "custom_cursor_url": None
             }
         }
         
@@ -1182,9 +1005,7 @@ async def register_user(
             "age": None,
             "timezone": None,
             "gender": None,
-            "pronouns": None,
-            "profile_effect": ProfileEffect(),
-            "cursor": CursorConfig()
+            "pronouns": None
         }
 
 @app.post("/resend-verification")
@@ -1398,36 +1219,13 @@ async def verify_email(request: Request, token: str):
                         "value": "",
                         "link": ""
                     }
-                },
-                "default_profile_effect": {
-                    "type": "none", 
-                    "intensity": 50,
-                    "enabled": False,
-                    "custom_effect_url": None
-                },
-                "default_cursor": {
-                    "type": "default",
-                    "value": "",
-                    "custom_cursor_url": None
                 }
             }),
             "location": pending_user.get("location"),
             "date_of_birth": pending_user.get("date_of_birth"),
             "timezone": pending_user.get("timezone"),
             "gender": pending_user.get("gender"),
-            "pronouns": pending_user.get("pronouns"),
-            # Add profile effect and cursor
-            "profile_effect": pending_user.get("profile_effect", {
-                "type": "none",
-                "intensity": 50,
-                "enabled": False,
-                "custom_effect_url": None
-            }),
-            "cursor": pending_user.get("cursor", {
-                "type": "default",
-                "value": "",
-                "custom_cursor_url": None
-            })
+            "pronouns": pending_user.get("pronouns")
         }
         
         await db.users.insert_one(user_data)
@@ -1510,17 +1308,6 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
                         "value": "",
                         "link": ""
                     }
-                },
-                "default_profile_effect": {
-                    "type": "none",
-                    "intensity": 50,
-                    "enabled": False,
-                    "custom_effect_url": None
-                },
-                "default_cursor": {
-                    "type": "default",
-                    "value": "",
-                    "custom_cursor_url": None
                 }
             }),
             "location": user.get("location"),
@@ -1528,18 +1315,7 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             "age": age,
             "timezone": user.get("timezone"),
             "gender": user.get("gender"),
-            "pronouns": user.get("pronouns"),
-            "profile_effect": user.get("profile_effect", {
-                "type": "none",
-                "intensity": 50,
-                "enabled": False,
-                "custom_effect_url": None
-            }),
-            "cursor": user.get("cursor", {
-                "type": "default",
-                "value": "",
-                "custom_cursor_url": None
-            })
+            "pronouns": user.get("pronouns")
         }
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
@@ -1735,17 +1511,6 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
                     "value": "",
                     "link": ""
                 }
-            },
-            "default_profile_effect": {
-                "type": "none",
-                "intensity": 50,
-                "enabled": False,
-                "custom_effect_url": None
-            },
-            "default_cursor": {
-                "type": "default",
-                "value": "",
-                "custom_cursor_url": None
             }
         })
         
@@ -1773,18 +1538,7 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
             "timezone": current_user.get("timezone"),
             "gender": current_user.get("gender"),
             "pronouns": current_user.get("pronouns"),
-            "bio": current_user.get("bio"),
-            "profile_effect": current_user.get("profile_effect", {
-                "type": "none",
-                "intensity": 50,
-                "enabled": False,
-                "custom_effect_url": None
-            }),
-            "cursor": current_user.get("cursor", {
-                "type": "default",
-                "value": "",
-                "custom_cursor_url": None
-            })
+            "bio": current_user.get("bio")
         }
 
 @app.put("/onboarding", response_model=UserResponse)
@@ -1825,22 +1579,6 @@ async def complete_onboarding(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid timezone"
             )
-            
-        # Validate profile effect if provided
-        if onboarding_data.profile_effect and onboarding_data.profile_effect.custom_effect_url:
-            if not await validate_custom_effect(onboarding_data.profile_effect.custom_effect_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom effect URL"
-                )
-                
-        # Validate custom cursor if provided
-        if onboarding_data.cursor and onboarding_data.cursor.custom_cursor_url:
-            if not await validate_custom_cursor(onboarding_data.cursor.custom_cursor_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom cursor URL"
-                )
         
         # Update user information
         update_data = {
@@ -1852,9 +1590,7 @@ async def complete_onboarding(
             "timezone": onboarding_data.timezone,
             "gender": onboarding_data.gender,
             "pronouns": onboarding_data.pronouns,
-            "onboarding_completed": True,
-            "profile_effect": onboarding_data.profile_effect.dict() if onboarding_data.profile_effect else None,
-            "cursor": onboarding_data.cursor.dict() if onboarding_data.cursor else None
+            "onboarding_completed": True
         }
         
         # Remove None values
@@ -1869,20 +1605,6 @@ async def complete_onboarding(
         page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
         
         if page_count == 0:
-            # Include profile effect and cursor in default page
-            profile_effect_data = onboarding_data.profile_effect.dict() if onboarding_data.profile_effect else {
-                "type": "none",
-                "intensity": 50,
-                "enabled": False,
-                "custom_effect_url": None
-            }
-            
-            cursor_data = onboarding_data.cursor.dict() if onboarding_data.cursor else {
-                "type": "default",
-                "value": "",
-                "custom_cursor_url": None
-            }
-            
             default_page = {
                 "user_id": current_user["id"],
                 "page_id": str(ObjectId()),
@@ -1928,9 +1650,7 @@ async def complete_onboarding(
                         "link": ""
                     }
                 },
-                "timezone": onboarding_data.timezone,
-                "profile_effect": profile_effect_data,
-                "cursor": cursor_data
+                "timezone": onboarding_data.timezone
             }
             
             await db.profile_pages.insert_one(default_page)
@@ -1973,18 +1693,7 @@ async def complete_onboarding(
             "age": age,
             "timezone": updated_user.get("timezone"),
             "gender": updated_user.get("gender"),
-            "pronouns": updated_user.get("pronouns"),
-            "profile_effect": updated_user.get("profile_effect", {
-                "type": "none",
-                "intensity": 50,
-                "enabled": False,
-                "custom_effect_url": None
-            }),
-            "cursor": updated_user.get("cursor", {
-                "type": "default",
-                "value": "",
-                "custom_cursor_url": None
-            })
+            "pronouns": updated_user.get("pronouns")
         }
 
 @app.get("/check-url")
@@ -2061,22 +1770,6 @@ async def create_profile_page(
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid font link for username"
-                )
-                
-        # Validate profile effect if provided
-        if page_data.profile_effect and page_data.profile_effect.custom_effect_url:
-            if not await validate_custom_effect(page_data.profile_effect.custom_effect_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom effect URL"
-                )
-                
-        # Validate custom cursor if provided
-        if page_data.cursor and page_data.cursor.custom_cursor_url:
-            if not await validate_custom_cursor(page_data.cursor.custom_cursor_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom cursor URL"
                 )
         
         # Generate page ID
@@ -2200,22 +1893,6 @@ async def update_profile_page(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid timezone"
             )
-            
-        # Validate profile effect if provided
-        if page_update.profile_effect and page_update.profile_effect.custom_effect_url:
-            if not await validate_custom_effect(page_update.profile_effect.custom_effect_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom effect URL"
-                )
-                
-        # Validate custom cursor if provided
-        if page_update.cursor and page_update.cursor.custom_cursor_url:
-            if not await validate_custom_cursor(page_update.cursor.custom_cursor_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom cursor URL"
-                )
         
         # Prepare update data
         update_data = page_update.dict(exclude_unset=True)
@@ -2271,22 +1948,6 @@ async def create_page_preview(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid font link for username"
-            )
-            
-    # Validate profile effect if provided
-    if preview_data.profile_effect and preview_data.profile_effect.custom_effect_url:
-        if not await validate_custom_effect(preview_data.profile_effect.custom_effect_url):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid custom effect URL"
-            )
-            
-    # Validate custom cursor if provided
-    if preview_data.cursor and preview_data.cursor.custom_cursor_url:
-        if not await validate_custom_cursor(preview_data.cursor.custom_cursor_url):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid custom cursor URL"
             )
     
     # Generate preview ID
@@ -2393,9 +2054,6 @@ async def update_user_profile(
         gender = profile_data.get("gender")
         pronouns = profile_data.get("pronouns")
         bio = profile_data.get("bio")
-        # New fields
-        profile_effect = profile_data.get("profile_effect")
-        cursor = profile_data.get("cursor")
         
         # Validate date of birth if provided
         if date_of_birth:
@@ -2413,22 +2071,6 @@ async def update_user_profile(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid timezone"
             )
-            
-        # Validate profile effect if provided
-        if profile_effect and profile_effect.get("custom_effect_url"):
-            if not await validate_custom_effect(profile_effect.get("custom_effect_url")):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom effect URL"
-                )
-                
-        # Validate custom cursor if provided
-        if cursor and cursor.get("custom_cursor_url"):
-            if not await validate_custom_cursor(cursor.get("custom_cursor_url")):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom cursor URL"
-                )
         
         # Update user information
         update_data = {
@@ -2442,9 +2084,7 @@ async def update_user_profile(
             "gender": gender,
             "pronouns": pronouns,
             "bio": bio,
-            "onboarding_completed": True,
-            "profile_effect": profile_effect,
-            "cursor": cursor
+            "onboarding_completed": True
         }
         
         # Remove None values
@@ -2504,18 +2144,7 @@ async def update_user_profile(
                         "link": ""
                     }
                 },
-                "timezone": timezone,
-                "profile_effect": profile_effect or {
-                    "type": "none",
-                    "intensity": 50,
-                    "enabled": False,
-                    "custom_effect_url": None
-                },
-                "cursor": cursor or {
-                    "type": "default",
-                    "value": "",
-                    "custom_cursor_url": None
-                }
+                "timezone": timezone
             }
             
             await db.profile_pages.insert_one(default_page)
@@ -2553,18 +2182,7 @@ async def update_user_profile(
                 "timezone": updated_user.get("timezone"),
                 "gender": updated_user.get("gender"),
                 "pronouns": updated_user.get("pronouns"),
-                "bio": updated_user.get("bio"),
-                "profile_effect": updated_user.get("profile_effect", {
-                    "type": "none",
-                    "intensity": 50,
-                    "enabled": False,
-                    "custom_effect_url": None
-                }),
-                "cursor": updated_user.get("cursor", {
-                    "type": "default",
-                    "value": "",
-                    "custom_cursor_url": None
-                })
+                "bio": updated_user.get("bio")
             }
         }
 
@@ -2709,10 +2327,7 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
                 "username": user.get("username"),
                 "name": user.get("name"),
                 "joined_at": user.get("joined_at"),
-                "tags": user.get("tags", []),
-                # Include profile effect and cursor from user if not specified in page
-                "profile_effect": user.get("profile_effect") if not page.get("profile_effect") else None,
-                "cursor": user.get("cursor") if not page.get("cursor") else None
+                "tags": user.get("tags", [])
             },
             "views": views
         }
@@ -2780,22 +2395,6 @@ async def update_display_preferences(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid font link for username"
                 )
-                
-        # Validate profile effect if provided
-        if preferences.default_profile_effect and preferences.default_profile_effect.custom_effect_url:
-            if not await validate_custom_effect(preferences.default_profile_effect.custom_effect_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom effect URL for default profile effect"
-                )
-                
-        # Validate custom cursor if provided
-        if preferences.default_cursor and preferences.default_cursor.custom_cursor_url:
-            if not await validate_custom_cursor(preferences.default_cursor.custom_cursor_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom cursor URL for default cursor"
-                )
         
         await db.users.update_one(
             {"id": current_user["id"]},
@@ -2836,22 +2435,6 @@ async def create_template(
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid font link for username in template"
-                )
-                
-        # Validate profile effect if provided
-        if template_data.page_config.profile_effect and template_data.page_config.profile_effect.custom_effect_url:
-            if not await validate_custom_effect(template_data.page_config.profile_effect.custom_effect_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom effect URL in template"
-                )
-                
-        # Validate custom cursor if provided
-        if template_data.page_config.cursor and template_data.page_config.cursor.custom_cursor_url:
-            if not await validate_custom_cursor(template_data.page_config.cursor.custom_cursor_url):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid custom cursor URL in template"
                 )
         
         # Generate template ID
@@ -3061,8 +2644,6 @@ async def get_template(request: Request, template_id: str):
         # Cache result
         template_cache[cache_key] = template_response
         
-        return template_response
-        
 @app.post("/use-template/{template_id}")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def use_template(
@@ -3121,13 +2702,6 @@ async def use_template(
         # Apply user's timezone if available
         if current_user.get("timezone") and not page_config.get("timezone"):
             page_config["timezone"] = current_user["timezone"]
-            
-        # Apply user's profile effect and cursor preferences if available
-        if current_user.get("profile_effect") and not page_config.get("profile_effect"):
-            page_config["profile_effect"] = current_user["profile_effect"]
-            
-        if current_user.get("cursor") and not page_config.get("cursor"):
-            page_config["cursor"] = current_user["cursor"]
         
         # Initialize views
         await db.views.insert_one({
@@ -3274,16 +2848,6 @@ async def get_timezones():
     # Return all available timezones
     return {"timezones": settings.TIMEZONES}
 
-@app.get("/profile-effects")
-async def get_profile_effects():
-    # Return all available profile effects
-    return {"profile_effects": settings.PROFILE_EFFECTS}
-
-@app.get("/cursors")
-async def get_cursors():
-    # Return all available cursor options
-    return {"cursors": settings.DEFAULT_CURSORS}
-
 @app.get("/trending-templates")
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_trending_templates(
@@ -3328,8 +2892,7 @@ async def get_user_public_pages(request: Request, username: str):
             pages.append({
                 "url": page["url"],
                 "title": page["title"],
-                "background": page.get("background", {}).get("type"),
-                "profile_effect": page.get("profile_effect", {}).get("type", "none")
+                "background": page.get("background", {}).get("type")
             })
         
         return {
@@ -3337,8 +2900,6 @@ async def get_user_public_pages(request: Request, username: str):
             "name": user.get("name"),
             "avatar_url": user.get("avatar_url"),
             "avatar_decoration": user.get("avatar_decoration"),
-            "profile_effect": user.get("profile_effect"),
-            "cursor": user.get("cursor"),
             "pages": pages
         }
 
