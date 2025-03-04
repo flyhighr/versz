@@ -750,7 +750,20 @@ async def cleanup_expired_previews():
 def json_serialize(obj):
     """Convert MongoDB document to serializable format"""
     if isinstance(obj, dict):
-        return {k: json_serialize(v) for k, v in obj.items()}
+        # Handle nested objects and ensure font configs are properly serialized
+        result = {}
+        for k, v in obj.items():
+            # Ensure font links are included in the serialized output
+            if k in ["name_style", "username_style"] and isinstance(v, dict):
+                # Make sure font information is preserved
+                if "font" in v and isinstance(v["font"], dict):
+                    v["font"] = {
+                        "name": v["font"].get("name", "Default"),
+                        "value": v["font"].get("value", ""),
+                        "link": v["font"].get("link", "")
+                    }
+            result[k] = json_serialize(v)
+        return result
     elif isinstance(obj, list):
         return [json_serialize(item) for item in obj]
     elif isinstance(obj, ObjectId):
@@ -2284,6 +2297,26 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
         # Handle views if enabled
         device_hash = await generate_device_identifier(request)
         views = 0
+
+        if page and "name_style" in page and isinstance(page["name_style"], dict):
+            if "font" in page["name_style"] and isinstance(page["name_style"]["font"], dict):
+                # Ensure the font link is included
+                font = page["name_style"]["font"]
+                page["name_style"]["font"] = {
+                    "name": font.get("name", "Default"),
+                    "value": font.get("value", ""),
+                    "link": font.get("link", "")
+                }
+                
+        if page and "username_style" in page and isinstance(page["username_style"], dict):
+            if "font" in page["username_style"] and isinstance(page["username_style"]["font"], dict):
+                # Ensure the font link is included
+                font = page["username_style"]["font"]
+                page["username_style"]["font"] = {
+                    "name": font.get("name", "Default"),
+                    "value": font.get("value", ""),
+                    "link": font.get("link", "")
+                }
         
         if page.get("show_views", True):
             view_record = ViewRecord(
