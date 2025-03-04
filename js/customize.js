@@ -923,6 +923,37 @@ const collectFormData = async (pageId) => {
     const usernameColor = document.getElementById('edit-username-color').value;
     const usernameFont = document.getElementById('edit-username-font').value;
     
+    // Get font data for the selected fonts
+    let nameFontValue = "";
+    let nameFontLink = "";
+    let usernameFontValue = "";
+    let usernameFontLink = "";
+    
+    // Fetch font data from API to get the correct values and links
+    try {
+        const response = await fetch(`${API_URL}/fonts`);
+        if (response.ok) {
+            const data = await response.json();
+            const fonts = data.fonts;
+            
+            // Find the selected name font
+            const selectedNameFont = fonts.find(font => font.name === nameFont);
+            if (selectedNameFont) {
+                nameFontValue = selectedNameFont.value;
+                nameFontLink = selectedNameFont.link;
+            }
+            
+            // Find the selected username font
+            const selectedUsernameFont = fonts.find(font => font.name === usernameFont);
+            if (selectedUsernameFont) {
+                usernameFontValue = selectedUsernameFont.value;
+                usernameFontLink = selectedUsernameFont.link;
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching font data:', error);
+    }
+    
     // Get content settings
     const nameEffect = document.getElementById('edit-name-effect').value;
     const bioEffect = document.getElementById('edit-bio-effect').value;
@@ -982,16 +1013,16 @@ const collectFormData = async (pageId) => {
             color: nameColor,
             font: {
                 name: nameFont,
-                value: "",
-                link: ""
+                value: nameFontValue,
+                link: nameFontLink
             }
         },
         username_style: {
             color: usernameColor,
             font: {
                 name: usernameFont,
-                value: "",
-                link: ""
+                value: usernameFontValue,
+                link: usernameFontLink
             }
         },
         name_effect: nameEffect !== 'none' ? { name: nameEffect } : null,
