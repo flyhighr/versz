@@ -20,7 +20,7 @@
             padding: 20px;
             max-width: 100%;
             overflow-x: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Schoolbell', cursive, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
 
         /* Loading spinner */
@@ -336,16 +336,6 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        /* Songs container - updated to match profile container styling */
-        .songs-container {
-            border: 1px solid #ddd;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
         .bio {
             margin-bottom: 15px;
             font-size: 16px;
@@ -561,6 +551,7 @@
             opacity: 1;
             transform: scale(1.1);
         }
+
         .control-icon {
             width: 16px;
             height: 16px;
@@ -848,7 +839,7 @@
                 height: 30px;
             }
 
-            .profile-container, .songs-container {
+            .profile-container {
                 padding: 30px;
                 border-radius: 20px;
             }
@@ -1053,13 +1044,7 @@
     </div>
 
     <div id="songsContainer" class="songs-section" style="display: none;">
-        <div class="songs-container" id="songsContentContainer">
-            <div class="section-title">
-                <img src="https://cdn-icons-png.flaticon.com/512/2995/2995101.png" alt="Music" class="section-icon">
-                Music
-            </div>
-            <div id="songsList"></div>
-        </div>
+        <div id="songsList"></div>
     </div>
 
     <div class="views-counter" id="viewsCounter" style="display: none;">
@@ -1826,7 +1811,7 @@
                 nameElement.style.color = page.name_style.color;
             }
             if (page.name_style.font && page.name_style.font.value) {
-                nameElement.style.fontFamily = page.name_style.font.value;
+                nameElement.style.fontFamily = page.name_style.font.value || "'Schoolbell', cursive";
                 
                 // Add font link if provided
                 if (page.name_style.font.link) {
@@ -1845,7 +1830,7 @@
                 usernameElement.style.color = page.username_style.color;
             }
             if (page.username_style.font && page.username_style.font.value) {
-                usernameElement.style.fontFamily = page.username_style.font.value;
+                usernameElement.style.fontFamily = page.username_style.font.value || "'Schoolbell', cursive";
                 
                 // Add font link if provided
                 if (page.username_style.font.link) {
@@ -2074,55 +2059,43 @@
         if (!layout) return;
         
         const profileContainer = document.getElementById('profileContainer');
-        const songsContentContainer = document.getElementById('songsContentContainer');
         
         if (layout.container_style && layout.container_style.enabled) {
-            // Apply container background color or gradient to both containers
+            // Apply container background color or gradient
             if (layout.container_style.background_color) {
                 profileContainer.style.backgroundColor = layout.container_style.background_color;
-                songsContentContainer.style.backgroundColor = layout.container_style.background_color;
             }
             
             if (layout.container_style.gradient) {
                 profileContainer.style.background = layout.container_style.gradient;
-                songsContentContainer.style.background = layout.container_style.gradient;
             }
             
             // Apply opacity
             if (layout.container_style.opacity !== undefined) {
                 profileContainer.style.opacity = layout.container_style.opacity;
-                songsContentContainer.style.opacity = layout.container_style.opacity;
             }
             
             // Apply border radius
             if (layout.container_style.border_radius !== undefined) {
                 profileContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
-                songsContentContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
             }
             
             // Apply border color
             if (layout.container_style.border_color) {
                 profileContainer.style.borderColor = layout.container_style.border_color;
-                songsContentContainer.style.borderColor = layout.container_style.border_color;
             }
             
             // Apply shadow
             if (layout.container_style.shadow) {
                 profileContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
-                songsContentContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
             } else {
                 profileContainer.style.boxShadow = 'none';
-                songsContentContainer.style.boxShadow = 'none';
             }
         } else {
             // If container is disabled, remove borders and background
             profileContainer.style.border = 'none';
             profileContainer.style.backgroundColor = 'transparent';
             profileContainer.style.boxShadow = 'none';
-            
-            songsContentContainer.style.border = 'none';
-            songsContentContainer.style.backgroundColor = 'transparent';
-            songsContentContainer.style.boxShadow = 'none';
         }
     }
 
@@ -2199,7 +2172,6 @@
     // Function to render songs
     function renderSongs(songs, layout) {
         const songsContainer = document.getElementById('songsContainer');
-        const songsContentContainer = document.getElementById('songsContentContainer');
         const songsList = document.getElementById('songsList');
         songsList.innerHTML = '';
         
@@ -2210,16 +2182,8 @@
         
         songsContainer.style.display = 'block';
         
-        // Apply container style to songs container based on layout
-        if (layout && layout.container_style) {
-            if (!layout.container_style.enabled) {
-                // If containers are disabled, hide the wrapper container
-                songsContentContainer.style.border = 'none';
-                songsContentContainer.style.backgroundColor = 'transparent';
-                songsContentContainer.style.boxShadow = 'none';
-                songsContentContainer.style.padding = '0';
-            }
-        }
+        // Handle container styling for songs based on layout
+        const containerEnabled = layout && layout.container_style && layout.container_style.enabled;
         
         const audioPlayer = document.getElementById('audioPlayer');
         songsData = songs; // Store songs for global reference
@@ -2300,11 +2264,8 @@
                     loadAndPlaySong(song);
                     
                     // Update all play buttons to play icon
-                    document.querySelectorAll('.song-item').forEach(item => {
-                        const btn = item.querySelector('.play-button');
-                        if (btn) {
-                            btn.innerHTML = '<div class="play-icon"></div>';
-                        }
+                    document.querySelectorAll('.play-button').forEach(button => {
+                        button.innerHTML = '<div class="play-icon"></div>';
                     });
                     
                     // Update this button to pause icon
@@ -2319,7 +2280,80 @@
             songItem.appendChild(songInfo);
             songItem.appendChild(playButton);
             
-            songsList.appendChild(songItem);
+            // Apply container styling if enabled
+            if (containerEnabled) {
+                // Create a container div with proper styling
+                const songContainer = document.createElement('div');
+                songContainer.className = 'profile-container';
+                
+                // Apply same container styles as the profile container
+                if (layout.container_style.background_color) {
+                    songContainer.style.backgroundColor = layout.container_style.background_color;
+                }
+                
+                if (layout.container_style.gradient) {
+                    songContainer.style.background = layout.container_style.gradient;
+                }
+                
+                if (layout.container_style.opacity !== undefined) {
+                    songContainer.style.opacity = layout.container_style.opacity;
+                }
+                
+                if (layout.container_style.border_radius !== undefined) {
+                    songContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
+                }
+                
+                if (layout.container_style.border_color) {
+                    songContainer.style.borderColor = layout.container_style.border_color;
+                }
+                
+                if (layout.container_style.shadow) {
+                    songContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+                } else {
+                    songContainer.style.boxShadow = 'none';
+                }
+                
+                // Add the section title inside the container
+                if (index === 0) {
+                    const titleElement = document.createElement('div');
+                    titleElement.className = 'section-title';
+                    
+                    const iconElement = document.createElement('img');
+                    iconElement.src = "https://cdn-icons-png.flaticon.com/512/2995/2995101.png";
+                    iconElement.alt = "Music";
+                    iconElement.className = 'section-icon';
+                    
+                    titleElement.appendChild(iconElement);
+                    titleElement.appendChild(document.createTextNode('Music'));
+                    
+                    songContainer.appendChild(titleElement);
+                }
+                
+                // Add the song item to the container
+                songContainer.appendChild(songItem);
+                
+                // Add the container to the songs list
+                songsList.appendChild(songContainer);
+            } else {
+                // If containers are disabled, just add song items directly
+                if (index === 0) {
+                    // Add title without container
+                    const titleElement = document.createElement('div');
+                    titleElement.className = 'section-title';
+                    
+                    const iconElement = document.createElement('img');
+                    iconElement.src = "https://cdn-icons-png.flaticon.com/512/2995/2995101.png";
+                    iconElement.alt = "Music";
+                    iconElement.className = 'section-icon';
+                    
+                    titleElement.appendChild(iconElement);
+                    titleElement.appendChild(document.createTextNode('Music'));
+                    
+                    songsList.appendChild(titleElement);
+                }
+                
+                songsList.appendChild(songItem);
+            }
         });
     }
 
