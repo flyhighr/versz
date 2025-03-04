@@ -12,6 +12,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Schoolbell', cursive, sans-serif;
         }
 
         body {
@@ -20,7 +21,6 @@
             padding: 20px;
             max-width: 100%;
             overflow-x: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
 
         /* Loading spinner */
@@ -207,7 +207,8 @@
             margin-bottom: 5px;
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
+            gap: 8px; /* Add gap between name and tags */
+            flex-wrap: nowrap; /* Prevent wrapping initially */
         }
 
         .username {
@@ -237,7 +238,7 @@
         .tags-container {
             display: inline-flex;
             align-items: center;
-            margin-left: 8px;
+            margin-left: 5px;
             gap: 5px;
             flex-wrap: wrap;
         }
@@ -250,12 +251,12 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            background-color: #f0f0f0;
             color: #000;
             font-size: 14px;
             flex-shrink: 0;
             position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            background-color: transparent;
         }
 
         .tag:hover {
@@ -286,21 +287,18 @@
             transform: translateX(-50%) translateY(-2px);
         }
 
-        .tag svg {
-            width: 100%;
-            height: 100%;
-        }
-
         .tag-cyan {
-            color: #40E0D0;
+            background-color: #40E0D0;
         }
 
         .tag-black {
-            color: #000000;
+            background-color: #000000;
+            color: white;
         }
 
         .tag-purple {
-            color: #BA55D3;
+            background-color: #BA55D3;
+            color: white;
         }
 
         .joined-date {
@@ -328,16 +326,6 @@
 
         /* Profile content container */
         .profile-container {
-            border: 1px solid #ddd;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
-        /* Songs container - updated to match profile container styling */
-        .songs-container {
             border: 1px solid #ddd;
             border-radius: 15px;
             padding: 20px;
@@ -561,6 +549,7 @@
             opacity: 1;
             transform: scale(1.1);
         }
+
         .control-icon {
             width: 16px;
             height: 16px;
@@ -615,101 +604,6 @@
 
         /* Audio player */
         .audio-player {
-            display: none;
-        }
-
-        /* Bio link styles */
-        .bio a {
-            color: #007bff;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-        .bio a:hover {
-            color: #0056b3;
-            text-decoration: underline;
-        }
-
-        /* Link confirmation popup */
-        .link-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            padding: 20px;
-            max-width: 90%;
-            width: 400px;
-            z-index: 1000;
-            display: none;
-            text-align: center;
-        }
-
-        .popup-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .popup-message {
-            margin-bottom: 20px;
-            color: #555;
-        }
-
-        .popup-url {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 20px;
-            word-break: break-all;
-            padding: 8px;
-            background-color: #f5f5f5;
-            border-radius: 4px;
-        }
-
-        .popup-actions {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-
-        .popup-btn {
-            padding: 8px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s ease;
-        }
-
-        .popup-btn-confirm {
-            background-color: #007bff;
-            color: white;
-            border: none;
-        }
-
-        .popup-btn-confirm:hover {
-            background-color: #0069d9;
-        }
-
-        .popup-btn-cancel {
-            background-color: #f8f9fa;
-            color: #333;
-            border: 1px solid #ddd;
-        }
-
-        .popup-btn-cancel:hover {
-            background-color: #e2e6ea;
-        }
-
-        .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 999;
             display: none;
         }
 
@@ -848,7 +742,7 @@
                 height: 30px;
             }
 
-            .profile-container, .songs-container {
+            .profile-container {
                 padding: 30px;
                 border-radius: 20px;
             }
@@ -918,7 +812,6 @@
                 font-size: 14px;
             }
         }
-        
         @media (min-width: 768px) {
             .avatar {
                 width: 140px;
@@ -1018,7 +911,7 @@
             </div>
             
             <div class="timezone-container" id="timezoneContainer" style="display: none;">
-                <img src="https://cdn-icons-png.flaticon.com/512/3122/3122128.png" alt="Timezone" class="detail-icon">
+                <img src="https://cdn-icons-png.flaticon.com/512/484/484167.png" alt="Timezone" class="detail-icon">
                 <span id="timezoneText">UTC</span>
                 <span class="timezone-time" id="timezoneTime">00:00</span>
             </div>
@@ -1053,13 +946,11 @@
     </div>
 
     <div id="songsContainer" class="songs-section" style="display: none;">
-        <div class="songs-container" id="songsContentContainer">
-            <div class="section-title">
-                <img src="https://cdn-icons-png.flaticon.com/512/2995/2995101.png" alt="Music" class="section-icon">
-                Music
-            </div>
-            <div id="songsList"></div>
+        <div class="section-title">
+            <img src="https://cdn-icons-png.flaticon.com/512/2995/2995101.png" alt="Music" class="section-icon">
+            Music
         </div>
+        <div id="songsList"></div>
     </div>
 
     <div class="views-counter" id="viewsCounter" style="display: none;">
@@ -1099,18 +990,6 @@
         </div>
     </div>
 
-    <!-- Link confirmation popup -->
-    <div id="linkPopup" class="link-popup">
-        <div class="popup-title">External Link</div>
-        <div class="popup-message">You're about to be redirected to an external website:</div>
-        <div id="popupUrl" class="popup-url">https://example.com</div>
-        <div class="popup-actions">
-            <button id="popupCancel" class="popup-btn popup-btn-cancel">Cancel</button>
-            <button id="popupContinue" class="popup-btn popup-btn-confirm">Continue</button>
-        </div>
-    </div>
-    <div id="popupOverlay" class="popup-overlay"></div>
-
     <audio id="audioPlayer" class="audio-player"></audio>
     <script>
     const API_URL = 'https://versz-vs1b.onrender.com';
@@ -1126,7 +1005,6 @@
     let currentTitle = '';
     let fullTitle = '';
     let timezoneInterval = null;
-    let pendingLink = null; // Store link when confirmation popup is shown
 
     window.addEventListener('resize', () => {
         isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -1204,50 +1082,6 @@
                 isPlaying = false;
             }
         });
-    }
-    
-    // Initialize link popup
-    function initLinkPopup() {
-        const popup = document.getElementById('linkPopup');
-        const overlay = document.getElementById('popupOverlay');
-        const cancelBtn = document.getElementById('popupCancel');
-        const continueBtn = document.getElementById('popupContinue');
-        
-        cancelBtn.addEventListener('click', () => {
-            popup.style.display = 'none';
-            overlay.style.display = 'none';
-            pendingLink = null;
-        });
-        
-        continueBtn.addEventListener('click', () => {
-            if (pendingLink) {
-                window.open(pendingLink, '_blank');
-                pendingLink = null;
-            }
-            popup.style.display = 'none';
-            overlay.style.display = 'none';
-        });
-        
-        // Close popup when clicking outside
-        overlay.addEventListener('click', () => {
-            popup.style.display = 'none';
-            overlay.style.display = 'none';
-            pendingLink = null;
-        });
-    }
-    
-    function showLinkConfirmation(url) {
-        pendingLink = url;
-        const popup = document.getElementById('linkPopup');
-        const overlay = document.getElementById('popupOverlay');
-        const urlElement = document.getElementById('popupUrl');
-        
-        // Set the URL in the popup
-        urlElement.textContent = url;
-        
-        // Show the popup
-        popup.style.display = 'block';
-        overlay.style.display = 'block';
     }
     
     // Format time in minutes:seconds
@@ -1515,37 +1349,6 @@
         timezoneInterval = setInterval(updateTime, 60000);
     }
 
-    // Function to process @mentions in bio text
-    function processBioText(text) {
-        if (!text) return '';
-        
-        // Regular expression to find @mentions
-        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-        
-        // Replace @mentions with links
-        return text.replace(mentionRegex, (match, username) => {
-            return `<a href="/${username}" class="mention-link" data-username="${username}">@${username}</a>`;
-        });
-    }
-
-    // Function to setup external link handling for bio links
-    function setupBioLinks() {
-        const bio = document.getElementById('bio');
-        
-        // Add click event listener to all links in bio
-        bio.querySelectorAll('a').forEach(link => {
-            // Skip Versz links (mentions)
-            if (link.classList.contains('mention-link')) {
-                return;
-            }
-            
-            link.addEventListener('click', (event) => {
-                event.preventDefault();
-                showLinkConfirmation(link.href);
-            });
-        });
-    }
-
     async function loadContent() {
         const path = window.location.pathname.substring(1);
         const urlParams = new URLSearchParams(window.location.search);
@@ -1726,7 +1529,6 @@
             previewBanner.style.display = 'none';
         }
     }
-    
     function applyNameEffect(element, effect) {
         if (!element || !effect) return;
         
@@ -1952,19 +1754,15 @@
             document.getElementById('timezoneContainer').style.display = 'none';
         }
         
-        // Set bio with @mention processing
+        // Set bio
         if (page.bio) {
-            const bioElement = document.getElementById('bio');
-            bioElement.innerHTML = processBioText(page.bio);
-            bioElement.style.display = 'block';
+            document.getElementById('bio').textContent = page.bio;
+            document.getElementById('bio').style.display = 'block';
             
             // Apply bio effect if specified
             if (page.bio_effect) {
-                applyNameEffect(bioElement, page.bio_effect);
+                applyNameEffect(document.getElementById('bio'), page.bio_effect);
             }
-            
-            // Setup link confirmations for external links in bio
-            setupBioLinks();
         } else {
             document.getElementById('bio').style.display = 'none';
         }
@@ -1979,7 +1777,7 @@
         renderSocialLinks(page.social_links || []);
         
         // Set songs
-        renderSongs(page.songs || [], page.layout);
+        renderSongs(page.songs || []);
         
         // Set views counter
         if (data.views !== undefined && page.show_views !== false) {
@@ -2074,55 +1872,43 @@
         if (!layout) return;
         
         const profileContainer = document.getElementById('profileContainer');
-        const songsContentContainer = document.getElementById('songsContentContainer');
         
         if (layout.container_style && layout.container_style.enabled) {
-            // Apply container background color or gradient to both containers
+            // Apply container background color or gradient
             if (layout.container_style.background_color) {
                 profileContainer.style.backgroundColor = layout.container_style.background_color;
-                songsContentContainer.style.backgroundColor = layout.container_style.background_color;
             }
             
             if (layout.container_style.gradient) {
                 profileContainer.style.background = layout.container_style.gradient;
-                songsContentContainer.style.background = layout.container_style.gradient;
             }
             
             // Apply opacity
             if (layout.container_style.opacity !== undefined) {
                 profileContainer.style.opacity = layout.container_style.opacity;
-                songsContentContainer.style.opacity = layout.container_style.opacity;
             }
             
             // Apply border radius
             if (layout.container_style.border_radius !== undefined) {
                 profileContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
-                songsContentContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
             }
             
             // Apply border color
             if (layout.container_style.border_color) {
                 profileContainer.style.borderColor = layout.container_style.border_color;
-                songsContentContainer.style.borderColor = layout.container_style.border_color;
             }
             
             // Apply shadow
             if (layout.container_style.shadow) {
                 profileContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
-                songsContentContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
             } else {
                 profileContainer.style.boxShadow = 'none';
-                songsContentContainer.style.boxShadow = 'none';
             }
         } else {
             // If container is disabled, remove borders and background
             profileContainer.style.border = 'none';
             profileContainer.style.backgroundColor = 'transparent';
             profileContainer.style.boxShadow = 'none';
-            
-            songsContentContainer.style.border = 'none';
-            songsContentContainer.style.backgroundColor = 'transparent';
-            songsContentContainer.style.boxShadow = 'none';
         }
     }
 
@@ -2172,12 +1958,6 @@
             linkElement.target = '_blank';
             linkElement.rel = 'noopener noreferrer';
             
-            // Setup confirmation popup for external links
-            linkElement.addEventListener('click', (e) => {
-                e.preventDefault();
-                showLinkConfirmation(link.url);
-            });
-            
             const imgElement = document.createElement('img');
             
             // Use icon from link if provided, otherwise use default icon for platform
@@ -2197,9 +1977,8 @@
     }
 
     // Function to render songs
-    function renderSongs(songs, layout) {
+    function renderSongs(songs) {
         const songsContainer = document.getElementById('songsContainer');
-        const songsContentContainer = document.getElementById('songsContentContainer');
         const songsList = document.getElementById('songsList');
         songsList.innerHTML = '';
         
@@ -2209,17 +1988,6 @@
         }
         
         songsContainer.style.display = 'block';
-        
-        // Apply container style to songs container based on layout
-        if (layout && layout.container_style) {
-            if (!layout.container_style.enabled) {
-                // If containers are disabled, hide the wrapper container
-                songsContentContainer.style.border = 'none';
-                songsContentContainer.style.backgroundColor = 'transparent';
-                songsContentContainer.style.boxShadow = 'none';
-                songsContentContainer.style.padding = '0';
-            }
-        }
         
         const audioPlayer = document.getElementById('audioPlayer');
         songsData = songs; // Store songs for global reference
@@ -2347,9 +2115,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize audio player
         initAudioPlayer();
-        
-        // Initialize link popup
-        initLinkPopup();
         
         // Load content
         loadContent();
