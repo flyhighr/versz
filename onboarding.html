@@ -61,14 +61,32 @@
                 <div class="onboarding-step" id="step-2">
                     <div class="step-title">Profile Details</div>
                     
+                    <!-- Replace the existing avatar form group with this -->
                     <div class="form-group">
-                        <label for="onboarding-avatar">Profile Picture URL</label>
-                        <div class="input-icon-wrapper">
-                            <i class="fas fa-image"></i>
-                            <input type="url" id="onboarding-avatar" name="avatar_url" placeholder="https://example.com/avatar.jpg">
-                        </div>
-                        <div class="avatar-preview">
-                            <img id="avatar-preview" src="img/default-avatar.png" alt="Avatar Preview">
+                        <label for="onboarding-avatar">Profile Picture</label>
+                        <div class="avatar-upload-container">
+                            <div class="avatar-preview">
+                                <img id="avatar-preview" src="img/default-avatar.png" alt="Avatar Preview">
+                            </div>
+                            <div class="avatar-upload-options">
+                                <div class="upload-btn-wrapper">
+                                    <button type="button" class="btn btn-outline btn-sm">
+                                        <i class="fas fa-upload"></i> Upload Image
+                                    </button>
+                                    <input type="file" id="avatar-upload" accept="image/*">
+                                </div>
+                                <div class="or-divider">or</div>
+                                <div class="avatar-url-input">
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-link"></i>
+                                        <input type="url" id="onboarding-avatar" name="avatar_url" placeholder="Enter image URL">
+                                    </div>
+                                    <button type="button" id="show-avatar-url" class="btn-icon">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="avatar-upload-status" class="upload-status"></div>
                         </div>
                     </div>
                     

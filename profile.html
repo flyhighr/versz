@@ -91,9 +91,26 @@
                                     <img id="profile-avatar" src="img/default-avatar.png" alt="Your Avatar">
                                 </div>
                                 <div class="avatar-upload" id="avatar-upload" style="display: none;">
-                                    <label for="avatar-url">Avatar URL</label>
-                                    <input type="url" id="avatar-url" name="avatar_url" placeholder="https://example.com/avatar.jpg">
-                                    <button type="button" id="update-avatar-btn" class="btn btn-sm">Update</button>
+                                    <div class="avatar-upload-container">
+                                        <div class="upload-btn-wrapper">
+                                            <button type="button" class="btn btn-outline btn-sm">
+                                                <i class="fas fa-upload"></i> Upload Image
+                                            </button>
+                                            <input type="file" id="avatar-file" accept="image/*">
+                                        </div>
+                                        <div class="or-divider">or</div>
+                                        <div class="avatar-url-input">
+                                            <div class="input-icon-wrapper">
+                                                <i class="fas fa-link"></i>
+                                                <input type="url" id="avatar-url" name="avatar_url" placeholder="Enter image URL">
+                                            </div>
+                                            <button type="button" id="show-avatar-url" class="btn-icon">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                        <div id="avatar-upload-status" class="upload-status"></div>
+                                        <button type="button" id="update-avatar-btn" class="btn btn-sm">Update</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="profile-details">
