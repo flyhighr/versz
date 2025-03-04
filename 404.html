@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Schoolbell&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -223,10 +222,6 @@
             gap: 5px;
         }
 
-        .user-detail i {
-            opacity: 0.7;
-        }
-
         /* Tags section */
         .tags-container {
             display: flex;
@@ -315,7 +310,9 @@
             gap: 5px;
         }
 
-        .detail-item i {
+        .detail-icon {
+            width: 16px;
+            height: 16px;
             opacity: 0.7;
         }
 
@@ -333,10 +330,6 @@
             border-radius: 8px;
             overflow: hidden;
             transition: transform 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #f0f0f0;
         }
 
         .social-icon:hover {
@@ -344,8 +337,8 @@
         }
 
         .social-icon img {
-            width: 70%;
-            height: 70%;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
         }
 
@@ -363,7 +356,9 @@
             gap: 10px;
         }
 
-        .section-title i {
+        .section-icon {
+            width: 20px;
+            height: 20px;
             opacity: 0.8;
         }
 
@@ -427,15 +422,41 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            color: #000;
-            font-size: 18px;
-            opacity: 0.8;
-            transition: all 0.2s ease;
         }
 
-        .play-button:hover {
-            opacity: 1;
-            transform: scale(1.1);
+        .play-icon {
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-left: 20px solid #000;
+            border-bottom: 10px solid transparent;
+        }
+
+        .pause-icon {
+            width: 15px;
+            height: 15px;
+            background: #000;
+            position: relative;
+        }
+
+        .pause-icon:before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 6px;
+            height: 15px;
+            background: #000;
+        }
+
+        .pause-icon:after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 6px;
+            height: 15px;
+            background: #000;
         }
 
         /* Now playing indicator */
@@ -479,19 +500,26 @@
             gap: 8px;
         }
 
-        .now-playing-controls button {
+        .control-button {
             background: none;
             border: none;
             color: white;
             cursor: pointer;
             padding: 5px;
-            font-size: 16px;
             opacity: 0.8;
             transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .now-playing-controls button:hover {
+        .control-button:hover {
             opacity: 1;
+        }
+
+        .control-icon {
+            width: 16px;
+            height: 16px;
         }
 
         /* Views counter */
@@ -504,7 +532,9 @@
             gap: 5px;
         }
 
-        .views-counter i {
+        .view-icon {
+            width: 16px;
+            height: 16px;
             opacity: 0.7;
         }
 
@@ -532,6 +562,8 @@
         }
 
         .stat-icon {
+            width: 16px;
+            height: 16px;
             opacity: 0.7;
         }
 
@@ -697,6 +729,11 @@
                 font-size: 24px;
             }
 
+            .section-icon {
+                width: 24px;
+                height: 24px;
+            }
+
             .song-item {
                 padding: 15px;
                 transition: transform 0.2s;
@@ -715,7 +752,12 @@
             .play-button {
                 width: 40px;
                 height: 40px;
-                font-size: 20px;
+            }
+
+            .play-icon {
+                border-top: 15px solid transparent;
+                border-left: 25px solid #000;
+                border-bottom: 15px solid transparent;
             }
 
             .views-counter {
@@ -782,7 +824,7 @@
             </div>
             
             <div class="timezone-container" id="timezoneContainer" style="display: none;">
-                <i class="fas fa-globe"></i>
+                <img src="https://cdn-icons-png.flaticon.com/512/484/484167.png" alt="Timezone" class="detail-icon">
                 <span id="timezoneText">UTC</span>
                 <span class="timezone-time" id="timezoneTime">00:00</span>
             </div>
@@ -794,19 +836,19 @@
         
         <div class="profile-details">
             <div class="detail-item" id="ageContainer" style="display: none;">
-                <i class="fas fa-birthday-cake"></i>
+                <img src="https://cdn-icons-png.flaticon.com/512/1047/1047711.png" alt="Age" class="detail-icon">
                 <span id="ageText">Age</span>
             </div>
             <div class="detail-item" id="genderContainer" style="display: none;">
-                <i class="fas fa-venus-mars"></i>
+                <img src="https://cdn-icons-png.flaticon.com/512/4080/4080288.png" alt="Gender" class="detail-icon">
                 <span id="genderText">Gender</span>
             </div>
             <div class="detail-item" id="pronounsContainer" style="display: none;">
-                <i class="fas fa-user"></i>
+                <img src="https://cdn-icons-png.flaticon.com/512/1077/1077063.png" alt="Pronouns" class="detail-icon">
                 <span id="pronounsText">Pronouns</span>
             </div>
             <div class="detail-item" id="locationContainer" style="display: none;">
-                <i class="fas fa-map-marker-alt"></i>
+                <img src="https://cdn-icons-png.flaticon.com/512/484/484167.png" alt="Location" class="detail-icon">
                 <span id="locationText">Location</span>
             </div>
         </div>
@@ -818,23 +860,24 @@
 
     <div id="songsContainer" class="songs-section" style="display: none;">
         <div class="section-title">
-            <i class="fas fa-music"></i> Music
+            <img src="https://cdn-icons-png.flaticon.com/512/2995/2995101.png" alt="Music" class="section-icon">
+            Music
         </div>
         <div id="songsList"></div>
     </div>
 
     <div class="views-counter" id="viewsCounter" style="display: none;">
-        <i class="fas fa-eye"></i>
+        <img src="https://cdn-icons-png.flaticon.com/512/709/709612.png" alt="Views" class="view-icon">
         <span id="viewsCount">0</span> views
     </div>
 
     <div id="statsBadge" class="stats-badge" style="display: none;">
         <div id="viewsCounterBadge" class="stat-item">
-            <i class="fas fa-eye stat-icon"></i>
+            <img src="https://cdn-icons-png.flaticon.com/512/709/709612.png" alt="Views" class="stat-icon">
             <span id="viewCountBadge">0</span>
         </div>
         <div id="joinedDateBadge" class="stat-item">
-            <i class="fas fa-calendar-alt stat-icon"></i>
+            <img src="https://cdn-icons-png.flaticon.com/512/2370/2370264.png" alt="Calendar" class="stat-icon">
             <span id="joinedDateTextBadge">Joined 6 months ago</span>
         </div>
     </div>
@@ -845,10 +888,18 @@
             <div class="now-playing-artist" id="npArtist">Artist</div>
         </div>
         <div class="now-playing-controls">
-            <button id="npPrev"><i class="fas fa-step-backward"></i></button>
-            <button id="npPlayPause"><i class="fas fa-pause" id="npPlayPauseIcon"></i></button>
-            <button id="npNext"><i class="fas fa-step-forward"></i></button>
-            <button id="npClose"><i class="fas fa-times"></i></button>
+            <button id="npPrev" class="control-button">
+                <img src="https://cdn-icons-png.flaticon.com/512/3318/3318703.png" alt="Previous" class="control-icon">
+            </button>
+            <button id="npPlayPause" class="control-button">
+                <img src="https://cdn-icons-png.flaticon.com/512/2404/2404479.png" alt="Pause" id="npPlayPauseIcon" class="control-icon">
+            </button>
+            <button id="npNext" class="control-button">
+                <img src="https://cdn-icons-png.flaticon.com/512/3318/3318722.png" alt="Next" class="control-icon">
+            </button>
+            <button id="npClose" class="control-button">
+                <img src="https://cdn-icons-png.flaticon.com/512/2976/2976286.png" alt="Close" class="control-icon">
+            </button>
         </div>
     </div>
 
@@ -888,11 +939,11 @@
         npPlayPause.addEventListener('click', () => {
             if (audioPlayer.paused) {
                 audioPlayer.play();
-                npPlayPauseIcon.className = 'fas fa-pause';
+                npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/2404/2404479.png";
                 isPlaying = true;
             } else {
                 audioPlayer.pause();
-                npPlayPauseIcon.className = 'fas fa-play';
+                npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/3318/3318638.png";
                 isPlaying = false;
             }
         });
@@ -932,7 +983,7 @@
                 currentSongIndex = (currentSongIndex + 1) % songsData.length;
                 loadAndPlaySong(songsData[currentSongIndex]);
             } else {
-                npPlayPauseIcon.className = 'fas fa-play';
+                npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/3318/3318638.png";
                 isPlaying = false;
             }
         });
@@ -1073,32 +1124,38 @@
             audio.load();
             audio.play()
                 .then(() => {
-                    npPlayPauseIcon.className = 'fas fa-pause';
+                    npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/2404/2404479.png";
                     isPlaying = true;
                     nowPlaying.style.display = 'flex';
                     
                     // Update all song item play buttons to show play icon
-                    document.querySelectorAll('.play-button i').forEach(icon => {
-                        icon.className = 'fas fa-play';
+                    document.querySelectorAll('.play-button').forEach(button => {
+                        const playIcon = document.createElement('div');
+                        playIcon.className = 'play-icon';
+                        button.innerHTML = '';
+                        button.appendChild(playIcon);
                     });
                     
                     // Update the current song's play button to show pause
                     const songItems = document.querySelectorAll('.song-item');
                     if (songItems[currentSongIndex]) {
-                        const playButton = songItems[currentSongIndex].querySelector('.play-button i');
+                        const playButton = songItems[currentSongIndex].querySelector('.play-button');
                         if (playButton) {
-                            playButton.className = 'fas fa-pause';
+                            const pauseIcon = document.createElement('div');
+                            pauseIcon.className = 'pause-icon';
+                            playButton.innerHTML = '';
+                            playButton.appendChild(pauseIcon);
                         }
                     }
                 })
                 .catch(error => {
                     console.error('Error playing audio:', error);
-                    npPlayPauseIcon.className = 'fas fa-play';
+                    npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/3318/3318638.png";
                     isPlaying = false;
                 });
         } else {
             console.log('No direct audio URL available for this song');
-            npPlayPauseIcon.className = 'fas fa-play';
+            npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/3318/3318638.png";
             isPlaying = false;
             
             // Show a message to the user that direct playback is not available
@@ -1704,21 +1761,21 @@
         
         // Use CDN-hosted images to avoid CORS issues
         const socialIcons = {
-            'instagram': '<i class="fab fa-instagram"></i>',
-            'twitter': '<i class="fab fa-twitter"></i>',
-            'facebook': '<i class="fab fa-facebook"></i>',
-            'tiktok': '<i class="fab fa-tiktok"></i>',
-            'youtube': '<i class="fab fa-youtube"></i>',
-            'linkedin': '<i class="fab fa-linkedin"></i>',
-            'github': '<i class="fab fa-github"></i>',
-            'twitch': '<i class="fab fa-twitch"></i>',
-            'spotify': '<i class="fab fa-spotify"></i>',
-            'snapchat': '<i class="fab fa-snapchat"></i>',
-            'discord': '<i class="fab fa-discord"></i>',
-            'pinterest': '<i class="fab fa-pinterest"></i>',
-            'reddit': '<i class="fab fa-reddit"></i>',
-            'email': '<i class="fas fa-envelope"></i>',
-            'website': '<i class="fas fa-globe"></i>'
+            'instagram': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/132px-Instagram_logo_2016.svg.png',
+            'twitter': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Logo_of_Twitter.svg/512px-Logo_of_Twitter.svg.png',
+            'facebook': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/1200px-Facebook_Logo_%282019%29.png',
+            'tiktok': 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png',
+            'youtube': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/2560px-YouTube_full-color_icon_%282017%29.svg.png',
+            'linkedin': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/LinkedIn_logo_initials.png/640px-LinkedIn_logo_initials.png',
+            'github': 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+            'twitch': 'https://assets.stickpng.com/images/580b57fcd9996e24bc43c540.png',
+            'spotify': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/2048px-Spotify_logo_without_text.svg.png',
+            'snapchat': 'https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Snapchat_logo.svg/1200px-Snapchat_logo.svg.png',
+            'discord': 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png',
+            'pinterest': 'https://upload.wikimedia.org/wikipedia/commons/0/08/Pinterest-logo.png',
+            'reddit': 'https://www.redditinc.com/assets/images/site/reddit-logo.png',
+            'email': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Gmail_icon_%282020%29.svg/2560px-Gmail_icon_%282020%29.svg.png',
+            'website': 'https://cdn-icons-png.flaticon.com/512/1150/1150626.png'
         };
         
         links.forEach(link => {
@@ -1728,13 +1785,18 @@
             linkElement.target = '_blank';
             linkElement.rel = 'noopener noreferrer';
             
+            const imgElement = document.createElement('img');
+            
             // Use icon from link if provided, otherwise use default icon for platform
             if (link.icon) {
-                linkElement.innerHTML = `<img src="${link.icon}" alt="${link.display_name || link.platform}">`;
+                imgElement.src = link.icon;
             } else {
                 const platform = link.platform.toLowerCase();
-                linkElement.innerHTML = socialIcons[platform] || '<i class="fas fa-link"></i>';
+                imgElement.src = socialIcons[platform] || 'https://cdn-icons-png.flaticon.com/512/1150/1150626.png';
             }
+            
+            imgElement.alt = link.display_name || link.platform;
+            linkElement.appendChild(imgElement);
             
             linkElement.title = link.display_name || link.platform;
             socialLinksContainer.appendChild(linkElement);
@@ -1788,7 +1850,10 @@
             
             const playButton = document.createElement('button');
             playButton.className = 'play-button';
-            playButton.innerHTML = '<i class="fas fa-play"></i>';
+            
+            const playIcon = document.createElement('div');
+            playIcon.className = 'play-icon';
+            playButton.appendChild(playIcon);
             
             // Setup play functionality
             songItem.addEventListener('click', function() {
@@ -1815,13 +1880,25 @@
                     // Pause current song
                     audioPlayer.pause();
                     isPlaying = false;
-                    playButton.innerHTML = '<i class="fas fa-play"></i>';
-                    document.getElementById('npPlayPauseIcon').className = 'fas fa-play';
+                    
+                    // Update play button icon
+                    playButton.innerHTML = '';
+                    const newPlayIcon = document.createElement('div');
+                    newPlayIcon.className = 'play-icon';
+                    playButton.appendChild(newPlayIcon);
+                    
+                    // Update now playing control
+                    document.getElementById('npPlayPauseIcon').src = "https://cdn-icons-png.flaticon.com/512/3318/3318638.png";
                     document.getElementById('nowPlaying').style.display = 'none';
                 } else {
                     // Play new song
                     loadAndPlaySong(song);
-                    playButton.innerHTML = '<i class="fas fa-pause"></i>';
+                    
+                    // Update play button icon
+                    playButton.innerHTML = '';
+                    const pauseIcon = document.createElement('div');
+                    pauseIcon.className = 'pause-icon';
+                    playButton.appendChild(pauseIcon);
                 }
             });
             
@@ -1849,8 +1926,18 @@
                 loadAndPlaySong(nextSong);
                 
                 // Update play buttons
-                document.querySelectorAll('.play-button i').forEach((icon, idx) => {
-                    icon.className = idx === currentSongIndex ? 'fas fa-pause' : 'fas fa-play';
+                document.querySelectorAll('.song-item').forEach((item, idx) => {
+                    const button = item.querySelector('.play-button');
+                    if (button) {
+                        button.innerHTML = '';
+                        const icon = document.createElement('div');
+                        if (idx === currentSongIndex) {
+                            icon.className = 'pause-icon';
+                        } else {
+                            icon.className = 'play-icon';
+                        }
+                        button.appendChild(icon);
+                    }
                 });
             }
         };
