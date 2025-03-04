@@ -2205,10 +2205,13 @@
             const songItem = document.createElement('div');
             songItem.className = 'song-item';
             
-            // Apply container style if enabled
+            // Apply container style if enabled, otherwise make transparent
             if (containerEnabled) {
+                // Apply container background if enabled
                 if (layout.container_style.background_color) {
                     songItem.style.backgroundColor = layout.container_style.background_color;
+                } else {
+                    songItem.style.backgroundColor = '#f9f9f9'; // Default background
                 }
                 
                 if (layout.container_style.border_radius !== undefined) {
@@ -2223,8 +2226,8 @@
                     songItem.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
                 }
             } else {
-                // If containers disabled, use default styling
-                songItem.style.backgroundColor = '#f9f9f9';
+                // If containers disabled, make completely transparent with no background
+                songItem.style.backgroundColor = 'transparent';
                 songItem.style.boxShadow = 'none';
             }
             
@@ -2319,6 +2322,7 @@
             songsList.appendChild(songItem);
         });
     }
+        
     // Function to render tags
     function renderTags(tags) {
         const tagsContainer = document.querySelector('.tags-container');
