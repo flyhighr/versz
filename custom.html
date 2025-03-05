@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Versz Custom CSS & JS Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Schoolbell&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #5f27cd;
+            --secondary-color: #ff6b6b;
+            --accent-color: #1dd1a1;
+            --dark-color: #222f3e;
+            --light-color: #f5f6fa;
+            --code-bg: #2d3436;
+            --code-color: #dfe6e9;
+            --border-color: #dcdde1;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --container-width: 1100px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
+            background-color: var(--light-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: var(--container-width);
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(95, 39, 205, 0.8), rgba(95, 39, 205, 0.4));
+            z-index: 1;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-family: 'Schoolbell', cursive;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        .nav {
+            background-color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px var(--shadow-color);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            color: var(--dark-color);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav a:hover {
+            background-color: var(--light-color);
+            color: var(--primary-color);
+        }
+
+        .nav a.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 3rem 0;
+        }
+
+        .section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 80px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            color: var(--dark-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+            color: var(--dark-color);
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--code-bg);
+            color: var(--code-color);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        code {
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .code-header {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem 1rem;
+            color: white;
+            font-size: 0.8rem;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            margin-top: -1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .copy-btn:hover {
+            opacity: 1;
+        }
+
+        /* Steps and Cards */
+        .steps {
+            counter-reset: step;
+            margin: 2rem 0;
+        }
+
+        .step {
+            position: relative;
+            padding: 1.5rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            margin-bottom: 2rem;
+            padding-left: 4rem;
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 1.5rem;
+            top: 1.5rem;
+            width: 2rem;
+            height: 2rem;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Examples Gallery */
+        .examples-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .example-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .example-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px var(--shadow-color);
+        }
+
+        .example-preview {
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .example-preview.neon {
+            background-color: #0a0a0a;
+        }
+
+        .example-preview.minimalist {
+            background-color: #f9f9f9;
+        }
+
+        .example-preview.retro {
+            background-color: #111;
+        }
+
+        .example-card-content {
+            padding: 1.5rem;
+        }
+
+        .example-card h4 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .example-card p {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--dark-color);
+            opacity: 0.8;
+        }
+
+        .example-card .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .example-card .btn:hover {
+            background-color: #4527a0;
+        }
+
+        /* Preview elements for examples */
+        .profile-container-preview {
+            width: 90%;
+            height: 100px;
+            margin: 20px auto;
+            border-radius: 10px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .avatar-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin-right: 15px;
+        }
+
+        .profile-info-preview {
+            flex: 1;
+        }
+
+        .profile-name-preview {
+            height: 20px;
+            width: 150px;
+            background-color: #ddd;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .username-preview {
+            height: 15px;
+            width: 100px;
+            background-color: #ddd;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+
+        /* Neon theme preview */
+        .neon .profile-container-preview {
+            background-color: rgba(20, 20, 20, 0.8);
+            border: 1px solid #ff00ff;
+            box-shadow: 0 0 15px #ff00ff, inset 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .neon .profile-name-preview {
+            background-color: #0ff;
+            box-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+        }
+
+        .neon .username-preview {
+            background-color: #ff00ff;
+        }
+
+        .neon .avatar-preview {
+            background-color: #333;
+            border: 2px solid #0ff;
+        }
+
+        /* Minimalist theme preview */
+        .minimalist .profile-container-preview {
+            background-color: white;
+            border: none;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .minimalist .profile-name-preview {
+            background-color: #333;
+        }
+
+        .minimalist .username-preview {
+            background-color: #999;
+        }
+
+        .minimalist .avatar-preview {
+            background-color: #f0f0f0;
+            border: 1px solid #eee;
+        }
+
+        /* Retro gaming theme preview */
+        .retro .profile-container-preview {
+            background-color: #222;
+            border: 2px solid #33ff33;
+            box-shadow: 5px 5px 0 #33ff33;
+        }
+
+        .retro .profile-name-preview {
+            background-color: #33ff33;
+        }
+
+        .retro .username-preview {
+            background-color: #ffff33;
+        }
+
+        .retro .avatar-preview {
+            background-color: #111;
+            border: 2px solid #33ff33;
+            border-radius: 0;
+        }
+
+        /* Tip boxes */
+        .tip-box {
+            background-color: rgba(29, 209, 161, 0.1);
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning-box {
+            background-color: rgba(255, 107, 107, 0.1);
+            border-left: 4px solid var(--secondary-color);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .tip-title {
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .warning-title {
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--primary-color);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 99;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            background-color: #4527a0;
+            transform: translateY(-3px);
+        }
+
+        /* Footer */
+        .footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        .footer p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .nav a {
+                margin: 0.25rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h3 {
+                font-size: 1.35rem;
+            }
+
+            .examples-gallery {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .section {
+                margin-bottom: 3rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            h3 {
+                font-size: 1.25rem;
+            }
+
+            .step {
+                padding-left: 1.5rem;
+            }
+
+            .step::before {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header" id="top">
+        <div class="header-content container">
+            <h1>Versz Custom CSS & JS Documentation</h1>
+            <p>Learn how to customize your Versz profile with custom CSS and JavaScript to create a unique, personalized experience.</p>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <div class="nav-container container">
+            <a href="#introduction" class="nav-link">Introduction</a>
+            <a href="#custom-css" class="nav-link">Custom CSS</a>
+            <a href="#custom-js" class="nav-link">Custom JS</a>
+            <a href="#best-practices" class="nav-link">Best Practices</a>
+            <a href="#troubleshooting" class="nav-link">Troubleshooting</a>
+            <a href="#examples" class="nav-link">Examples</a>
+        </div>
+    </nav>
+
+    <main class="main-content container">
+        <section id="introduction" class="section">
+            <h2>Introduction</h2>
+            <p>Versz profiles support custom CSS and JavaScript to help you create a unique, personalized experience beyond the standard customization options. This documentation will guide you through applying custom code to your profile.</p>
+            
+            <p>With custom code, you can:</p>
+            <ul>
+                <li>Create unique layouts and visual designs</li>
+                <li>Add interactive elements and animations</li>
+                <li>Customize every aspect of your profile's appearance</li>
+                <li>Implement special effects and behaviors</li>
+            </ul>
+
+            <div class="tip-box">
+                <div class="tip-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    Important Note
+                </div>
+                <p>Custom CSS and JavaScript are powerful tools, but they should be used responsibly. Poorly written code can break your profile's layout or functionality. Always test your changes before saving them.</p>
+            </div>
+        </section>
+
+        <section id="custom-css" class="section">
+            <h2>Custom CSS Guide</h2>
+            <p>Custom CSS allows you to override the default styling of your Versz profile. You can change colors, fonts, layouts, add animations, and much more.</p>
+
+            <h3 id="accessing-css-editor">Accessing the CSS Editor</h3>
+            <div class="steps">
+                <div class="step">
+                    <p>Log in to your Versz account</p>
+                </div>
+                <div class="step">
+                    <p>Navigate to your page settings</p>
+                </div>
+                <div class="step">
+                    <p>Click on "Appearance" or "Customization"</p>
+                </div>
+                <div class="step">
+                    <p>Find the "Advanced" section</p>
+                </div>
+                <div class="step">
+                    <p>Locate the "Custom CSS" textarea</p>
+                </div>
+                <div class="step">
+                    <p>Enter your CSS code</p>
+                </div>
+                <div class="step">
+                    <p>Click "Save" to apply your changes</p>
+                </div>
+            </div>
+
+            <h3 id="css-selectors">CSS Selectors Reference</h3>
+            <p>Here are the main selectors you can use to target elements on your profile:</p>
+
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS Selectors</span><button class="copy-btn">Copy</button></div><code>/* Main profile container */
+.profile-container { }
+
+/* Profile header section */
+.profile-header { }
+
+/* Avatar and decoration */
+.avatar-container { }
+.avatar { }
+.avatar-decoration { }
+
+/* Profile name and username */
+.profile-name { }
+.username { }
+
+/* Bio section */
+.bio { }
+
+/* User details */
+.user-details { }
+.detail-item { }
+
+/* Social links */
+.social-links { }
+.social-icon { }
+
+/* Music player section */
+.songs-section { }
+.song-item { }
+.song-cover { }
+.song-info { }
+.song-title { }
+.song-artist { }
+.play-button { }
+
+/* Now playing indicator */
+.now-playing { }
+
+/* Tags section */
+.tags-container { }
+.tag { }
+
+/* Background elements */
+.bg-image { }
+.bg-video { }
+.bg-overlay { }</code></pre>
+            </div>
+
+            <h3 id="common-styling">Common Styling Examples</h3>
+            
+            <h4>Changing Text Colors and Fonts</h4>
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS</span><button class="copy-btn">Copy</button></div><code>/* Change profile name color */
+.profile-name {
+  color: #ff6b6b;
+  font-family: 'Pacifico', cursive;
+}
+
+/* Style username */
+.username {
+  color: #5f27cd;
+  font-style: italic;
+}
+
+/* Style bio text */
+.bio {
+  color: #222f3e;
+  font-family: 'Montserrat', sans-serif;
+  line-height: 1.6;
+}</code></pre>
+            </div>
+
+            <div class="tip-box">
+                <div class="tip-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    Custom Fonts Tip
+                </div>
+                <p>When using custom fonts, make sure to include web-safe fallback fonts. You can import Google Fonts using <code>@import</code> at the beginning of your CSS.</p>
+                <pre><code>@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');</code></pre>
+            </div>
+
+            <h4>Styling the Profile Container</h4>
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS</span><button class="copy-btn">Copy</button></div><code>/* Create a glass-like container */
+.profile-container {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}</code></pre>
+            </div>
+
+            <h4>Custom Avatar Styling</h4>
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS</span><button class="copy-btn">Copy</button></div><code>/* Create a hexagonal avatar */
+.avatar {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  border: none !important;
+}
+
+/* Add avatar hover effect */
+.avatar-container:hover .avatar {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}</code></pre>
+            </div>
+
+            <h4>Styling Song Items</h4>
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS</span><button class="copy-btn">Copy</button></div><code>/* Custom song item styling */
+.song-item {
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  color: white;
+  border-radius: 12px;
+  padding: 15px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.song-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.song-title {
+  color: white;
+  font-weight: bold;
+}
+
+.song-artist {
+  color: rgba(255, 255, 255, 0.8);
+}</code></pre>
+            </div>
+
+            <h3 id="advanced-css">Advanced CSS Techniques</h3>
+            
+            <h4>Custom Scrollbar</h4>
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS</span><button class="copy-btn">Copy</button></div><code>/* Custom scrollbar */
+body::-webkit-scrollbar {
+  width: 10px;
+}
+
+body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: #5f27cd;
+  border-radius: 10px;
+}</code></pre>
+            </div>
+
+            <div class="warning-box">
+                <div class="warning-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    Browser Compatibility
+                </div>
+                <p>Custom scrollbar styles using <code>::-webkit-scrollbar</code> only work in WebKit-based browsers (Chrome, Safari, Edge). For Firefox, you'll need to use <code>scrollbar-width</code> and <code>scrollbar-color</code>.</p>
+            </div>
+
+            <h4>CSS Animations</h4>
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS</span><button class="copy-btn">Copy</button></div><code>/* Add a floating animation to your profile container */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.profile-container {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Add a pulse effect to social icons */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.social-icon:hover {
+  animation: pulse 1s infinite;
+}</code></pre>
+            </div>
+
+            <h4>Responsive Design Adjustments</h4>
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS</span><button class="copy-btn">Copy</button></div><code>/* Custom responsive adjustments */
+@media (max-width: 600px) {
+  .profile-container {
+    padding: 15px;
+  }
+  
+  .profile-name {
+    font-size: 24px;
+  }
+  
+  .avatar {
+    width: 80px;
+    height: 80px;
+  }
+}</code></pre>
+            </div>
+
+            <div class="tip-box">
+                <div class="tip-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    Mobile Optimization
+                </div>
+                <p>Always test your custom CSS on mobile devices or using browser developer tools' mobile emulation. Versz profiles are frequently viewed on mobile, so ensure your customizations look good on small screens.</p>
+            </div>
+            <h3 id="css-specificity">Understanding CSS Specificity</h3>
+            <p>When adding custom CSS to your Versz profile, it's important to understand CSS specificity to ensure your styles are applied correctly.</p>
+            
+            <p>CSS specificity determines which styles take precedence when multiple rules target the same element. Here's the order of specificity from lowest to highest:</p>
+            
+            <ol>
+                <li>Element selectors (<code>div</code>, <code>p</code>, etc.)</li>
+                <li>Class selectors (<code>.profile-name</code>, <code>.avatar</code>, etc.)</li>
+                <li>ID selectors (<code>#profileContainer</code>, <code>#bio</code>, etc.)</li>
+                <li>Inline styles (using <code>style</code> attribute)</li>
+                <li>!important declaration</li>
+            </ol>
+            
+            <div class="code-block">
+                <pre><div class="code-header"><span>CSS Specificity Example</span><button class="copy-btn">Copy</button></div><code>/* Less specific - might be overridden */
+.profile-name {
+  color: blue;
+}
+
+/* More specific - takes precedence */
+.profile-header .profile-name {
+  color: red;
+}
+
+/* Even more specific - will override both above */
+#profileContainer .profile-header .profile-name {
+  color: green;
+}
+
+/* Using !important - use sparingly */
+.profile-name {
+  color: purple !important; /* Will override all above */
+}</code></pre>
+            </div>
+            
+            <div class="warning-box">
+                <div class="warning-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    Use !important Sparingly
+                </div>
+                <p>While <code>!important</code> can be useful to override stubborn styles, it's considered a last resort in CSS. Overuse of <code>!important</code> can lead to maintenance issues. Try to use more specific selectors first.</p>
+            </div>
+        </section>
+
+        <section id="custom-js" class="section">
+            <h2>Custom JavaScript Guide</h2>
+            <p>Custom JavaScript allows you to add interactivity and dynamic behavior to your Versz profile. You can create animations, add event listeners, manipulate the DOM, and more.</p>
+
+            <h3 id="accessing-js-editor">Accessing the JavaScript Editor</h3>
+            <div class="steps">
+                <div class="step">
+                    <p>Log in to your Versz account</p>
+                </div>
+                <div class="step">
+                    <p>Navigate to your profile settings</p>
+                </div>
+                <div class="step">
+                    <p>Click on "Appearance" or "Customization"</p>
+                </div>
+                <div class="step">
+                    <p>Find the "Advanced" section</p>
+                </div>
+                <div class="step">
+                    <p>Locate the "Custom JavaScript" textarea</p>
+                </div>
+                <div class="step">
+                    <p>Enter your JavaScript code</p>
+                </div>
+                <div class="step">
+                    <p>Click "Save" to apply your changes</p>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <div class="warning-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    JavaScript Security
+                </div>
+                <p>Custom JavaScript runs in the context of your profile page. Be careful not to include code from untrusted sources, as it could potentially compromise your or your visitors' security.</p>
+            </div>
+
+            <h3 id="dom-manipulation">DOM Manipulation</h3>
+            <p>JavaScript allows you to select and modify elements on your profile page. Here's an example of changing the greeting in your bio based on the time of day:</p>
+
+            <div class="code-block">
+                <pre><div class="code-header"><span>JavaScript</span><button class="copy-btn">Copy</button></div><code>// Change the greeting in bio based on time of day
+const bio = document.getElementById('bio');
+const hour = new Date().getHours();
+let greeting;
+
+if (hour < 12) greeting = "Good morning";
+else if (hour < 18) greeting = "Good afternoon";
+else greeting = "Good evening";
+
+// Only modify if bio exists and starts with a greeting placeholder
+if (bio && bio.textContent.includes("{greeting}")) {
+  bio.textContent = bio.textContent.replace("{greeting}", greeting);
+}</code></pre>
+            </div>
+
+            <div class="tip-box">
+                <div class="tip-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    Using Placeholders
+                </div>
+                <p>For dynamic content like the greeting example above, include placeholders in your bio text (e.g., "{greeting} everyone!"). Your JavaScript can then replace these placeholders with dynamic content.</p>
+            </div>
+
+            <h3 id="adding-interactivity">Adding Interactivity</h3>
+            <p>You can make your profile more interactive by adding event listeners to elements. Here are some examples:</p>
+
+            <div class="code-block">
+                <pre><div class="code-header"><span>JavaScript</span><button class="copy-btn">Copy</button></div><code>// Add a click effect to your avatar
+const avatar = document.querySelector('.avatar');
+if (avatar) {
+  avatar.addEventListener('click', function() {
+    this.style.transform = 'rotate(360deg)';
+    this.style.transition = 'transform 1s ease';
+    
+    setTimeout(() => {
+      this.style.transform = 'rotate(0deg)';
+    }, 1000);
+  });
+}
+
+// Add hover sounds to song items
+const songItems = document.querySelectorAll('.song-item');
+const hoverSound = new Audio('https://example.com/hover-sound.mp3');
+
+songItems.forEach(item => {
+  item.addEventListener('mouseenter', () => {
+    hoverSound.currentTime = 0;
+    hoverSound.play();
+  });
+});</code></pre>
+            </div>
+
+            <div class="tip-box">
+                <div class="tip-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    Audio Autoplay Restrictions
+                </div>
+                <p>Modern browsers restrict audio autoplay without user interaction. For sounds to work, they should be triggered by user actions like clicks or hovers.</p>
+            </div>
+
+            <h3 id="animation-examples">Animation Examples</h3>
+            <p>JavaScript can create dynamic animations that respond to user interactions or run automatically:</p>
+
+            <div class="code-block">
+                <pre><div class="code-header"><span>JavaScript</span><button class="copy-btn">Copy</button></div><code>// Create a typing effect for your bio
+const bioElement = document.getElementById('bio');
+if (bioElement) {
+  const originalText = bioElement.textContent;
+  bioElement.textContent = '';
+  
+  let i = 0;
+  const typingEffect = setInterval(() => {
+    if (i < originalText.length) {
+      bioElement.textContent += originalText.charAt(i);
+      i++;
+    } else {
+      clearInterval(typingEffect);
+    }
+  }, 50);
+}
+
+// Add a confetti effect when clicking on your name
+const profileName = document.getElementById('profileName');
+if (profileName) {
+  profileName.addEventListener('click', () => {
+    // Simple confetti effect
+    for (let i = 0; i < 50; i++) {
+      const confetti = document.createElement('div');
+      confetti.style.position = 'fixed';
+      confetti.style.width = '10px';
+      confetti.style.height = '10px';
+      confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+      confetti.style.borderRadius = '50%';
+      confetti.style.left = `${Math.random() * 100}%`;
+      confetti.style.top = `-10px`;
+      confetti.style.zIndex = '1000';
+      document.body.appendChild(confetti);
+      
+      // Animate the confetti
+      const animation = confetti.animate([
+        { transform: 'translateY(0)', opacity: 1 },
+        { transform: `translateY(${window.innerHeight}px)`, opacity: 0 }
+      ], {
+        duration: 1000 + Math.random() * 2000,
+        easing: 'cubic-bezier(.17,.67,.83,.67)'
+      });
+      
+      animation.onfinish = () => confetti.remove();
+    }
+  });
+}</code></pre>
+            </div>
+
+            <h3 id="advanced-js">Advanced JavaScript Techniques</h3>
+            
+            <h4>Creating Custom Components</h4>
+            <p>You can create reusable components to enhance your profile:</p>
+
+            <div class="code-block">
+                <pre><div class="code-header"><span>JavaScript</span><button class="copy-btn">Copy</button></div><code>// Create a floating notification component
+function createNotification(message, duration = 3000) {
+  // Create elements
+  const notification = document.createElement('div');
+  notification.className = 'custom-notification';
+  notification.textContent = message;
+  
+  // Style the notification
+  Object.assign(notification.style, {
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    background: 'rgba(0, 0, 0, 0.8)',
+    color: 'white',
+    padding: '10px 20px',
+    borderRadius: '5px',
+    boxShadow: '0 3px 10px rgba(0, 0, 0, 0.2)',
+    zIndex: '1000',
+    opacity: '0',
+    transition: 'opacity 0.3s ease'
+  });
+  
+  // Add to document
+  document.body.appendChild(notification);
+  
+  // Show notification
+  setTimeout(() => {
+    notification.style.opacity = '1';
+  }, 10);
+  
+  // Hide and remove after duration
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, duration);
+  
+  return notification;
+}
+
+// Example usage
+document.querySelector('.avatar').addEventListener('click', () => {
+  createNotification('You clicked on the avatar!');
+});</code></pre>
+            </div>
+
+            <h4>Integrating External Libraries</h4>
+            <p>You can integrate external JavaScript libraries to add advanced functionality:</p>
+
+            <div class="code-block">
+                <pre><div class="code-header"><span>JavaScript</span><button class="copy-btn">Copy</button></div><code>// Load an external library (example with particle.js)
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// Load and initialize particles.js
+loadScript('https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js')
+  .then(() => {
+    // Create container for particles
+    const particlesContainer = document.createElement('div');
+    particlesContainer.id = 'particles-js';
+    Object.assign(particlesContainer.style, {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      zIndex: -1
+    });
+    document.body.prepend(particlesContainer);
+    
+    // Initialize particles
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 80 },
+        color: { value: '#5f27cd' },
+        opacity: { value: 0.5 },
+        size: { value: 3 },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: '#5f27cd',
+          opacity: 0.4,
+          width: 1
+        },
+        move: { enable: true, speed: 2 }
+      }
+    });
+  })
+  .catch(error => console.error('Failed to load particles.js', error));</code></pre>
+            </div>
+
+            <div class="warning-box">
+                <div class="warning-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    External Libraries
+                </div>
+                <p>When loading external libraries, make sure they are from trusted sources and served over HTTPS. Large libraries can slow down your profile loading time, so use them judiciously.</p>
+            </div>
+
+            <h4>Creating Custom Music Visualizers</h4>
+            <p>You can create a music visualizer that responds to your profile's music player:</p>
+
+            <div class="code-block">
+                <pre><div class="code-header"><span>JavaScript</span><button class="copy-btn">Copy</button></div><code>// Create a simple audio visualizer
+const audioPlayer = document.getElementById('audioPlayer');
+if (audioPlayer) {
+  // Create visualizer container
+  const visualizer = document.createElement('div');
+  visualizer.className = 'audio-visualizer';
+  Object.assign(visualizer.style, {
+    position: 'fixed',
+    bottom: '80px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    alignItems: 'flex-end',
+    height: '50px',
+    gap: '3px',
+    zIndex: '99'
+  });
+  
+  // Create bars
+  for (let i = 0; i < 20; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'visualizer-bar';
+    Object.assign(bar.style, {
+      width: '5px',
+      height: '5px',
+      backgroundColor: '#5f27cd',
+      borderRadius: '2px',
+      transition: 'height 0.1s ease'
+    });
+    visualizer.appendChild(bar);
+  }
+  
+  document.body.appendChild(visualizer);
+  
+  // Setup audio context and analyzer
+  let audioContext, analyzer, dataArray;
+  
+  audioPlayer.addEventListener('play', () => {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaElementSource(audioPlayer);
+      analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = 64;
+      
+      source.connect(analyzer);
+      analyzer.connect(audioContext.destination);
+      
+      dataArray = new Uint8Array(analyzer.frequencyBinCount);
+      
+      // Start visualization
+      visualize();
+    }
+    
+    visualizer.style.display = 'flex';
+  });
+  
+  audioPlayer.addEventListener('pause', () => {
+    visualizer.style.display = 'none';
+  });
+  
+  function visualize() {
+    if (!audioContext || audioPlayer.paused) return;
+    
+    requestAnimationFrame(visualize);
+    analyzer.getByteFrequencyData(dataArray);
+    
+    const bars = visualizer.querySelectorAll('.visualizer-bar');
+    for (let i = 0; i < bars.length; i++) {
+      const value = dataArray[i] || 0;
+      const height = Math.max(5, value / 255 * 50); // Scale to max 50px
+      bars[i].style.height = `${height}px`;
+    }
+  }
+}</code></pre>
+            </div>
+        </section>
+
+        <section id="best-practices" class="section">
+            <h2>Best Practices</h2>
+            <p>Follow these best practices to ensure your custom code works correctly and provides a good user experience:</p>
+
+            <div class="card">
+                <div class="card-header">Test your changes</div>
+                <p>Always test your custom code in different browsers and devices to ensure compatibility. What works in Chrome might not work in Safari or Firefox.</p>
+                <p>Use browser developer tools (F12 or Right-click > Inspect) to debug issues and test different screen sizes.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Keep it simple</div>
+                <p>Start with small changes and gradually build up your customizations. This makes it easier to identify and fix issues.</p>
+                <p>Complex animations or effects can be impressive but may cause performance issues, especially on mobile devices.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Comment your code</div>
+                <p>Add comments to help you remember what each part of your code does. This is especially important if you plan to update your customizations later.</p>
+                <div class="code-block">
+                    <pre><code>/* This section styles the profile container */
+.profile-container {
+  /* Glass effect background */
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  /* Rounded corners */
+  border-radius: 20px;
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Avoid performance issues</div>
+                <p>Complex animations, large images, or heavy scripts can slow down your profile. Consider the following:</p>
+                <ul>
+                    <li>Optimize images before using them</li>
+                    <li>Use CSS transitions instead of JavaScript animations when possible</li>
+                    <li>Avoid continuously running loops or animations</li>
+                    <li>Be careful with external resources (fonts, libraries, etc.)</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Use web-safe fonts</div>
+                <p>If you specify custom fonts, include fallback options in case the primary font fails to load:</p>
+                <div class="code-block">
+                    <pre><code>.profile-name {
+  font-family: 'Pacifico', cursive, 'Arial', sans-serif;
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Backup your code</div>
+                <p>Keep a copy of your custom CSS and JavaScript in a text file or code editor. This allows you to restore your customizations if something goes wrong or if you accidentally delete them.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Respect user experience</div>
+                <p>Avoid flashy animations or effects that might be disruptive or annoying. Consider users with accessibility needs:</p>
+                <ul>
+                    <li>Maintain good color contrast for readability</li>
+                    <li>Don't disable scrolling or basic navigation</li>
+                    <li>Avoid flashing content that could trigger seizures</li>
+                    <li>Make sure interactive elements are clearly identifiable</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="troubleshooting" class="section">
+            <h2>Troubleshooting</h2>
+            <p>Encountering issues with your custom code? Here are some common problems and solutions:</p>
+
+            <h3>CSS Not Applying</h3>
+            <div class="card">
+                <div class="card-header">Check for syntax errors</div>
+                <p>Missing semicolons, brackets, or typos can prevent your CSS from working. Make sure each property ends with a semicolon and each rule set has opening and closing curly braces.</p>
+                <div class="code-block">
+                    <pre><code>/* Incorrect - missing semicolon and closing brace */
+.profile-name {
+  color: #ff6b6b;
+  font-size: 24px
+
+/* Correct */
+.profile-name {
+  color: #ff6b6b;
+  font-size: 24px;
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Ensure you're using the correct selectors</div>
+                <p>Use browser developer tools to inspect elements and verify the class names. Some elements may have additional classes or be nested differently than expected.</p>
+                <p>Try using more specific selectors if your styles aren't being applied:</p>
+                <div class="code-block">
+                    <pre><code>/* More specific selector */
+.profile-header .profile-name {
+  color: #ff6b6b;
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Use !important for stubborn styles</div>
+                <p>If your styles are being overridden by the default theme, you can use <code>!important</code> to force your styles to take precedence:</p>
+                <div class="code-block">
+                    <pre><code>.profile-name {
+  color: #ff6b6b !important;
+}</code></pre>
+                </div>
+                <p>Remember to use <code>!important</code> sparingly, as it can make future styling more difficult.</p>
+            </div>
+
+            <h3>JavaScript Not Working</h3>
+            <div class="card">
+                <div class="card-header">Check the browser console for errors</div>
+                <p>Open your browser's developer tools (F12 or Right-click > Inspect) and look for error messages in the Console tab. These can provide clues about what's going wrong.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Make sure your code runs after the DOM is loaded</div>
+                <p>Your JavaScript might be running before the elements it's trying to access exist in the DOM. Wrap your code in an event listener for the DOMContentLoaded event:</p>
+                <div class="code-block">
+                    <pre><code>document.addEventListener('DOMContentLoaded', function() {
+  // Your code here
+  const bioElement = document.getElementById('bio');
+  if (bioElement) {
+    // Manipulate the bio element
+  }
+});</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Check if you're selecting elements that exist</div>
+                <p>Always check if elements exist before trying to manipulate them:</p>
+                <div class="code-block">
+                    <pre><code>const avatar = document.querySelector('.avatar');
+if (avatar) {
+  // Now it's safe to work with the avatar
+  avatar.addEventListener('click', function() {
+    // Click handler code
+  });
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Verify that your code doesn't conflict with existing scripts</div>
+                <p>Your custom JavaScript might be conflicting with existing scripts on the page. Try to use unique variable names and avoid overriding global variables.</p>
+            </div>
+
+            <h3>Profile Looks Broken</h3>
+            <div class="card">
+                <div class="card-header">Remove your custom code and add it back piece by piece</div>
+                <p>If your profile looks broken after adding custom code, try removing all of it and then adding it back one section at a time to identify the problematic part.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Make sure your CSS is responsive</div>
+                <p>Your customizations might look good on desktop but break on mobile devices. Add media queries to adjust styles for different screen sizes:</p>
+                <div class="code-block">
+                    <pre><code>@media (max-width: 768px) {
+  .profile-container {
+    padding: 15px;
+  }
+  
+  .profile-name {
+    font-size: 24px;
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Test in different browsers</div>
+                <p>Some CSS properties and JavaScript features may not be supported in all browsers. Test your profile in Chrome, Firefox, Safari, and Edge to ensure cross-browser compatibility.</p>
+            </div>
+        </section>
+
+        <section id="examples" class="section">
+            <h2>Examples Gallery</h2>
+            <p>Here are some examples of custom themes you can create with CSS and JavaScript:</p>
+
+            <div class="examples-gallery">
+                <div class="example-card">
+                    <div class="example-preview neon">
+                        <div class="profile-container-preview">
+                            <div class="avatar-preview"></div>
+                            <div class="profile-info-preview">
+                                <div class="profile-name-preview"></div>
+                                <div class="username-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="example-card-content">
+                        <h4>Neon Theme</h4>
+                        <p>A dark theme with bright neon colors and glow effects.</p>
+                        <button class="btn code-toggle" data-target="neon-code">View Code</button>
+                    </div>
+                </div>
+
+                <div class="example-card">
+                    <div class="example-preview minimalist">
+                        <div class="profile-container-preview">
+                            <div class="avatar-preview"></div>
+                            <div class="profile-info-preview">
+                                <div class="profile-name-preview"></div>
+                                <div class="username-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="example-card-content">
+                        <h4>Minimalist Theme</h4>
+                        <p>A clean, simple design with subtle animations and plenty of whitespace.</p>
+                        <button class="btn code-toggle" data-target="minimalist-code">View Code</button>
+                    </div>
+                </div>
+
+                <div class="example-card">
+                    <div class="example-preview retro">
+                        <div class="profile-container-preview">
+                            <div class="avatar-preview"></div>
+                            <div class="profile-info-preview">
+                                <div class="profile-name-preview"></div>
+                                <div class="username-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="example-card-content">
+                        <h4>Retro Gaming Theme</h4>
+                        <p>An 8-bit inspired theme with pixel fonts and retro gaming aesthetics.</p>
+                        <button class="btn code-toggle" data-target="retro-code">View Code</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="neon-code" style="display: none;">
+                <div class="code-block">
+                    <pre><div class="code-header"><span>Neon Theme CSS</span><button class="copy-btn">Copy</button></div><code>/* Neon theme */
+body {
+  background-color: #0a0a0a;
+  color: #fff;
+}
+
+.profile-container {
+  background-color: rgba(20, 20, 20, 0.8);
+  border: 1px solid #ff00ff;
+  box-shadow: 0 0 15px #ff00ff, inset 0 0 10px rgba(255, 0, 255, 0.5);
+}
+
+.profile-name {
+  color: #0ff;
+  text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+}
+
+.username {
+  color: #ff00ff;
+}
+
+.song-item {
+  background-color: rgba(30, 30, 30, 0.9);
+  border-left: 3px solid #0ff;
+}
+
+.social-icon {
+  filter: drop-shadow(0 0 3px #ff00ff);
+}
+
+/* Neon text effect for section titles */
+.section-title {
+  color: #0ff;
+  text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+}
+
+/* Neon glow effect for play buttons */
+.play-button {
+  border: 1px solid #ff00ff;
+  box-shadow: 0 0 8px #ff00ff;
+}
+
+/* Animated neon border effect */
+@keyframes neonPulse {
+  0% { box-shadow: 0 0 5px #ff00ff, inset 0 0 5px #ff00ff; }
+  50% { box-shadow: 0 0 20px #ff00ff, inset 0 0 10px #ff00ff; }
+  100% { box-shadow: 0 0 5px #ff00ff, inset 0 0 5px #ff00ff; }
+}
+
+.profile-container {
+  animation: neonPulse 2s infinite;
+}</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <pre><div class="code-header"><span>Neon Theme JavaScript</span><button class="copy-btn">Copy</button></div><code>// Add flickering effect to neon elements
+const neonElements = document.querySelectorAll('.profile-name, .section-title');
+
+function flicker() {
+  neonElements.forEach(el => {
+    // Random chance of flickering
+    if (Math.random() < 0.1) {
+      // Reduce opacity briefly
+      el.style.opacity = 0.7;
+      el.style.textShadow = 'none';
+      
+      // Restore after random time
+      setTimeout(() => {
+        el.style.opacity = 1;
+        el.style.textShadow = '0 0 5px #0ff, 0 0 10px #0ff';
+      }, 50 + Math.random() * 100);
+    }
+  });
+  
+  // Schedule next flicker
+  setTimeout(flicker, 500 + Math.random() * 2000);
+}
+
+// Start the flickering effect
+flicker();</code></pre>
+                </div>
+            </div>
+
+            <div id="minimalist-code" style="display: none;">
+                <div class="code-block">
+                    <pre><div class="code-header"><span>Minimalist Theme CSS</span><button class="copy-btn">Copy</button></div><code>/* Minimalist theme */
+body {
+  background-color: #f9f9f9;
+  font-family: 'Helvetica Neue', sans-serif;
+}
+
+.profile-container {
+  background-color: white;
+  border: none;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.profile-name {
+  font-weight: 300;
+  letter-spacing: 1px;
+}
+
+.username {
+  color: #999;
+}
+
+.song-item {
+  border-bottom: 1px solid #eee;
+  border-radius: 0;
+  padding: 15px 0;
+  margin-bottom: 0;
+}
+
+.social-icon {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.social-icon:hover {
+  opacity: 1;
+}
+
+/* Clean avatar style */
+.avatar {
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Minimal play button */
+.play-button {
+  background-color: #f5f5f5;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.play-button:hover {
+  background-color: #eee;
+}
+
+/* Clean section titles */
+.section-title {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  font-weight: 300;
+  letter-spacing: 1px;
+}</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <pre><div class="code-header"><span>Minimalist Theme JavaScript</span><button class="copy-btn">Copy</button></div><code>// Add subtle fade-in effect for elements
+document.addEventListener('DOMContentLoaded', function() {
+  const elements = document.querySelectorAll('.profile-container, .song-item, .social-icon');
+  
+  elements.forEach((el, index) => {
+    // Set initial opacity
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 0.5s ease';
+    
+    // Fade in with delay based on index
+    setTimeout(() => {
+      el.style.opacity = '1';
+    }, 100 + (index * 50));
+  });
+  
+  // Add subtle hover effect to profile container
+  const profileContainer = document.querySelector('.profile-container');
+  if (profileContainer) {
+    profileContainer.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-5px)';
+      this.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+      this.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
+    });
+    
+    profileContainer.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+      this.style.boxShadow = '0 2px 15px rgba(0, 0, 0, 0.05)';
+    });
+  }
+});</code></pre>
+                </div>
+            </div>
+
+            <div id="retro-code" style="display: none;">
+                <div class="code-block">
+                    <pre><div class="code-header"><span>Retro Gaming Theme CSS</span><button class="copy-btn">Copy</button></div><code>/* Retro gaming theme */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+body {
+  background-color: #111;
+  color: #33ff33;
+  font-family: 'Press Start 2P', cursive;
+}
+
+.profile-container {
+  background-color: #222;
+  border: 2px solid #33ff33;
+  box-shadow: 5px 5px 0 #33ff33;
+  padding: 20px;
+}
+
+.profile-name {
+  color: #33ff33;
+  text-shadow: 2px 2px 0 #006600;
+}
+
+.username {
+  color: #ffff33;
+}
+
+.song-item {
+  background-color: #333;
+  border: 1px solid #33ff33;
+}
+
+.song-title {
+  color: #33ff33;
+}
+
+.song-artist {
+  color: #ffff33;
+}
+
+.bio {
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Pixelated avatar */
+.avatar {
+  image-rendering: pixelated;
+  border: 2px solid #33ff33;
+}
+
+/* Retro buttons */
+.play-button {
+  background-color: #333;
+  border: 2px solid #33ff33;
+  border-radius: 0;
+}
+
+.play-icon {
+  border-left-color: #33ff33;
+}
+
+/* Scanline effect for the entire page */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.1));
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.3;
+}</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <pre><div class="code-header"><span>Retro Gaming Theme JavaScript</span><button class="copy-btn">Copy</button></div><code>// Add retro typing effect to bio
+document.addEventListener('DOMContentLoaded', function() {
+  const bioElement = document.getElementById('bio');
+  if (bioElement) {
+    const originalText = bioElement.textContent;
+    bioElement.textContent = '';
+    
+    // Add blinking cursor
+    const cursor = document.createElement('span');
+    cursor.textContent = '█';
+    cursor.style.animation = 'blink 1s step-end infinite';
+    bioElement.appendChild(cursor);
+    
+    // Define keyframes for blinking cursor
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Typing effect with sound
+    let i = 0;
+    const typingSound = new Audio('https://www.soundjay.com/mechanical/sounds/typewriter-key-1.mp3');
+    
+    function typeNextChar() {
+      if (i < originalText.length) {
+        // Play sound with random volume variation
+        if (i % 3 === 0) { // Play sound every few characters to avoid overlap
+          typingSound.volume = 0.1 + Math.random() * 0.1;
+          typingSound.currentTime = 0;
+          typingSound.play().catch(e => console.log('Audio play prevented by browser'));
+        }
+        
+        bioElement.insertBefore(document.createTextNode(originalText.charAt(i)), cursor);
+        i++;
+        setTimeout(typeNextChar, 50 + Math.random() * 100);
+      }
+    }
+    
+    // Start typing effect after a short delay
+    setTimeout(typeNextChar, 1000);
+  }
+  
+  // Add pixelation effect to images
+  const images = document.querySelectorAll('img');
+  images.forEach(img => {
+    img.style.imageRendering = 'pixelated';
+  });
+});</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="section">
+            <h2>Conclusion</h2>
+            <p>Customizing your Versz profile with custom CSS and JavaScript allows you to create a unique experience that stands out from standard profiles. While the built-in customization options provide a good starting point, custom code gives you unlimited creative possibilities.</p>
+            
+            <p>Remember to follow best practices, test your code thoroughly, and consider the user experience when making customizations. Start with small changes, learn from examples, and gradually build your skills to create more complex effects.</p>
+            
+            <p>Don't be afraid to experiment! You can always revert to the default settings if something doesn't work as expected. The most impressive profiles often come from creative experimentation and learning through trial and error.</p>
+            
+            <div class="tip-box">
+                <div class="tip-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    Share Your Creations
+                </div>
+                <p>Consider sharing your custom themes and effects with the Versz community. Your creations might inspire others and help build a vibrant ecosystem of custom designs!</p>
+            </div>
+        </section>
+    </main>
+
+    <a href="#top" class="back-to-top" id="backToTop">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 12a.5.5 0 0 0 .5-.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 .5.5z"/>
+        </svg>
+    </a>
+
+    <footer class="footer">
+        <div class="container">
+            <p>Versz Custom CSS & JavaScript Documentation</p>
+            <p>For more information, visit <a href="https://versz.fun">Versz.Fun>
+        </div>
+    </footer>
+
+    <script>
+        // Show and hide code examples
+        document.querySelectorAll('.code-toggle').forEach(button => {
+            button.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const targetElement = document.getElementById(targetId);
+                
+                // Toggle the visibility
+                if (targetElement.style.display === 'none') {
+                    targetElement.style.display = 'block';
+                    this.textContent = 'Hide Code';
+                } else {
+                    targetElement.style.display = 'none';
+                    this.textContent = 'View Code';
+                }
+            });
+        });
+        
+        // Copy code functionality
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const codeBlock = this.closest('.code-header').nextElementSibling;
+                const textToCopy = codeBlock.textContent;
+                
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalText = this.textContent;
+                    this.textContent = 'Copied!';
+                    
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+            });
+        });
+        
+        // Back to top button
+        const backToTopButton = document.getElementById('backToTop');
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80, // Adjust for fixed header
+                        behavior: 'smooth'
+                    });
+                    
+                    // Update active link
+                    document.querySelectorAll('.nav-link').forEach(navLink => {
+                        navLink.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                }
+            });
+        });
+        
+        // Set active nav link based on scroll position
+        window.addEventListener('scroll', () => {
+            const scrollPosition = window.scrollY;
+            
+            document.querySelectorAll('.section').forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                const sectionBottom = sectionTop + section.offsetHeight;
+                
+                if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+                    const id = section.getAttribute('id');
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
