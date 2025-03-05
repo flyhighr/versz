@@ -1021,6 +1021,126 @@ async def register_user(
             "pronouns": None
         }
 
+
+@app.post("/change-password")
+@limiter.limit(RateLimits.AUTH_LIMIT)
+async def change_password(
+    request: Request,
+    data: dict = Body(...),
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Change user password"""
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+    
+    if not current_password or not new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Both current and new password are required"
+        )
+    
+    # Validate new password
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long"
+        )
+    
+    if not any(c.isupper() for c in new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one uppercase letter"
+        )
+    
+    if not any(c.islower() for c in new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one lowercase letter"
+        )
+    
+    if not any(c.isdigit() for c in new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one number"
+        )
+    
+    # Verify current password
+    if not await verify_password(current_password, current_user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect"
+        )
+    
+    # Update password
+    async with get_database() as db:
+        hashed_password = get_password_hash(new_password)
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {"hashed_password": hashed_password}}
+        )
+        
+        # Clear cache
+        await user_cache.delete(f"user:{current_user['email']}")
+        if current_user.get("username"):
+            await user_cache.delete(f"username:{current_user['username']}")
+        
+        return {"message": "Password changed successfully"}
+
+
+@app.get("/search-templates")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def search_templates(
+    request: Request,
+    q: str = Query(..., min_length=2, description="Search query"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=50)
+):
+    """Search for templates by name, description, or tags"""
+    async with get_database() as db:
+        # Create text search query
+        search_query = {
+            "$or": [
+                {"name": {"$regex": q, "$options": "i"}},
+                {"description": {"$regex": q, "$options": "i"}},
+                {"tags": {"$regex": q, "$options": "i"}}
+            ]
+        }
+        
+        # Calculate skip
+        skip = (page - 1) * limit
+        
+        # Query templates
+        templates = []
+        cursor = db.templates.find(search_query).sort("use_count", -1).skip(skip).limit(limit)
+        
+        # Process templates and add username
+        async for template in cursor:
+            # Get username of template creator
+            user = await db.users.find_one({"id": template["created_by"]})
+            username = user.get("username") if user else None
+            
+            # Format template
+            template["id"] = str(template["id"])
+            if "_id" in template:
+                template["_id"] = str(template["_id"])
+            
+            templates.append({
+                **template,
+                "created_by_username": username
+            })
+        
+        # Get total count for pagination
+        total_count = await db.templates.count_documents(search_query)
+        total_pages = (total_count + limit - 1) // limit
+        
+        return {
+            "templates": templates,
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages
+        }
+
 @app.post("/resend-verification")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def resend_verification_email(
