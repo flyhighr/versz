@@ -29,6 +29,7 @@
             </div>
             <div class="sidebar-user">
                 <div class="user-avatar">
+                    <div class="avatar-loading"></div>
                     <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
                 </div>
                 <div class="user-info">
@@ -88,6 +89,7 @@
                         <div class="profile-info-card">
                             <div class="profile-avatar-container">
                                 <div class="profile-avatar">
+                                    <div class="avatar-loading"></div>
                                     <img id="profile-avatar" src="img/default-avatar.png" alt="Your Avatar">
                                 </div>
                                 <div class="avatar-upload" id="avatar-upload" style="display: none;">
@@ -104,12 +106,9 @@
                                                 <i class="fas fa-link"></i>
                                                 <input type="url" id="avatar-url" name="avatar_url" placeholder="Enter image URL">
                                             </div>
-                                            <button type="button" id="show-avatar-url" class="btn-icon">
-                                                <i class="fas fa-chevron-down"></i>
-                                            </button>
                                         </div>
                                         <div id="avatar-upload-status" class="upload-status"></div>
-                                        <button type="button" id="update-avatar-btn" class="btn btn-sm">Update</button>
+                                        <button type="button" id="update-avatar-btn" class="btn btn-sm btn-primary">Update Avatar</button>
                                     </div>
                                 </div>
                             </div>
@@ -315,151 +314,150 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="edit-actions" id="preferences-edit-actions" style="display: none;">
+                            <button type="button" id="cancel-preferences-btn" class="btn btn-outline">Cancel</button>
+                            <button type="button" id="save-preferences-btn" class="btn btn-primary">Save Changes</button>
+                        </div>
                     </div>
-                    <div class="edit-actions" id="preferences-edit-actions" style="display: none;">
-                        <button type="button" id="cancel-preferences-btn" class="btn btn-outline">Cancel</button>
-                        <button type="button" id="save-preferences-btn" class="btn btn-primary">Save Changes</button>
+
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h2>Account</h2>
+                        </div>
+                        <div class="profile-info-card">
+                            <div class="account-actions">
+                                <button type="button" id="change-password-btn" class="btn btn-outline">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                                <button type="button" id="resend-verification-btn" class="btn btn-outline" style="display: none;">
+                                    <i class="fas fa-envelope"></i> Resend Verification Email
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="profile-section">
-                    <div class="section-header">
-                        <h2>Account</h2>
+                <div class="profile-sidebar">
+                    <div class="profile-card">
+                        <div class="card-header">
+                            <h3>User Tags</h3>
+                        </div>
+                        <div class="tags-container" id="user-tags">
+                            <!-- Tags will be loaded dynamically -->
+                            <div class="empty-tags">
+                                <p>No tags assigned yet</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="profile-info-card">
-                        <div class="account-actions">
-                            <button type="button" id="change-password-btn" class="btn btn-outline">
-                                <i class="fas fa-key"></i> Change Password
-                            </button>
-                            <button type="button" id="resend-verification-btn" class="btn btn-outline" style="display: none;">
-                                <i class="fas fa-envelope"></i> Resend Verification Email
-                            </button>
+
+                    <div class="profile-card">
+                        <div class="card-header">
+                            <h3>Account Stats</h3>
+                        </div>
+                        <div class="stats-container">
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="stat-details">
+                                    <div class="stat-value" id="stat-pages">0</div>
+                                    <div class="stat-label">Pages Created</div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="fas fa-eye"></i>
+                                </div>
+                                <div class="stat-details">
+                                    <div class="stat-value" id="stat-views">0</div>
+                                    <div class="stat-label">Total Views</div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <div class="stat-details">
+                                    <div class="stat-value" id="stat-templates">0</div>
+                                    <div class="stat-label">Templates Used</div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div class="stat-details">
+                                    <div class="stat-value" id="stat-status">Active</div>
+                                    <div class="stat-label">Account Status</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </main>
+    </div>
 
-            <div class="profile-sidebar">
-                <div class="profile-card">
-                    <div class="card-header">
-                        <h3>User Tags</h3>
-                    </div>
-                    <div class="tags-container" id="user-tags">
-                        <!-- Tags will be loaded dynamically -->
-                        <div class="empty-tags">
-                            <p>No tags assigned yet</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="profile-card">
-                    <div class="card-header">
-                        <h3>Account Stats</h3>
-                    </div>
-                    <div class="stats-container">
-                        <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-file-alt"></i>
-                            </div>
-                            <div class="stat-details">
-                                <div class="stat-value" id="stat-pages">0</div>
-                                <div class="stat-label">Pages Created</div>
-                            </div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-icon">
+    <!-- Change Password Modal -->
+    <div class="modal" id="change-password-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Change Password</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label for="current-password">Current Password</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="current-password" name="current_password" required>
+                            <button type="button" class="password-toggle">
                                 <i class="fas fa-eye"></i>
-                            </div>
-                            <div class="stat-details">
-                                <div class="stat-value" id="stat-views">0</div>
-                                <div class="stat-label">Total Views</div>
-                            </div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-layer-group"></i>
-                            </div>
-                            <div class="stat-details">
-                                <div class="stat-value" id="stat-templates">0</div>
-                                <div class="stat-label">Templates Used</div>
-                            </div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-user-check"></i>
-                            </div>
-                            <div class="stat-details">
-                                <div class="stat-value" id="stat-status">Active</div>
-                                <div class="stat-label">Account Status</div>
-                            </div>
+                            </button>
                         </div>
                     </div>
-                </div>
+                    <div class="form-group">
+                        <label for="new-password">New Password</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="new-password" name="new_password" required>
+                            <button type="button" class="password-toggle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm New Password</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="confirm-password" name="confirm_password" required>
+                            <button type="button" class="password-toggle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="password-requirements">
+                        <p>Password must contain:</p>
+                        <ul>
+                            <li id="pw-req-length"><i class="fas fa-times"></i> At least 8 characters</li>
+                            <li id="pw-req-uppercase"><i class="fas fa-times"></i> One uppercase letter</li>
+                            <li id="pw-req-lowercase"><i class="fas fa-times"></i> One lowercase letter</li>
+                            <li id="pw-req-number"><i class="fas fa-times"></i> One number</li>
+                        </ul>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </div>
+                    <div class="auth-message" id="password-message"></div>
+                </form>
             </div>
-        </div>
-    </main>
-</div>
-
-<!-- Change Password Modal -->
-<div class="modal" id="change-password-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Change Password</h2>
-            <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-            <form id="change-password-form">
-                <div class="form-group">
-                    <label for="current-password">Current Password</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="current-password" name="current_password" required>
-                        <button type="button" class="password-toggle">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="new-password">New Password</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="new-password" name="new_password" required>
-                        <button type="button" class="password-toggle">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="confirm-password">Confirm New Password</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="confirm-password" name="confirm_password" required>
-                        <button type="button" class="password-toggle">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="password-requirements">
-                    <p>Password must contain:</p>
-                    <ul>
-                        <li id="pw-req-length"><i class="fas fa-times"></i> At least 8 characters</li>
-                        <li id="pw-req-uppercase"><i class="fas fa-times"></i> One uppercase letter</li>
-                        <li id="pw-req-lowercase"><i class="fas fa-times"></i> One lowercase letter</li>
-                        <li id="pw-req-number"><i class="fas fa-times"></i> One number</li>
-                    </ul>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Change Password</button>
-                </div>
-                <div class="auth-message" id="password-message"></div>
-            </form>
         </div>
     </div>
-</div>
 
-<!-- Notification element -->
-<div class="notification"></div>
+    <!-- Notification container -->
+    <div class="notification-container"></div>
 
-<script src="js/profile.js"></script>
+    <script src="js/profile.js"></script>
 </body>
 </html>

@@ -30,6 +30,7 @@
             </div>
             <div class="sidebar-user">
                 <div class="user-avatar">
+                    <div class="avatar-loading"></div>
                     <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
                 </div>
                 <div class="user-info">
@@ -92,27 +93,29 @@
                             <div class="form-group">
                                 <label for="page-title">Page Title</label>
                                 <input type="text" id="page-title" name="title" placeholder="My Awesome Page" required>
+                                <small class="form-help">This will be shown in the browser tab</small>
                             </div>
                             
                             <div class="form-group">
                                 <label for="page-url">Custom URL</label>
                                 <div class="url-input-group">
-                                    <span class="url-prefix">versz.fun</span>
+                                    <span class="url-prefix">versz.fun/</span>
                                     <input type="text" id="page-url" name="url" placeholder="mypage" required>
                                     <button type="button" id="check-url-btn" class="btn btn-sm">Check</button>
                                 </div>
                                 <div id="url-status" class="input-status"></div>
+                                <small class="form-help">Use only letters, numbers, and underscores</small>
                             </div>
                             
                             <div class="form-group">
                                 <label for="page-layout">Layout Style</label>
                                 <select id="page-layout" name="layout_type">
-                                    <option value="simple">Simple</option>
+                                    <option value="standard">Standard</option>
                                     <option value="card">Card</option>
-                                    <option value="modern">Modern</option>
                                     <option value="minimalist">Minimalist</option>
                                     <option value="creative">Creative</option>
                                 </select>
+                                <small class="form-help">You can change this later in the customizer</small>
                             </div>
                             
                             <div class="form-group">
@@ -123,7 +126,7 @@
                                         <span>Solid Color</span>
                                     </div>
                                     <div class="background-option" data-type="gradient">
-                                        <div class="bg-icon"><i class="fas fa-gradient"></i></div>
+                                        <div class="bg-icon gradient-icon"></div>
                                         <span>Gradient</span>
                                     </div>
                                     <div class="background-option" data-type="image">
@@ -155,11 +158,14 @@
                                 <div class="background-settings" id="image-settings" style="display: none;">
                                     <label for="bg-image-url">Background Image URL</label>
                                     <input type="url" id="bg-image-url" name="bg_image_url" placeholder="https://example.com/image.jpg">
+                                    <small class="form-help">Use a high-quality image for best results</small>
                                 </div>
                             </div>
                             
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Create Page</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus-circle"></i> Create Page
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -169,7 +175,10 @@
                         <p>Start with a pre-designed template and customize it to fit your needs.</p>
                         
                         <div class="template-search">
-                            <input type="text" id="search-templates" placeholder="Search templates...">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="search-templates" placeholder="Search templates...">
+                            </div>
                             <select id="filter-templates">
                                 <option value="all">All Categories</option>
                                 <option value="portfolio">Portfolio</option>
@@ -218,29 +227,57 @@
                             <i class="fas fa-download"></i>
                             <span id="preview-template-uses">0 uses</span>
                         </div>
+                        <div class="meta-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="preview-template-date">Created on Jan 1, 2023</span>
+                        </div>
+                    </div>
+                    <div class="template-tags" id="preview-template-tags">
+                        <!-- Tags will be loaded dynamically -->
+                    </div>
+
+                    <div class="template-features">
+                        <h4>Template Features</h4>
+                        <ul id="template-features-list">
+                            <!-- Features will be loaded dynamically -->
+                        </ul>
+                    </div>
+
+                    <div class="template-actions">
+                        <button id="template-view-preview-btn" class="btn btn-outline">
+                            <i class="fas fa-eye"></i> Preview Template
+                        </button>
                     </div>
                 </div>
                 <form id="use-template-form">
                     <input type="hidden" id="template-id" name="template_id">
                     <div class="form-group">
+                        <label for="template-page-title">Page Title</label>
+                        <input type="text" id="template-page-title" name="title" placeholder="My Awesome Page" required>
+                    </div>
+                    <div class="form-group">
                         <label for="template-page-url">Custom URL</label>
                         <div class="url-input-group">
-                            <span class="url-prefix">versz.fun</span>
+                            <span class="url-prefix">versz.fun/</span>
                             <input type="text" id="template-page-url" name="url" placeholder="mypage" required>
                             <button type="button" id="template-check-url-btn" class="btn btn-sm">Check</button>
                         </div>
                         <div id="template-url-status" class="input-status"></div>
+                        <small class="form-help">Use only letters, numbers, and underscores</small>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Use This Template</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-magic"></i> Use This Template
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
     
+    <!-- Notification container -->
+    <div class="notification-container"></div>
 
     <script src="js/create-page.js"></script>
 </body>
-
 </html>

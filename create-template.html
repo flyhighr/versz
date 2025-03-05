@@ -29,6 +29,7 @@
             </div>
             <div class="sidebar-user">
                 <div class="user-avatar">
+                    <div class="avatar-loading"></div>
                     <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
                 </div>
                 <div class="user-info">
@@ -76,6 +77,16 @@
                 </div>
             </header>
 
+            <div class="info-banner">
+                <div class="info-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="info-content">
+                    <h3>Create a template to share with others</h3>
+                    <p>Templates allow you to save your page design and configuration for others to use. Fill in the details below to create your template.</p>
+                </div>
+            </div>
+
             <div class="template-container">
                 <div class="template-info-section">
                     <div class="section-header">
@@ -84,37 +95,50 @@
                     <div class="section-content">
                         <form id="template-info-form">
                             <div class="form-group">
-                                <label for="template-name">Template Name</label>
+                                <label for="template-name">Template Name <span class="required-star">*</span></label>
                                 <input type="text" id="template-name" name="name" placeholder="My Awesome Template" required>
+                                <small>A descriptive name for your template</small>
                             </div>
                             
                             <div class="form-group">
-                                <label for="template-description">Description</label>
+                                <label for="template-description">Description <span class="required-star">*</span></label>
                                 <textarea id="template-description" name="description" placeholder="Describe your template..." rows="3" required></textarea>
+                                <small>Explain what makes your template special</small>
                             </div>
                             
                             <div class="form-group">
-                                <label for="template-preview">Preview Image URL</label>
-                                <input type="url" id="template-preview" name="preview_image" placeholder="https://example.com/preview.jpg" required>
+                                <label for="template-preview">Preview Image URL <span class="required-star">*</span></label>
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-link"></i>
+                                    <input type="url" id="template-preview" name="preview_image" placeholder="https://example.com/preview.jpg" required>
+                                </div>
+                                <small>Image that represents how your template looks</small>
                                 <div class="preview-container">
+                                    <div class="preview-loading">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                    </div>
                                     <img id="preview-image" src="img/template-placeholder.jpg" alt="Template Preview">
                                 </div>
                             </div>
                             
                             <div class="form-group">
-                                <label>Tags</label>
+                                <label>Tags <span class="required-star">*</span></label>
                                 <div class="tags-input-container">
                                     <div class="selected-tags" id="selected-tags">
                                         <!-- Selected tags will be added here -->
                                     </div>
-                                    <input type="text" id="tag-input" placeholder="Add a tag...">
+                                    <input type="text" id="tag-input" placeholder="Add a tag and press Enter...">
                                 </div>
+                                <small>Add at least one tag to categorize your template</small>
                                 <div class="tag-suggestions">
                                     <span class="tag-suggestion" data-tag="portfolio">portfolio</span>
                                     <span class="tag-suggestion" data-tag="personal">personal</span>
                                     <span class="tag-suggestion" data-tag="business">business</span>
                                     <span class="tag-suggestion" data-tag="creative">creative</span>
                                     <span class="tag-suggestion" data-tag="minimal">minimal</span>
+                                    <span class="tag-suggestion" data-tag="social">social</span>
+                                    <span class="tag-suggestion" data-tag="music">music</span>
+                                    <span class="tag-suggestion" data-tag="photography">photography</span>
                                 </div>
                             </div>
                         </form>
@@ -127,32 +151,49 @@
                     </div>
                     <div class="section-content">
                         <div class="config-tabs">
-                            <button class="config-tab active" data-tab="basics">Basics</button>
-                            <button class="config-tab" data-tab="appearance">Appearance</button>
-                            <button class="config-tab" data-tab="content">Content</button>
-                            <button class="config-tab" data-tab="social">Social Links</button>
-                            <button class="config-tab" data-tab="advanced">Advanced</button>
+                            <button class="config-tab active" data-tab="basics">
+                                <i class="fas fa-cog"></i> Basics
+                            </button>
+                            <button class="config-tab" data-tab="appearance">
+                                <i class="fas fa-palette"></i> Appearance
+                            </button>
+                            <button class="config-tab" data-tab="content">
+                                <i class="fas fa-align-left"></i> Content
+                            </button>
+                            <button class="config-tab" data-tab="social">
+                                <i class="fas fa-share-alt"></i> Social Links
+                            </button>
+                            <button class="config-tab" data-tab="advanced">
+                                <i class="fas fa-code"></i> Advanced
+                            </button>
                         </div>
 
                         <div class="config-content active" id="basics-content">
                             <div class="form-group">
                                 <label for="template-title">Default Page Title</label>
                                 <input type="text" id="template-title" name="title" placeholder="My Page">
+                                <small>The title that appears in the browser tab</small>
                             </div>
                             
                             <div class="form-group">
                                 <label for="template-name-display">Default Display Name</label>
                                 <input type="text" id="template-name-display" name="name" placeholder="Your Name">
+                                <small>The name shown on the page</small>
                             </div>
                             
                             <div class="form-group">
                                 <label for="template-bio">Default Bio</label>
                                 <textarea id="template-bio" name="bio" placeholder="Tell visitors about yourself" rows="4"></textarea>
+                                <small>A short description about the page owner</small>
                             </div>
                             
                             <div class="form-group">
                                 <label for="template-avatar-url">Default Avatar URL</label>
-                                <input type="url" id="template-avatar-url" name="avatar_url" placeholder="https://example.com/avatar.jpg">
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-image"></i>
+                                    <input type="url" id="template-avatar-url" name="avatar_url" placeholder="https://example.com/avatar.jpg">
+                                </div>
+                                <small>The profile picture shown on the page</small>
                             </div>
                             
                             <div class="form-group">
@@ -161,6 +202,7 @@
                                     <option value="">Select Timezone</option>
                                     <!-- Timezones will be loaded dynamically -->
                                 </select>
+                                <small>The timezone displayed on the page</small>
                             </div>
                         </div>
 
@@ -173,7 +215,7 @@
                                         <span>Solid Color</span>
                                     </div>
                                     <div class="background-option" data-type="gradient">
-                                        <div class="bg-icon"><i class="fas fa-gradient"></i></div>
+                                        <div class="bg-icon gradient-icon"></div>
                                         <span>Gradient</span>
                                     </div>
                                     <div class="background-option" data-type="image">
@@ -185,6 +227,7 @@
                                 <div class="background-settings" id="solid-settings">
                                     <label for="bg-color">Background Color</label>
                                     <input type="color" id="bg-color" name="bg_color" value="#ffffff">
+                                    <small>The solid background color</small>
                                 </div>
                                 
                                 <div class="background-settings" id="gradient-settings" style="display: none;">
@@ -200,11 +243,16 @@
                                         <option value="to bottom">Vertical</option>
                                         <option value="to bottom right">Diagonal</option>
                                     </select>
+                                    <small>The gradient background colors and direction</small>
                                 </div>
                                 
                                 <div class="background-settings" id="image-settings" style="display: none;">
                                     <label for="bg-image-url">Background Image URL</label>
-                                    <input type="url" id="bg-image-url" name="bg_image_url" placeholder="https://example.com/image.jpg">
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-link"></i>
+                                        <input type="url" id="bg-image-url" name="bg_image_url" placeholder="https://example.com/image.jpg">
+                                    </div>
+                                    <small>The URL of the background image</small>
                                 </div>
                             </div>
                             
@@ -214,6 +262,7 @@
                                 <div class="range-value">
                                     <span id="opacity-value">1.0</span>
                                 </div>
+                                <small>How transparent the background appears</small>
                             </div>
                             
                             <div class="form-group">
@@ -225,6 +274,7 @@
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
+                                <small>Box that contains the page content</small>
                                 
                                 <div id="container-settings">
                                     <label for="container-bg">Container Background</label>
@@ -275,6 +325,7 @@
                                         <!-- Fonts will be loaded dynamically -->
                                     </select>
                                 </div>
+                                <small>Style for the name and username text</small>
                             </div>
                         </div>
 
@@ -288,6 +339,7 @@
                                     <option value="bounce">Bounce</option>
                                     <option value="pulse">Pulse</option>
                                 </select>
+                                <small>Animation effect for the name</small>
                             </div>
                             
                             <div class="form-group">
@@ -299,6 +351,7 @@
                                     <option value="bounce">Bounce</option>
                                     <option value="pulse">Pulse</option>
                                 </select>
+                                <small>Animation effect for the bio</small>
                             </div>
                             
                             <div class="form-group">
@@ -309,6 +362,7 @@
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
+                                <small>Display when the user joined Versz</small>
                             </div>
                             
                             <div class="form-group">
@@ -319,6 +373,7 @@
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
+                                <small>Display how many times the page has been viewed</small>
                             </div>
                             
                             <div class="form-group">
@@ -329,6 +384,7 @@
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
+                                <small>Display the user's timezone</small>
                             </div>
                             
                             <div class="form-group">
@@ -336,6 +392,7 @@
                                 <button type="button" id="add-song-btn" class="btn btn-outline btn-sm">
                                     <i class="fas fa-plus"></i> Add Song
                                 </button>
+                                <small>Music that will play on the page</small>
                                 
                                 <div id="songs-container" class="songs-container">
                                     <!-- Songs will be added dynamically -->
@@ -352,6 +409,7 @@
                                 <button type="button" id="add-social-btn" class="btn btn-outline btn-sm">
                                     <i class="fas fa-plus"></i> Add Social Link
                                 </button>
+                                <small>Social media profiles to display on the page</small>
                                 
                                 <div id="social-links-container" class="social-links-container">
                                     <!-- Social links will be added dynamically -->
@@ -365,13 +423,13 @@
                         <div class="config-content" id="advanced-content">
                             <div class="form-group">
                                 <label for="custom-css">Custom CSS</label>
-                                <textarea id="custom-css" name="custom_css" placeholder="Add your custom CSS here" rows="6"></textarea>
+                                <textarea id="custom-css" name="custom_css" placeholder="Add your custom CSS here" rows="6" class="code-editor"></textarea>
                                 <small>Advanced users only. Add custom CSS to further customize your template.</small>
                             </div>
                             
                             <div class="form-group">
                                 <label for="custom-js">Custom JavaScript</label>
-                                <textarea id="custom-js" name="custom_js" placeholder="Add your custom JavaScript here" rows="6"></textarea>
+                                <textarea id="custom-js" name="custom_js" placeholder="Add your custom JavaScript here" rows="6" class="code-editor"></textarea>
                                 <small>Advanced users only. Add custom JavaScript to add interactive elements.</small>
                             </div>
                         </div>
@@ -398,7 +456,7 @@
             <div class="modal-body">
                 <form id="social-link-form">
                     <div class="form-group">
-                        <label for="social-platform">Platform</label>
+                        <label for="social-platform">Platform <span class="required-star">*</span></label>
                         <select id="social-platform" name="platform" required>
                             <option value="">Select Platform</option>
                             <!-- Platforms will be loaded dynamically -->
@@ -406,7 +464,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="social-url">URL</label>
+                        <label for="social-url">URL <span class="required-star">*</span></label>
                         <div class="input-icon-wrapper">
                             <i class="fas fa-link"></i>
                             <input type="url" id="social-url" name="url" placeholder="https://..." required>
@@ -416,9 +474,11 @@
                     <div class="form-group">
                         <label for="social-display-name">Display Name (Optional)</label>
                         <input type="text" id="social-display-name" name="display_name" placeholder="@username">
+                        <small>What to show instead of the URL</small>
                     </div>
                     
                     <div class="form-actions">
+                        <button type="button" class="btn btn-outline modal-cancel-btn">Cancel</button>
                         <button type="submit" class="btn btn-primary">Add Link</button>
                     </div>
                 </form>
@@ -436,26 +496,33 @@
             <div class="modal-body">
                 <form id="song-form">
                     <div class="form-group">
-                        <label for="song-title">Song Title</label>
+                        <label for="song-title">Song Title <span class="required-star">*</span></label>
                         <input type="text" id="song-title" name="title" placeholder="Enter song title" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="song-artist">Artist</label>
+                        <label for="song-artist">Artist <span class="required-star">*</span></label>
                         <input type="text" id="song-artist" name="artist" placeholder="Enter artist name" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="song-cover">Cover Image URL</label>
-                        <input type="url" id="song-cover" name="cover_url" placeholder="https://example.com/cover.jpg" required>
+                        <label for="song-cover">Cover Image URL <span class="required-star">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-image"></i>
+                            <input type="url" id="song-cover" name="cover_url" placeholder="https://example.com/cover.jpg" required>
+                        </div>
                     </div>
                     
                     <div class="form-group">
-                        <label for="song-youtube">YouTube URL</label>
-                        <input type="url" id="song-youtube" name="youtube_url" placeholder="https://youtube.com/watch?v=..." required>
+                        <label for="song-youtube">YouTube URL <span class="required-star">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i class="fab fa-youtube"></i>
+                            <input type="url" id="song-youtube" name="youtube_url" placeholder="https://youtube.com/watch?v=..." required>
+                        </div>
                     </div>
                     
                     <div class="form-actions">
+                        <button type="button" class="btn btn-outline modal-cancel-btn">Cancel</button>
                         <button type="submit" class="btn btn-primary">Add Song</button>
                     </div>
                 </form>
@@ -463,8 +530,8 @@
         </div>
     </div>
 
-    <!-- Notification -->
-    <div class="notification" style="display: none;"></div>
+    <!-- Notification container -->
+    <div class="notification-container"></div>
 
     <script src="js/create-template.js"></script>
 </body>

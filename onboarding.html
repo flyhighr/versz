@@ -7,10 +7,11 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/onboarding.css">
+    <link rel="stylesheet" href="css/notifications.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="onboarding-container">
@@ -61,7 +62,6 @@
                 <div class="onboarding-step" id="step-2">
                     <div class="step-title">Profile Details</div>
                     
-                    <!-- Replace the existing avatar form group with this -->
                     <div class="form-group">
                         <label for="onboarding-avatar">Profile Picture</label>
                         <div class="avatar-upload-container">
@@ -129,25 +129,31 @@
                     
                     <div class="form-group">
                         <label for="onboarding-gender">Gender (Optional)</label>
-                        <select id="onboarding-gender" name="gender">
-                            <option value="">Prefer not to say</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="non-binary">Non-binary</option>
-                            <option value="other">Other</option>
-                        </select>
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-venus-mars"></i>
+                            <select id="onboarding-gender" name="gender">
+                                <option value="">Prefer not to say</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="non-binary">Non-binary</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <div class="form-group">
                         <label for="onboarding-pronouns">Pronouns (Optional)</label>
-                        <select id="onboarding-pronouns" name="pronouns">
-                            <option value="">Prefer not to say</option>
-                            <option value="he/him">He/Him</option>
-                            <option value="she/her">She/Her</option>
-                            <option value="they/them">They/Them</option>
-                            <option value="custom">Custom</option>
-                        </select>
-                        <input type="text" id="custom-pronouns" name="custom_pronouns" placeholder="Enter custom pronouns" style="display: none; margin-top: 10px;">
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-user-tag"></i>
+                            <select id="onboarding-pronouns" name="pronouns">
+                                <option value="">Prefer not to say</option>
+                                <option value="he/him">He/Him</option>
+                                <option value="she/her">She/Her</option>
+                                <option value="they/them">They/Them</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <input type="text" id="custom-pronouns" name="custom_pronouns" placeholder="Enter custom pronouns" style="display: none; margin-top: 10px; padding: 0.9rem 1.25rem; border: 2px solid var(--border-color); border-radius: var(--border-radius); width: 100%; background-color: var(--lighter-bg);">
                     </div>
                     
                     <div class="step-actions">
@@ -161,6 +167,7 @@
         </div>
     </div>
     
+    <script src="js/notifications.js"></script>
     <script src="js/onboarding.js"></script>
 </body>
 </html>

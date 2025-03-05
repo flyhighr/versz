@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Versz</title>
-    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,27 +11,38 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Mobile header -->
     <header class="mobile-header">
         <a href="dashboard.html" class="logo">Versz<span class="accent-text">.fun</span></a>
-        <button class="menu-toggle" id="mobile-menu-toggle">
+        <button class="menu-toggle" id="mobile-menu-toggle" aria-label="Open menu">
             <i class="fas fa-bars"></i>
         </button>
     </header>
+
+    <!-- Page overlay for mobile menu -->
+    <div class="overlay" id="overlay"></div>
+
     <div class="dashboard-container">
-        <aside class="sidebar">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
-                <button class="sidebar-toggle" id="sidebar-toggle">
+                <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Close menu">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="sidebar-user">
                 <div class="user-avatar">
                     <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                    <div class="avatar-loading"></div>
                 </div>
                 <div class="user-info">
-                    <h3 id="sidebar-username">Username</h3>
-                    <p id="sidebar-email">user@example.com</p>
+                    <h3 id="sidebar-username">
+                        <div class="text-loading"></div>
+                    </h3>
+                    <p id="sidebar-email">
+                        <div class="text-loading"></div>
+                    </p>
                 </div>
             </div>
             <nav class="sidebar-nav">
@@ -65,6 +75,7 @@
             </div>
         </aside>
 
+        <!-- Main content -->
         <main class="main-content">
             <header class="content-header">
                 <h1>Dashboard</h1>
@@ -75,6 +86,7 @@
                 </div>
             </header>
 
+            <!-- Stats overview -->
             <div class="dashboard-overview">
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -82,7 +94,7 @@
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <div class="stat-info">
-                            <h3 id="pages-count">0</h3>
+                            <h3 id="pages-count"><div class="number-loading"></div></h3>
                             <p>Total Pages</p>
                         </div>
                     </div>
@@ -91,7 +103,7 @@
                             <i class="fas fa-eye"></i>
                         </div>
                         <div class="stat-info">
-                            <h3 id="total-views">0</h3>
+                            <h3 id="total-views"><div class="number-loading"></div></h3>
                             <p>Total Views</p>
                         </div>
                     </div>
@@ -100,21 +112,39 @@
                             <i class="fas fa-calendar-alt"></i>
                         </div>
                         <div class="stat-info">
-                            <h3 id="joined-date">-</h3>
+                            <h3 id="joined-date"><div class="number-loading"></div></h3>
                             <p>Joined Date</p>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Recent pages -->
             <section class="recent-pages">
                 <div class="section-header">
                     <h2>Recent Pages</h2>
-                    <a href="my-pages.html" class="btn btn-text">View All</a>
+                    <a href="my-pages.html" class="btn btn-text">View All <i class="fas fa-chevron-right"></i></a>
                 </div>
                 <div class="pages-grid" id="recent-pages-grid">
-                    <!-- Pages will be loaded dynamically -->
-                    <div class="empty-state" id="no-pages">
+                    <!-- Skeleton loading for pages -->
+                    <div class="page-card skeleton">
+                        <div class="skeleton-header"></div>
+                        <div class="skeleton-url"></div>
+                        <div class="skeleton-stats"></div>
+                    </div>
+                    <div class="page-card skeleton">
+                        <div class="skeleton-header"></div>
+                        <div class="skeleton-url"></div>
+                        <div class="skeleton-stats"></div>
+                    </div>
+                    <div class="page-card skeleton">
+                        <div class="skeleton-header"></div>
+                        <div class="skeleton-url"></div>
+                        <div class="skeleton-stats"></div>
+                    </div>
+                    
+                    <!-- Empty state (hidden initially) -->
+                    <div class="empty-state" id="no-pages" style="display: none;">
                         <i class="fas fa-file-alt"></i>
                         <h3>No pages yet</h3>
                         <p>Create your first page to get started</p>
@@ -123,6 +153,7 @@
                 </div>
             </section>
 
+            <!-- Quick actions -->
             <section class="quick-actions">
                 <h2>Quick Actions</h2>
                 <div class="actions-grid">
@@ -150,6 +181,11 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Notification element -->
+    <div class="notification-container">
+        <!-- Notifications will be dynamically added here -->
     </div>
 
     <script src="js/dashboard.js"></script>
