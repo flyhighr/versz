@@ -2220,6 +2220,21 @@ async def delete_profile_page(
                 detail="Page not found or you don't have permission to delete it"
             )
         
+        # Check if this is the user's public profile page (URL matches username)
+        if current_user.get("username") and page["url"] == current_user["username"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot delete your public profile page"
+            )
+        
+        # Check if this is the user's last page
+        page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
+        if page_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot delete your last page"
+            )
+        
         # Delete page
         await db.profile_pages.delete_one({"page_id": page_id})
         
@@ -2232,6 +2247,7 @@ async def delete_profile_page(
         
         return {"message": "Page deleted successfully"}
 
+        
 @app.get("/p/{url}")
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_public_page(request: Request, url: str, template_id: Optional[str] = None):
