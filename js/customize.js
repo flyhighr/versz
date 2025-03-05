@@ -8,23 +8,87 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Mobile menu toggle
+    // FIXED: Mobile menu toggle - completely rewritten
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    if (mobileMenuToggle) {
-        mobileMenuToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-        });
-    }
-    
-    // Sidebar toggle for mobile
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebar = document.querySelector('.sidebar');
     
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
+    // Add CSS to ensure proper initial state for mobile
+    if (window.innerWidth <= 992) {
+        // On mobile, sidebar is initially hidden
+        sidebar.style.transform = 'translateX(-100%)';
+        sidebar.style.position = 'fixed';
+        sidebar.style.top = '0';
+        sidebar.style.left = '0';
+        sidebar.style.height = '100%';
+        sidebar.style.zIndex = '1000';
+        sidebar.style.transition = 'transform 0.3s ease';
+        sidebar.style.backgroundColor = 'var(--darker-bg)';
+        sidebar.style.width = '80%';
+        sidebar.style.maxWidth = '300px';
+    }
+    
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function() {
+            // Toggle sidebar visibility
+            if (sidebar.style.transform === 'translateX(0%)' || sidebar.classList.contains('active')) {
+                sidebar.style.transform = 'translateX(-100%)';
+                sidebar.classList.remove('active');
+            } else {
+                sidebar.style.transform = 'translateX(0%)';
+                sidebar.classList.add('active');
+            }
         });
     }
+    
+    // Sidebar close button
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.style.transform = 'translateX(-100%)';
+            sidebar.classList.remove('active');
+        });
+    }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 992 && 
+            sidebar.classList.contains('active') && 
+            !sidebar.contains(e.target) && 
+            e.target !== mobileMenuToggle && 
+            !mobileMenuToggle.contains(e.target)) {
+            sidebar.style.transform = 'translateX(-100%)';
+            sidebar.classList.remove('active');
+        }
+    });
+    
+    // Adjust sidebar position on window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 992) {
+            // On desktop, reset sidebar styles
+            sidebar.style.transform = '';
+            sidebar.style.position = '';
+            sidebar.style.top = '';
+            sidebar.style.left = '';
+            sidebar.style.height = '';
+            sidebar.style.zIndex = '';
+            sidebar.style.width = '';
+            sidebar.style.maxWidth = '';
+        } else {
+            // On mobile, set sidebar styles if not already set
+            if (sidebar.style.transform !== 'translateX(-100%)' && !sidebar.classList.contains('active')) {
+                sidebar.style.transform = 'translateX(-100%)';
+                sidebar.style.position = 'fixed';
+                sidebar.style.top = '0';
+                sidebar.style.left = '0';
+                sidebar.style.height = '100%';
+                sidebar.style.zIndex = '1000';
+                sidebar.style.backgroundColor = 'var(--darker-bg)';
+                sidebar.style.width = '80%';
+                sidebar.style.maxWidth = '300px';
+                sidebar.style.transition = 'transform 0.3s ease';
+            }
+        }
+    });
     
     // Logout functionality
     const logoutBtn = document.getElementById('logout-btn');
@@ -64,7 +128,15 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sidebar-email').textContent = userData.email;
             
             if (userData.avatar_url) {
-                document.getElementById('sidebar-avatar').src = userData.avatar_url;
+                const avatarImg = document.getElementById('sidebar-avatar');
+                avatarImg.src = userData.avatar_url;
+                avatarImg.onload = function() {
+                    avatarImg.classList.add('loaded');
+                };
+                avatarImg.onerror = function() {
+                    avatarImg.src = 'img/default-avatar.png';
+                    avatarImg.classList.add('loaded');
+                };
             }
             
             return userData;
@@ -72,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error loading user data:', error);
         }
     };
+    
     
     // Load user's pages for dropdown
     const loadUserPages = async () => {
@@ -534,6 +607,7 @@ const checkUrlBtn = document.getElementById('edit-check-url-btn');
 const urlInput = document.getElementById('edit-url');
 const urlStatus = document.getElementById('edit-url-status');
 
+// Fix URL checking functionality
 if (checkUrlBtn && urlInput) {
     checkUrlBtn.addEventListener('click', async () => {
         const url = urlInput.value.trim();
@@ -563,7 +637,16 @@ if (checkUrlBtn && urlInput) {
         urlStatus.className = 'input-status info';
         
         try {
-            const response = await fetch(`${API_URL}/check-url?url=${url}`);
+            const response = await fetch(`${API_URL}/check-url?url=${url}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to check URL');
+            }
+            
             const data = await response.json();
             
             if (data.available) {
@@ -1255,32 +1338,67 @@ if (pageSelector) {
     });
 }
 
-// Show notification
 const showNotification = (message, type = 'info') => {
-    // Create notification element if it doesn't exist
-    let notification = document.querySelector('.notification');
-    if (!notification) {
-        notification = document.createElement('div');
-        notification.className = 'notification';
-        document.body.appendChild(notification);
+    const notificationContainer = document.querySelector('.notification-container');
+    if (!notificationContainer) {
+        const container = document.createElement('div');
+        container.className = 'notification-container';
+        document.body.appendChild(container);
     }
     
-    // Set message and type
-    notification.textContent = message;
+    const notification = document.createElement('div');
     notification.className = `notification ${type}`;
-    notification.style.display = 'block';
     
-    // Show notification
-    notification.classList.add('active');
+    // Set icon based on notification type
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    else if (type === 'error') iconClass = 'fa-exclamation-circle';
+    else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
     
-    // Hide after 3 seconds
+    notification.innerHTML = `
+        <div class="notification-icon">
+            <i class="fas ${iconClass}"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+            <div class="notification-message">${message}</div>
+        </div>
+        <button class="notification-close">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="notification-progress"></div>
+    `;
+    
+    // Add to container
+    document.querySelector('.notification-container').appendChild(notification);
+    
+    // Animate in
     setTimeout(() => {
-        notification.classList.remove('active');
+        notification.classList.add('show');
+    }, 10);
+    
+    // Set up close button
+    const closeBtn = notification.querySelector('.notification-close');
+    closeBtn.addEventListener('click', () => {
+        notification.classList.remove('show');
         setTimeout(() => {
-            notification.style.display = 'none';
+            notification.remove();
         }, 300);
-    }, 3000);
+    });
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
 };
+
 
 // Add loading state styling
 const addLoadingStyles = () => {

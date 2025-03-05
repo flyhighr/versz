@@ -8,23 +8,79 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Mobile menu toggle
+    // FIXED: Mobile menu toggle - completely rewritten
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    if (mobileMenuToggle) {
-        mobileMenuToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-        });
-    }
-    
-    // Sidebar toggle for mobile
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebar = document.querySelector('.sidebar');
     
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
+    // Add CSS to ensure proper initial state
+    if (window.innerWidth <= 992) {
+        // On mobile, sidebar is initially hidden
+        sidebar.style.transform = 'translateX(-100%)';
+        sidebar.style.position = 'fixed';
+        sidebar.style.top = '0';
+        sidebar.style.left = '0';
+        sidebar.style.height = '100%';
+        sidebar.style.zIndex = '1000';
+        sidebar.style.transition = 'transform 0.3s ease';
+    }
+    
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function() {
+            // Toggle sidebar visibility
+            if (sidebar.style.transform === 'translateX(0%)' || sidebar.classList.contains('active')) {
+                sidebar.style.transform = 'translateX(-100%)';
+                sidebar.classList.remove('active');
+            } else {
+                sidebar.style.transform = 'translateX(0%)';
+                sidebar.classList.add('active');
+            }
         });
     }
+    
+    // Sidebar close button
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.style.transform = 'translateX(-100%)';
+            sidebar.classList.remove('active');
+        });
+    }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 992 && 
+            sidebar.classList.contains('active') && 
+            !sidebar.contains(e.target) && 
+            e.target !== mobileMenuToggle && 
+            !mobileMenuToggle.contains(e.target)) {
+            sidebar.style.transform = 'translateX(-100%)';
+            sidebar.classList.remove('active');
+        }
+    });
+    
+    // Adjust sidebar position on window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 992) {
+            // On desktop, reset sidebar styles
+            sidebar.style.transform = '';
+            sidebar.style.position = '';
+            sidebar.style.top = '';
+            sidebar.style.left = '';
+            sidebar.style.height = '';
+            sidebar.style.zIndex = '';
+        } else {
+            // On mobile, set sidebar styles if not already set
+            if (!sidebar.style.position) {
+                sidebar.style.transform = 'translateX(-100%)';
+                sidebar.style.position = 'fixed';
+                sidebar.style.top = '0';
+                sidebar.style.left = '0';
+                sidebar.style.height = '100%';
+                sidebar.style.zIndex = '1000';
+                sidebar.style.transition = 'transform 0.3s ease';
+            }
+        }
+    });
     
     // Logout functionality
     const logoutBtn = document.getElementById('logout-btn');
@@ -64,12 +120,21 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sidebar-email').textContent = userData.email;
             
             if (userData.avatar_url) {
-                document.getElementById('sidebar-avatar').src = userData.avatar_url;
+                const avatarImg = document.getElementById('sidebar-avatar');
+                avatarImg.src = userData.avatar_url;
+                avatarImg.onload = function() {
+                    avatarImg.classList.add('loaded');
+                };
+                avatarImg.onerror = function() {
+                    avatarImg.src = 'img/default-avatar.png';
+                    avatarImg.classList.add('loaded');
+                };
             }
             
             return userData;
         } catch (error) {
             console.error('Error loading user data:', error);
+            showNotification('Error loading user data. Please refresh the page.', 'error');
         }
     };
     
@@ -132,12 +197,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return categories;
         } catch (error) {
             console.error('Error loading categories:', error);
+            showNotification('Error loading categories. Please refresh the page.', 'error');
             return [];
         }
     };
     
-    // Load templates
-    const loadTemplates = async (page = 1, category = '', sortBy = 'popular') => {
+    // Load templates with improved error handling - FIXED: better error handling and retry logic
+    const loadTemplates = async (page = 1, category = '', sortBy = 'popular', retryCount = 0) => {
         const templatesGrid = document.getElementById('templates-grid');
         const paginationContainer = document.getElementById('templates-pagination');
         
@@ -177,15 +243,34 @@ document.addEventListener('DOMContentLoaded', function() {
             
             url += `&sort_by=${apiSortBy}&sort_order=${sortOrder}`;
             
-            const response = await fetch(url);
+            // Add cache-busting parameter to prevent browser caching
+            url += `&_t=${new Date().getTime()}`;
+            
+            // FIXED: Add timeout to fetch request to avoid hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Authorization': `Bearer ${token}`
+                },
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
             
             if (!response.ok) {
-                throw new Error('Failed to fetch templates');
+                throw new Error(`Failed to fetch templates: ${response.status} ${response.statusText}`);
             }
             
-            // Handle the API response - it can be either an array of templates directly
-            // or an object with a templates property
-            const data = await response.json();
+            // Try to parse the JSON response
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                throw new Error(`Failed to parse response: ${parseError.message}`);
+            }
             
             // Determine if the response is an array or an object with templates property
             const templates = Array.isArray(data) ? data : (data.templates || []);
@@ -201,6 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p>No templates found</p>
                     </div>
                 `;
+                paginationContainer.innerHTML = '';
                 return;
             }
             
@@ -210,9 +296,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 templateCard.className = 'template-card';
                 templateCard.dataset.id = template.id;
                 
+                const tags = template.tags && template.tags.length > 0 
+                    ? template.tags.slice(0, 3).map(tag => `<span class="template-tag-mini">${tag}</span>`).join('') 
+                    : '';
+                
                 templateCard.innerHTML = `
                     <div class="template-image">
-                        <img src="${template.preview_image}" alt="${template.name}" onerror="this.src='img/template-placeholder.jpg'">
+                        <img src="${template.preview_image || 'img/template-placeholder.jpg'}" alt="${template.name}" onerror="this.src='img/template-placeholder.jpg'">
                         <div class="template-overlay">
                             <div class="template-actions">
                                 <button class="btn btn-sm btn-primary preview-btn" data-id="${template.id}">Preview</button>
@@ -222,15 +312,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="template-info">
                         <h3>${template.name}</h3>
-                        <p>${template.description ? (template.description.substring(0, 60) + (template.description.length > 60 ? '...' : '')) : ''}</p>
+                        <p>${template.description ? (template.description.substring(0, 60) + (template.description.length > 60 ? '...' : '')) : 'No description available'}</p>
                         <div class="template-meta">
                             <span><i class="fas fa-user"></i> ${template.created_by_username || 'User'}</span>
                             <span><i class="fas fa-download"></i> ${template.use_count || 0} uses</span>
                         </div>
                         <div class="template-tags-mini">
-                            ${template.tags && template.tags.length > 0 ? 
-                                template.tags.slice(0, 3).map(tag => `<span class="template-tag-mini">${tag}</span>`).join('') 
-                                : ''}
+                            ${tags}
                         </div>
                     </div>
                 `;
@@ -280,6 +368,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
                     prevBtn.addEventListener('click', () => {
                         loadTemplates(currentPage - 1, category, sortBy);
+                        
+                        // Scroll to top of templates grid
+                        templatesGrid.scrollIntoView({ behavior: 'smooth' });
                     });
                     paginationDiv.appendChild(prevBtn);
                 }
@@ -296,6 +387,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     pageBtn.addEventListener('click', () => {
                         if (i !== currentPage) {
                             loadTemplates(i, category, sortBy);
+                            
+                            // Scroll to top of templates grid
+                            templatesGrid.scrollIntoView({ behavior: 'smooth' });
                         }
                     });
                     
@@ -309,6 +403,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
                     nextBtn.addEventListener('click', () => {
                         loadTemplates(currentPage + 1, category, sortBy);
+                        
+                        // Scroll to top of templates grid
+                        templatesGrid.scrollIntoView({ behavior: 'smooth' });
                     });
                     paginationDiv.appendChild(nextBtn);
                 }
@@ -318,11 +415,44 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Error loading templates:', error);
+            
+            // Handle retry logic
+            if (retryCount < 2) { // Try up to 3 times (initial + 2 retries)
+                console.log(`Retrying template load (attempt ${retryCount + 1})...`);
+                
+                // Show retrying message
+                templatesGrid.innerHTML = `
+                    <div class="loading-templates">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Retrying... (${retryCount + 1}/2)</p>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    loadTemplates(page, category, sortBy, retryCount + 1);
+                }, 1500); // Wait 1.5 seconds before retrying
+                return;
+            }
+            
             templatesGrid.innerHTML = `
                 <div class="error-message">
-                    <p>Failed to load templates. Please try again later.</p>
+                    <p>Failed to load templates. <button id="retry-load-btn" class="btn btn-sm">Retry</button></p>
                 </div>
             `;
+            
+            // Add retry button functionality
+            const retryBtn = document.getElementById('retry-load-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                    loadTemplates(page, category, sortBy);
+                });
+            }
+            
+            // Clear pagination
+            paginationContainer.innerHTML = '';
+            
+            // Show notification
+            showNotification('Failed to load templates. Please try again.', 'error');
         }
     };
     
@@ -331,13 +461,51 @@ document.addEventListener('DOMContentLoaded', function() {
         window.open(`https://versz.fun/template?id=${templateId}`, '_blank');
     };
     
-    // Open template modal with details
+    // Open template modal with details - FIXED: better loading and error handling
     const openTemplateModal = async (templateId) => {
         const modal = document.getElementById('template-preview-modal');
         
         try {
+            // Show loading state in modal
+            document.getElementById('preview-template-name').textContent = 'Loading...';
+            document.getElementById('preview-template-image').src = 'img/template-placeholder.jpg';
+            document.getElementById('preview-template-description').textContent = 'Loading template details...';
+            document.getElementById('preview-template-creator').textContent = '';
+            document.getElementById('preview-template-uses').textContent = '';
+            document.getElementById('preview-template-date').textContent = '';
+            document.getElementById('preview-template-tags').innerHTML = '';
+            document.getElementById('template-features-list').innerHTML = '<li><i class="fas fa-spinner fa-spin"></i> Loading features...</li>';
+            
+            // Clear any previous URL check status
+            const urlStatus = document.getElementById('template-url-status');
+            if (urlStatus) {
+                urlStatus.textContent = '';
+                urlStatus.className = 'input-status';
+            }
+            
+            // Reset URL input field
+            const urlInput = document.getElementById('template-page-url');
+            if (urlInput) {
+                urlInput.value = '';
+            }
+            
+            // Show modal immediately with loading state
+            modal.classList.add('active');
+            
+            // FIXED: Add timeout to fetch request
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
             // Fetch template details
-            const response = await fetch(`${API_URL}/templates/${templateId}`);
+            const response = await fetch(`${API_URL}/templates/${templateId}`, {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Authorization': `Bearer ${token}`
+                },
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
             
             if (!response.ok) {
                 throw new Error('Failed to fetch template details');
@@ -348,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Populate modal with template details
             document.getElementById('preview-template-name').textContent = template.name;
             document.getElementById('preview-template-image').src = template.preview_image || 'img/template-placeholder.jpg';
-            document.getElementById('preview-template-description').textContent = template.description;
+            document.getElementById('preview-template-description').textContent = template.description || 'No description available';
             document.getElementById('preview-template-creator').textContent = template.created_by_username || 'User';
             document.getElementById('preview-template-uses').textContent = `${template.use_count || 0} uses`;
             
@@ -434,22 +602,20 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('template-id').value = template.id;
             
             // Set up preview button
-            document.getElementById('template-view-preview-btn').addEventListener('click', () => {
+            const previewBtn = document.getElementById('template-view-preview-btn');
+            previewBtn.onclick = null; // Remove any existing listeners
+            previewBtn.addEventListener('click', () => {
                 openTemplatePreview(template.id);
             });
             
-            // Show modal
-            modal.classList.add('active');
-            
-            // Check if template ID is in URL (for direct linking)
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('use') && urlParams.get('use') === templateId) {
-                // Focus on URL input
-                document.getElementById('template-page-url').focus();
-            }
-            
         } catch (error) {
             console.error('Error fetching template details:', error);
+            
+            // Update modal with error message
+            document.getElementById('preview-template-name').textContent = 'Error Loading Template';
+            document.getElementById('preview-template-description').textContent = 'Failed to load template details. Please try again later.';
+            document.getElementById('template-features-list').innerHTML = '<li><i class="fas fa-exclamation-circle"></i> Error loading features</li>';
+            
             showNotification('Failed to load template details', 'error');
         }
     };
@@ -458,7 +624,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkUrlBtn = document.getElementById('template-check-url-btn');
     const urlInput = document.getElementById('template-page-url');
     const urlStatus = document.getElementById('template-url-status');
-    
+
     if (checkUrlBtn && urlInput) {
         checkUrlBtn.addEventListener('click', async () => {
             const url = urlInput.value.trim();
@@ -480,7 +646,16 @@ document.addEventListener('DOMContentLoaded', function() {
             urlStatus.className = 'input-status info';
             
             try {
-                const response = await fetch(`${API_URL}/check-url?url=${url}`);
+                const response = await fetch(`${API_URL}/check-url?url=${url}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to check URL');
+                }
+                
                 const data = await response.json();
                 
                 if (data.available) {
@@ -496,87 +671,107 @@ document.addEventListener('DOMContentLoaded', function() {
                 urlStatus.className = 'input-status error';
             }
         });
-    }
-    
-    // Handle use template form submission
-   // Handle use template form submission
-const useTemplateForm = document.getElementById('use-template-form');
-
-if (useTemplateForm) {
-    useTemplateForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
         
-        const templateId = document.getElementById('template-id').value;
-        const url = document.getElementById('template-page-url').value.trim();
-        
-        if (!url) {
-            showNotification('Please enter a URL', 'error');
-            return;
-        }
-        
-        // Check if URL contains only alphanumeric characters and underscores
-        if (!/^[a-zA-Z0-9_]+$/.test(url)) {
-            showNotification('URL can only contain letters, numbers, and underscores', 'error');
-            return;
-        }
-        
-        try {
-            // Check URL availability
-            const checkResponse = await fetch(`${API_URL}/check-url?url=${url}`);
-            const checkData = await checkResponse.json();
+        // Also check URL when input changes after typing stops
+        let urlCheckTimeout;
+        urlInput.addEventListener('input', () => {
+            clearTimeout(urlCheckTimeout);
             
-            if (!checkData.available) {
-                showNotification('URL is already taken', 'error');
+            // Reset status if input is empty
+            if (!urlInput.value.trim()) {
+                urlStatus.textContent = '';
+                urlStatus.className = 'input-status';
                 return;
             }
             
-            // Submit the form
-            const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Page...';
+            urlCheckTimeout = setTimeout(() => {
+                checkUrlBtn.click();
+            }, 800);
+        });
+    }
+        
+    // Handle use template form submission
+    const useTemplateForm = document.getElementById('use-template-form');
+    
+    if (useTemplateForm) {
+        useTemplateForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            // The backend expects a request body with template_id and url
-            const response = await fetch(`${API_URL}/use-template/${templateId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    template_id: templateId,
-                    url: url
-                })
-            });
+            const templateId = document.getElementById('template-id').value;
+            const url = document.getElementById('template-page-url').value.trim();
             
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to create page from template');
+            if (!url) {
+                showNotification('Please enter a URL', 'error');
+                return;
             }
             
-            const data = await response.json();
+            // Check if URL contains only alphanumeric characters and underscores
+            if (!/^[a-zA-Z0-9_]+$/.test(url)) {
+                showNotification('URL can only contain letters, numbers, and underscores', 'error');
+                return;
+            }
             
-            // Show success notification
-            showNotification('Page created successfully!', 'success');
-            
-            // Close modal
-            document.getElementById('template-preview-modal').classList.remove('active');
-            
-            // Redirect to customize page
-            setTimeout(() => {
-                window.location.href = `customize.html?page_id=${data.page_id}`;
-            }, 1000);
-            
-        } catch (error) {
-            console.error('Error using template:', error);
-            showNotification(error.message || 'Failed to create page from template', 'error');
-            
-            // Reset submit button
-            const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Use This Template';
-        }
-    });
-}
+            try {
+                // Check URL availability
+                const checkResponse = await fetch(`${API_URL}/check-url?url=${url}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const checkData = await checkResponse.json();
+                
+                if (!checkData.available) {
+                    showNotification('URL is already taken', 'error');
+                    return;
+                }
+                
+                // Submit the form
+                const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Page...';
+                
+                // The backend expects a request body with template_id and url
+                const response = await fetch(`${API_URL}/use-template/${templateId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        template_id: templateId,
+                        url: url
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to create page from template');
+                }
+                
+                const data = await response.json();
+                
+                // Show success notification
+                showNotification('Page created successfully!', 'success');
+                
+                // Close modal
+                document.getElementById('template-preview-modal').classList.remove('active');
+                
+                // Redirect to customize page
+                setTimeout(() => {
+                    window.location.href = `customize.html?page_id=${data.page_id}`;
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error using template:', error);
+                showNotification(error.message || 'Failed to create page from template', 'error');
+                
+                // Reset submit button
+                const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Use This Template';
+            }
+        });
+    }
     
     // Filter and sort dropdowns
     const filterByTag = document.getElementById('filter-by-tag');
@@ -607,7 +802,7 @@ if (useTemplateForm) {
     
     // Search templates
     const searchInput = document.getElementById('search-templates');
-    
+
     if (searchInput) {
         let searchTimeout;
         
@@ -638,13 +833,20 @@ if (useTemplateForm) {
                 
                 try {
                     // API call to search templates
-                    const response = await fetch(`${API_URL}/search-templates?q=${encodeURIComponent(searchTerm)}`);
+                    const response = await fetch(`${API_URL}/search-templates?q=${encodeURIComponent(searchTerm)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
                     
                     if (!response.ok) {
                         throw new Error('Failed to search templates');
                     }
                     
-                    const searchResults = await response.json();
+                    const data = await response.json();
+                    
+                    // FIXED: Get templates from the templates property of the response
+                    const searchResults = data.templates || [];
                     
                     // Clear loading
                     templatesGrid.innerHTML = '';
@@ -664,9 +866,13 @@ if (useTemplateForm) {
                         templateCard.className = 'template-card';
                         templateCard.dataset.id = template.id;
                         
+                        const tags = template.tags && template.tags.length > 0 
+                            ? template.tags.slice(0, 3).map(tag => `<span class="template-tag-mini">${tag}</span>`).join('') 
+                            : '';
+                        
                         templateCard.innerHTML = `
                             <div class="template-image">
-                                <img src="${template.preview_image}" alt="${template.name}" onerror="this.src='img/template-placeholder.jpg'">
+                                <img src="${template.preview_image || 'img/template-placeholder.jpg'}" alt="${template.name}" onerror="this.src='img/template-placeholder.jpg'">
                                 <div class="template-overlay">
                                     <div class="template-actions">
                                         <button class="btn btn-sm btn-primary preview-btn" data-id="${template.id}">Preview</button>
@@ -676,15 +882,13 @@ if (useTemplateForm) {
                             </div>
                             <div class="template-info">
                                 <h3>${template.name}</h3>
-                                <p>${template.description.substring(0, 60)}${template.description.length > 60 ? '...' : ''}</p>
+                                <p>${template.description ? (template.description.substring(0, 60) + (template.description.length > 60 ? '...' : '')) : 'No description available'}</p>
                                 <div class="template-meta">
                                     <span><i class="fas fa-user"></i> ${template.created_by_username || 'User'}</span>
                                     <span><i class="fas fa-download"></i> ${template.use_count || 0} uses</span>
                                 </div>
                                 <div class="template-tags-mini">
-                                    ${template.tags && template.tags.length > 0 ? 
-                                        template.tags.slice(0, 3).map(tag => `<span class="template-tag-mini">${tag}</span>`).join('') 
-                                        : ''}
+                                    ${tags}
                                 </div>
                             </div>
                         `;
@@ -720,6 +924,110 @@ if (useTemplateForm) {
                         });
                     });
                     
+                    // ADDED: Show pagination if provided by the backend
+                    if (data.total_pages && data.total_pages > 1) {
+                        const paginationContainer = document.getElementById('templates-pagination');
+                        const paginationDiv = document.createElement('div');
+                        paginationDiv.className = 'pagination';
+                        
+                        // Previous button
+                        if (data.page > 1) {
+                            const prevBtn = document.createElement('button');
+                            prevBtn.className = 'pagination-btn';
+                            prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                            prevBtn.addEventListener('click', async () => {
+                                try {
+                                    // Search with previous page
+                                    const prevResponse = await fetch(`${API_URL}/search-templates?q=${encodeURIComponent(searchTerm)}&page=${data.page - 1}`, {
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`
+                                        }
+                                    });
+                                    
+                                    if (!prevResponse.ok) {
+                                        throw new Error('Failed to search templates');
+                                    }
+                                    
+                                    // Refresh the search with updated page
+                                    searchInput.dispatchEvent(new Event('input'));
+                                } catch (error) {
+                                    console.error('Error changing page:', error);
+                                    showNotification('Failed to load next page of results', 'error');
+                                }
+                            });
+                            paginationDiv.appendChild(prevBtn);
+                        }
+                        
+                        // Page numbers
+                        const startPage = Math.max(1, data.page - 2);
+                        const endPage = Math.min(data.total_pages, startPage + 4);
+                        
+                        for (let i = startPage; i <= endPage; i++) {
+                            const pageBtn = document.createElement('button');
+                            pageBtn.className = `pagination-btn ${i === data.page ? 'active' : ''}`;
+                            pageBtn.textContent = i;
+                            
+                            pageBtn.addEventListener('click', async () => {
+                                if (i !== data.page) {
+                                    try {
+                                        // Search with the selected page
+                                        const pageResponse = await fetch(`${API_URL}/search-templates?q=${encodeURIComponent(searchTerm)}&page=${i}`, {
+                                            headers: {
+                                                'Authorization': `Bearer ${token}`
+                                            }
+                                        });
+                                        
+                                        if (!pageResponse.ok) {
+                                            throw new Error('Failed to search templates');
+                                        }
+                                        
+                                        // Refresh the search with updated page
+                                        searchInput.dispatchEvent(new Event('input'));
+                                    } catch (error) {
+                                        console.error('Error changing page:', error);
+                                        showNotification('Failed to load page of results', 'error');
+                                    }
+                                }
+                            });
+                            
+                            paginationDiv.appendChild(pageBtn);
+                        }
+                        
+                        // Next button
+                        if (data.page < data.total_pages) {
+                            const nextBtn = document.createElement('button');
+                            nextBtn.className = 'pagination-btn';
+                            nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                            nextBtn.addEventListener('click', async () => {
+                                try {
+                                    // Search with next page
+                                    const nextResponse = await fetch(`${API_URL}/search-templates?q=${encodeURIComponent(searchTerm)}&page=${data.page + 1}`, {
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`
+                                        }
+                                    });
+                                    
+                                    if (!nextResponse.ok) {
+                                        throw new Error('Failed to search templates');
+                                    }
+                                    
+                                    // Refresh the search with updated page
+                                    searchInput.dispatchEvent(new Event('input'));
+                                } catch (error) {
+                                    console.error('Error changing page:', error);
+                                    showNotification('Failed to load next page of results', 'error');
+                                }
+                            });
+                            paginationDiv.appendChild(nextBtn);
+                        }
+                        
+                        paginationContainer.innerHTML = '';
+                        paginationContainer.appendChild(paginationDiv);
+                    } else {
+                        // Clear pagination if not needed
+                        document.getElementById('templates-pagination').innerHTML = '';
+                    }
+                    
                 } catch (error) {
                     console.error('Error searching templates:', error);
                     templatesGrid.innerHTML = `
@@ -752,45 +1060,86 @@ if (useTemplateForm) {
     
     // Show notification
     const showNotification = (message, type = 'info') => {
-        // Create notification element if it doesn't exist
-        let notification = document.querySelector('.notification');
-        if (!notification) {
-            notification = document.createElement('div');
-            notification.className = 'notification';
-            document.body.appendChild(notification);
+        const notificationContainer = document.querySelector('.notification-container');
+        if (!notificationContainer) {
+            const container = document.createElement('div');
+            container.className = 'notification-container';
+            document.body.appendChild(container);
         }
         
-        // Set message and type
-        notification.textContent = message;
+        const notification = document.createElement('div');
         notification.className = `notification ${type}`;
-        notification.style.display = 'block';
         
-        // Show notification
-        notification.classList.add('active');
+        // Set icon based on notification type
+        let iconClass = 'fa-info-circle';
+        if (type === 'success') iconClass = 'fa-check-circle';
+        else if (type === 'error') iconClass = 'fa-exclamation-circle';
+        else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
         
-        // Hide after 3 seconds
+        notification.innerHTML = `
+            <div class="notification-icon">
+                <i class="fas ${iconClass}"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="notification-progress"></div>
+        `;
+        
+        // Add to container
+        document.querySelector('.notification-container').appendChild(notification);
+        
+        // Animate in
         setTimeout(() => {
-            notification.classList.remove('active');
+            notification.classList.add('show');
+        }, 10);
+        
+        // Set up close button
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => {
+            notification.classList.remove('show');
             setTimeout(() => {
-                notification.style.display = 'none';
+                notification.remove();
             }, 300);
-        }, 3000);
+        });
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }
+        }, 5000);
     };
-    
+
     // Initialize page
     const initTemplatesPage = async () => {
-        await loadUserData();
-        await loadCategories();
-        
-        // Check if template ID is in URL (for direct linking)
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('use')) {
-            openTemplateModal(urlParams.get('use'));
+        try {
+            await loadUserData();
+            await loadCategories();
+            
+            // Check if template ID is in URL (for direct linking)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('use')) {
+                openTemplateModal(urlParams.get('use'));
+            }
+            
+            // Load templates with retries
+            await loadTemplates();
+        } catch (error) {
+            console.error('Error initializing templates page:', error);
+            showNotification('There was an error loading the page. Please refresh.', 'error');
         }
-        
-        // Load templates
-        loadTemplates();
     };
-    
+
+    // Start the initialization
     initTemplatesPage();
 });

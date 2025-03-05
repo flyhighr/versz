@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (mobileMenuToggle) {
         mobileMenuToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
+            sidebar.classList.toggle('show');
         });
     }
     
@@ -23,9 +23,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
+            sidebar.classList.remove('show');
         });
     }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768 && 
+            !e.target.closest('.sidebar') && 
+            !e.target.closest('#mobile-menu-toggle') &&
+            sidebar.classList.contains('show')) {
+            sidebar.classList.remove('show');
+        }
+    });
     
     // Logout functionality
     const logoutBtn = document.getElementById('logout-btn');
@@ -115,7 +125,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update sidebar with user info
     const updateSidebar = (userData) => {
         if (userData.avatar_url) {
-            document.getElementById('sidebar-avatar').src = userData.avatar_url;
+            const avatarImg = document.getElementById('sidebar-avatar');
+            avatarImg.src = userData.avatar_url;
+            avatarImg.onload = function() {
+                avatarImg.classList.add('loaded');
+                const avatarLoading = document.querySelector('.sidebar-user .avatar-loading');
+                if (avatarLoading) {
+                    avatarLoading.style.display = 'none';
+                }
+            };
+            avatarImg.onerror = function() {
+                avatarImg.src = 'img/default-avatar.png';
+                avatarImg.classList.add('loaded');
+                const avatarLoading = document.querySelector('.sidebar-user .avatar-loading');
+                if (avatarLoading) {
+                    avatarLoading.style.display = 'none';
+                }
+            };
+        } else {
+            const avatarImg = document.getElementById('sidebar-avatar');
+            avatarImg.src = 'img/default-avatar.png';
+            avatarImg.classList.add('loaded');
+            const avatarLoading = document.querySelector('.sidebar-user .avatar-loading');
+            if (avatarLoading) {
+                avatarLoading.style.display = 'none';
+            }
         }
         document.getElementById('sidebar-username').textContent = userData.username || 'Username';
         document.getElementById('sidebar-email').textContent = userData.email || 'user@example.com';
@@ -153,13 +187,53 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Additional information
         document.getElementById('profile-dob').textContent = formatDate(userData.date_of_birth);
-        document.getElementById('profile-age').textContent = userData.age || 'Not specified';
+        
+        // Calculate age if date of birth is available
+        if (userData.date_of_birth) {
+            const dob = new Date(userData.date_of_birth);
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const monthDiff = today.getMonth() - dob.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                age--;
+            }
+            
+            document.getElementById('profile-age').textContent = age;
+        } else {
+            document.getElementById('profile-age').textContent = 'Not specified';
+        }
+        
         document.getElementById('profile-gender').textContent = userData.gender || 'Not specified';
         document.getElementById('profile-pronouns').textContent = userData.pronouns || 'Not specified';
         
         // Avatar
         if (userData.avatar_url) {
-            document.getElementById('profile-avatar').src = userData.avatar_url;
+            const profileAvatar = document.getElementById('profile-avatar');
+            profileAvatar.src = userData.avatar_url;
+            profileAvatar.onload = function() {
+                profileAvatar.classList.add('loaded');
+                const avatarLoading = document.querySelector('.profile-avatar .avatar-loading');
+                if (avatarLoading) {
+                    avatarLoading.style.display = 'none';
+                }
+            };
+            profileAvatar.onerror = function() {
+                profileAvatar.src = 'img/default-avatar.png';
+                profileAvatar.classList.add('loaded');
+                const avatarLoading = document.querySelector('.profile-avatar .avatar-loading');
+                if (avatarLoading) {
+                    avatarLoading.style.display = 'none';
+                }
+            };
+        } else {
+            const profileAvatar = document.getElementById('profile-avatar');
+            profileAvatar.src = 'img/default-avatar.png';
+            profileAvatar.classList.add('loaded');
+            const avatarLoading = document.querySelector('.profile-avatar .avatar-loading');
+            if (avatarLoading) {
+                avatarLoading.style.display = 'none';
+            }
         }
         
         // For edit forms
@@ -212,10 +286,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 totalViews += page.views || 0;
             });
         }
-        document.getElementById('stat-views').textContent = totalViews;
+        document.getElementById('stat-views').textContent = totalViews.toLocaleString();
         
         document.getElementById('stat-templates').textContent = userData.templates_used || 0;
-        document.getElementById('stat-status').textContent = userData.is_verified ? 'Verified' : 'Pending Verification';
+        
+        // Set account status with appropriate styling
+        const accountStatus = document.getElementById('stat-status');
+        if (userData.is_verified) {
+            accountStatus.textContent = 'Verified';
+            accountStatus.classList.add('verified');
+        } else {
+            accountStatus.textContent = 'Pending Verification';
+            accountStatus.classList.add('pending');
+        }
         
         // User tags
         const tagsContainer = document.getElementById('user-tags');
@@ -296,7 +379,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const avatarUpload = document.getElementById('avatar-upload');
             
             fieldValues.forEach(field => field.style.display = 'none');
-            fieldEdits.forEach(field => field.style.display = 'block');
+            fieldEdits.forEach(field => {
+                field.style.display = 'block';
+                field.classList.add('fadeIn');
+            });
             editActions.style.display = 'flex';
             avatarUpload.style.display = 'block';
             
@@ -304,9 +390,6 @@ document.addEventListener('DOMContentLoaded', function() {
             editPersonalBtn.style.display = 'none';
         });
     }
-
-    
-
 
     // Avatar file upload
     const avatarFileInput = document.getElementById('avatar-file');
@@ -366,16 +449,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 avatarUploadStatus.textContent = 'Upload successful!';
                 avatarUploadStatus.className = 'upload-status success';
                 
-                // Update the URL field with the new image URL
-                document.getElementById('avatar-url').value = data.url;
-                
-                // Show URL as expandable
-                const showUrlBtn = document.getElementById('show-avatar-url');
-                if (showUrlBtn) {
-                    showUrlBtn.querySelector('i').classList.remove('fa-chevron-down');
-                    showUrlBtn.querySelector('i').classList.add('fa-chevron-up');
-                }
-                
                 // Clear the file input
                 avatarFileInput.value = '';
                 
@@ -394,25 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Clear the file input
                 avatarFileInput.value = '';
-            }
-        });
-    }
-
-    // Toggle URL input visibility
-    const showAvatarUrlBtn = document.getElementById('show-avatar-url');
-    if (showAvatarUrlBtn) {
-        showAvatarUrlBtn.addEventListener('click', () => {
-            const urlInput = document.querySelector('.avatar-url-input');
-            urlInput.classList.toggle('expanded');
-            
-            // Toggle icon
-            const icon = showAvatarUrlBtn.querySelector('i');
-            if (icon.classList.contains('fa-chevron-down')) {
-                icon.classList.remove('fa-chevron-down');
-                icon.classList.add('fa-chevron-up');
-            } else {
-                icon.classList.remove('fa-chevron-up');
-                icon.classList.add('fa-chevron-down');
             }
         });
     }
@@ -465,6 +519,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('edit-timezone').value = userData.timezone || '';
             document.getElementById('edit-bio').value = userData.bio || '';
             document.getElementById('avatar-url').value = userData.avatar_url || '';
+            
+            // Clear any status messages
+            avatarUploadStatus.textContent = '';
+            avatarUploadStatus.className = 'upload-status';
         });
     }
     
@@ -483,6 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const location = document.getElementById('edit-location').value;
                 const timezone = document.getElementById('edit-timezone').value;
                 const bio = document.getElementById('edit-bio').value;
+                const avatarUrl = document.getElementById('avatar-url').value;
                 
                 // Validate username
                 if (username && !/^[a-zA-Z0-9_]+$/.test(username)) {
@@ -495,7 +554,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Check username availability if changed
                 const userData = JSON.parse(localStorage.getItem('user') || '{}');
                 if (username !== userData.username && username) {
-                    const checkResponse = await fetch(`${API_URL}/check-url?url=${username}`);
+                    const checkResponse = await fetch(`${API_URL}/check-url?url=${username}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!checkResponse.ok) {
+                        throw new Error('Failed to check username availability');
+                    }
+                    
                     const checkData = await checkResponse.json();
                     
                     if (!checkData.available) {
@@ -518,7 +586,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         name: name || null,
                         location: location || null,
                         timezone: timezone || null,
-                        bio: bio || null
+                        bio: bio || null,
+                        avatar_url: avatarUrl || null
                     })
                 });
                 
@@ -528,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Show success message
-                showNotification('Personal information updated successfully', 'success');
+                showNotification('Profile updated successfully', 'success');
                 
                 // Reload user data
                 await loadUserData();
@@ -622,7 +691,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 avatarUploadStatus.className = 'upload-status error';
                 showNotification(error.message || 'Failed to update avatar', 'error');
             } finally {
-                updateAvatarBtn.innerHTML = 'Update';
+                updateAvatarBtn.innerHTML = 'Update Avatar';
                 updateAvatarBtn.disabled = false;
             }
         });
@@ -638,7 +707,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const editActions = document.getElementById('additional-edit-actions');
             
             fieldValues.forEach(field => field.style.display = 'none');
-            fieldEdits.forEach(field => field.style.display = 'block');
+            fieldEdits.forEach(field => {
+                field.style.display = 'block';
+                field.classList.add('fadeIn');
+            });
             editActions.style.display = 'flex';
             
             // Show custom pronouns field if selected
@@ -693,6 +765,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Hide custom pronouns field
             customPronouns.style.display = 'none';
+            
+            // If custom pronouns were selected, reset them
+            if (userData.pronouns && !['he/him', 'she/her', 'they/them', ''].includes(userData.pronouns)) {
+                document.getElementById('edit-pronouns').value = 'custom';
+                document.getElementById('custom-pronouns').value = userData.pronouns;
+                document.getElementById('custom-pronouns').style.display = 'block';
+            }
         });
     }
     
@@ -801,7 +880,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const editActions = document.getElementById('preferences-edit-actions');
             
             preferenceValues.forEach(field => field.style.display = 'none');
-            preferenceEdits.forEach(field => field.style.display = 'block');
+            preferenceEdits.forEach(field => {
+                field.style.display = 'block';
+                field.classList.add('fadeIn');
+            });
             editActions.style.display = 'flex';
             
             // Hide edit button
@@ -956,12 +1038,12 @@ document.addEventListener('DOMContentLoaded', function() {
         changePasswordBtn.addEventListener('click', () => {
             // Open password change modal
             changePasswordModal.classList.add('active');
-            changePasswordModal.style.display = 'flex';
             
             // Reset form
             document.getElementById('change-password-form').reset();
             document.getElementById('password-message').textContent = '';
             document.getElementById('password-message').className = 'auth-message';
+            document.getElementById('password-message').style.display = 'none';
             
             // Reset password requirements
             const pwReqLength = document.getElementById('pw-req-length');
@@ -986,7 +1068,6 @@ document.addEventListener('DOMContentLoaded', function() {
         changePasswordModal.addEventListener('click', (e) => {
             if (e.target === changePasswordModal) {
                 changePasswordModal.classList.remove('active');
-                changePasswordModal.style.display = 'none';
             }
         });
         
@@ -994,7 +1075,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modalClose) {
             modalClose.addEventListener('click', () => {
                 changePasswordModal.classList.remove('active');
-                changePasswordModal.style.display = 'none';
             });
         }
     }
@@ -1080,6 +1160,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // Show loading state
+            const submitBtn = changePasswordForm.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing Password...';
+            submitBtn.disabled = true;
+            
             passwordMessage.textContent = 'Changing password...';
             passwordMessage.className = 'auth-message info';
             passwordMessage.style.display = 'block';
@@ -1093,36 +1178,46 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('User email not found. Please log in again.');
                 }
                 
-                // Request password reset code
-                const resetResponse = await fetch(`${API_URL}/request-password-reset`, {
+                // Change password
+                const response = await fetch(`${API_URL}/change-password`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        email: email
+                        current_password: currentPassword,
+                        new_password: newPassword
                     })
                 });
                 
-                if (!resetResponse.ok) {
-                    const errorData = await resetResponse.json();
-                    throw new Error(errorData.detail || 'Failed to request password reset');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to change password');
                 }
                 
-                passwordMessage.textContent = 'A password reset code has been sent to your email. Please check your inbox and follow the instructions to complete the password change.';
+                // Show success
+                passwordMessage.textContent = 'Password changed successfully! You may need to log in again.';
                 passwordMessage.className = 'auth-message success';
+                passwordMessage.style.display = 'block';
+                
+                showNotification('Password changed successfully', 'success');
                 
                 // Close modal after a delay
                 setTimeout(() => {
                     changePasswordModal.classList.remove('active');
-                    changePasswordModal.style.display = 'none';
-                }, 5000);
+                }, 3000);
                 
             } catch (error) {
                 console.error('Password change error:', error);
                 passwordMessage.textContent = error.message || 'An error occurred. Please try again.';
                 passwordMessage.className = 'auth-message error';
                 passwordMessage.style.display = 'block';
+                
+                showNotification(error.message || 'Failed to change password', 'error');
+            } finally {
+                submitBtn.innerHTML = 'Change Password';
+                submitBtn.disabled = false;
             }
         });
     }
@@ -1147,7 +1242,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`${API_URL}/resend-verification`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         email: email
@@ -1172,31 +1268,66 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Show notification
+    // Improved notification system
     const showNotification = (message, type = 'info') => {
-        // Create notification element if it doesn't exist
-        let notification = document.querySelector('.notification');
-        if (!notification) {
-            notification = document.createElement('div');
-            notification.className = 'notification';
-            document.body.appendChild(notification);
+        const notificationContainer = document.querySelector('.notification-container');
+        if (!notificationContainer) {
+            const container = document.createElement('div');
+            container.className = 'notification-container';
+            document.body.appendChild(container);
         }
         
-        // Set message and type
-        notification.textContent = message;
+        const notification = document.createElement('div');
         notification.className = `notification ${type}`;
-        notification.style.display = 'block';
         
-        // Show notification
-        notification.classList.add('active');
+        // Set icon based on notification type
+        let iconClass = 'fa-info-circle';
+        if (type === 'success') iconClass = 'fa-check-circle';
+        else if (type === 'error') iconClass = 'fa-exclamation-circle';
+        else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
         
-        // Hide after 3 seconds
+        notification.innerHTML = `
+            <div class="notification-icon">
+                <i class="fas ${iconClass}"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="notification-progress"></div>
+        `;
+        
+        // Add to container
+        document.querySelector('.notification-container').appendChild(notification);
+        
+        // Animate in
         setTimeout(() => {
-            notification.classList.remove('active');
+            notification.classList.add('show');
+        }, 10);
+        
+        // Set up close button
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => {
+            notification.classList.remove('show');
             setTimeout(() => {
-                notification.style.display = 'none';
+                notification.remove();
             }, 300);
-        }, 3000);
+        });
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }
+        }, 5000);
     };
     
     // Initialize page

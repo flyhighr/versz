@@ -18,14 +18,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const timezoneSelect = document.getElementById('onboarding-timezone');
     
     let currentStep = 1;
-
-    
     
     // Load timezones
     const loadTimezones = async () => {
         try {
+            const loadingId = notifications.info('Loading Data', 'Retrieving timezone information...');
+            
             const response = await fetch(`${API_URL}/timezones`);
             if (!response.ok) {
+                notifications.close(loadingId);
+                notifications.error('Error', 'Failed to load timezones');
                 console.error('Failed to load timezones');
                 return;
             }
@@ -46,8 +48,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (userTimezone && timezones.includes(userTimezone)) {
                 timezoneSelect.value = userTimezone;
             }
+            
+            notifications.close(loadingId);
         } catch (error) {
             console.error('Error loading timezones:', error);
+            notifications.error('Connection Error', 'Unable to load timezone data. Please refresh the page.');
         }
     };
     
@@ -97,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Add this after the other variable declarations at the top
+    // Avatar upload functionality
     const avatarUpload = document.getElementById('avatar-upload');
     const avatarUrlInput = document.getElementById('onboarding-avatar');
     const avatarPreview = document.getElementById('avatar-preview');
@@ -112,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Check if file is an image
             if (!file.type.startsWith('image/')) {
+                notifications.error('Invalid File', 'Please select an image file');
                 avatarUploadStatus.textContent = 'Please select an image file';
                 avatarUploadStatus.className = 'upload-status error';
                 return;
@@ -120,12 +126,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Check file size (max 32MB)
             const MAX_SIZE = 32 * 1024 * 1024; // 32MB
             if (file.size > MAX_SIZE) {
+                notifications.error('File Too Large', 'Image must be smaller than 32MB');
                 avatarUploadStatus.textContent = 'File too large (max 32MB)';
                 avatarUploadStatus.className = 'upload-status error';
                 return;
             }
             
             // Update status
+            const uploadId = notifications.info('Uploading', 'Uploading your profile picture...');
             avatarUploadStatus.textContent = 'Uploading';
             avatarUploadStatus.className = 'upload-status loading';
             
@@ -153,6 +161,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 avatarPreview.src = data.url;
                 avatarUrlInput.value = data.url;
                 
+                // Close loading notification and show success
+                notifications.close(uploadId);
+                notifications.success('Upload Complete', 'Profile picture uploaded successfully!');
+                
                 // Show success message
                 avatarUploadStatus.textContent = 'Upload successful!';
                 avatarUploadStatus.className = 'upload-status success';
@@ -168,6 +180,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             } catch (error) {
                 console.error('Upload error:', error);
+                
+                // Close loading notification and show error
+                notifications.close(uploadId);
+                notifications.error('Upload Failed', 'Unable to upload image. Please try again or use a URL instead.');
                 
                 // Show error message
                 avatarUploadStatus.textContent = 'Upload failed. Please try again or use a URL instead.';
@@ -207,10 +223,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     avatarPreview.src = 'img/default-avatar.png';
                     avatarUploadStatus.textContent = 'Invalid image URL';
                     avatarUploadStatus.className = 'upload-status error';
+                    notifications.warning('Invalid URL', 'The image URL you provided is not valid.');
                 };
                 avatarPreview.onload = () => {
                     avatarUploadStatus.textContent = '';
                     avatarUploadStatus.className = 'upload-status';
+                    notifications.success('Image Loaded', 'Profile picture URL set successfully!');
                 };
             } else {
                 avatarPreview.src = 'img/default-avatar.png';
@@ -275,21 +293,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 const username = document.getElementById('onboarding-username').value.trim();
                 
                 if (!name) {
+                    notifications.warning('Missing Information', 'Please enter your name to continue.');
                     showMessage('Please enter your name', 'error');
                     return;
                 }
                 
                 if (!username) {
+                    notifications.warning('Missing Information', 'Please choose a username to continue.');
                     showMessage('Please choose a username', 'error');
                     return;
                 }
                 
                 if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                    notifications.warning('Invalid Username', 'Username can only contain letters, numbers, and underscores.');
                     showMessage('Username can only contain letters, numbers, and underscores', 'error');
                     return;
                 }
                 
                 if (usernameStatus.classList.contains('error')) {
+                    notifications.warning('Username Taken', 'Please choose a different username.');
                     showMessage('Please choose a different username', 'error');
                     return;
                 }
@@ -297,6 +319,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             goToStep(currentStep + 1);
             hideMessage();
+            
+            // Notify step change
+            const stepTitles = ['Basic Information', 'Profile Details', 'Additional Information'];
+            notifications.info('Step ' + currentStep + ' of 3', 'Now completing: ' + stepTitles[currentStep-1]);
         });
     });
     
@@ -341,6 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Validate username
             if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                notifications.error('Invalid Username', 'Username can only contain letters, numbers, and underscores.');
                 showMessage('Username can only contain letters, numbers, and underscores', 'error');
                 return;
             }
@@ -352,6 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Check if date is valid
                 if (isNaN(dobDate.getTime())) {
+                    notifications.error('Invalid Date', 'Please enter a valid date of birth.');
                     showMessage('Please enter a valid date of birth', 'error');
                     return;
                 }
@@ -360,10 +388,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const age = today.getFullYear() - dobDate.getFullYear();
                 const monthDiff = today.getMonth() - dobDate.getMonth();
                 if (age < 13 || (age === 13 && monthDiff < 0) || (age === 13 && monthDiff === 0 && today.getDate() < dobDate.getDate())) {
+                    notifications.error('Age Restriction', 'You must be at least 13 years old to use this service.');
                     showMessage('You must be at least 13 years old to use this service', 'error');
                     return;
                 }
             }
+            
+            // Show loading notification
+            const saveId = notifications.info('Saving Profile', 'Setting up your profile. This may take a moment...');
             
             // Check username availability one more time
             try {
@@ -371,6 +403,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const checkData = await checkResponse.json();
                 
                 if (!checkData.available) {
+                    notifications.close(saveId);
+                    notifications.error('Username Taken', 'This username is already taken. Please choose a different one.');
                     showMessage('Username is already taken. Please choose a different one.', 'error');
                     return;
                 }
@@ -411,6 +445,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 userData.timezone = timezone || null;
                 localStorage.setItem('user', JSON.stringify(userData));
                 
+                // Close loading notification
+                notifications.close(saveId);
+                
+                // Show success notification
+                notifications.success('Profile Complete!', 'Your profile has been set up successfully!');
+                
                 // Show success message
                 showMessage('Profile setup complete! Redirecting...', 'success');
                 
@@ -421,6 +461,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             } catch (error) {
                 console.error('Profile update error:', error);
+                
+                // Close loading notification
+                notifications.close(saveId);
+                
+                // Show error notification
+                notifications.error('Setup Failed', error.message || 'An error occurred while setting up your profile. Please try again.');
+                
                 showMessage(error.message || 'An error occurred. Please try again.', 'error');
             }
         });
@@ -429,6 +476,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load user data if already exists
     const loadUserData = async () => {
         try {
+            const loadingId = notifications.info('Loading Profile', 'Retrieving your profile information...');
+            
             const response = await fetch(`${API_URL}/me`, {
                 method: 'GET',
                 headers: {
@@ -437,10 +486,17 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (!response.ok) {
+                notifications.close(loadingId);
+                
                 if (response.status === 401) {
+                    notifications.error('Session Expired', 'Your session has expired. Please log in again.');
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    window.location.href = 'login.html';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    notifications.error('Error', 'Failed to load your profile data.');
                 }
                 return;
             }
@@ -449,7 +505,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // If user already has a username, redirect to dashboard
             if (userData.username) {
-                window.location.href = 'dashboard.html';
+                notifications.close(loadingId);
+                notifications.info('Profile Complete', 'Your profile is already set up. Redirecting to dashboard...');
+                
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
                 return;
             }
             
@@ -507,14 +568,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('custom-pronouns').value = userData.pronouns;
                     }
                 }
+                
+                notifications.close(loadingId);
+                notifications.success('Welcome', 'Let\'s complete your profile setup!');
+            } else {
+                notifications.close(loadingId);
             }
             
         } catch (error) {
             console.error('Error loading user data:', error);
+            notifications.error('Connection Error', 'Unable to load your profile data. Please refresh the page.');
         }
     };
     
     // Initialize
     loadUserData();
-    goToStep(1); 
+    goToStep(1);
+    
+    // Welcome notification
+    setTimeout(() => {
+        notifications.info('Complete Your Profile', 'Follow these steps to set up your Versz profile.');
+    }, 1000);
 });

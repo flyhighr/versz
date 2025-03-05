@@ -28,8 +28,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const password = document.getElementById('password').value;
             const loginMessage = document.getElementById('login-message');
             
-            loginMessage.textContent = 'Logging in...';
-            loginMessage.className = 'auth-message info';
+            // Show loading notification
+            const notificationId = notifications.info('Signing In', 'Please wait while we verify your credentials...');
             
             try {
                 const formData = new FormData();
@@ -44,6 +44,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (response.ok) {
+                    // Close loading notification
+                    notifications.close(notificationId);
+                    
+                    // Show success notification
+                    notifications.success('Login Successful', 'Welcome back! Redirecting you to your dashboard...');
+                    
                     loginMessage.textContent = 'Login successful! Redirecting...';
                     loginMessage.className = 'auth-message success';
                     
@@ -72,11 +78,24 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = 'verify-prompt.html';
                     }
                 } else {
+                    // Close loading notification
+                    notifications.close(notificationId);
+                    
+                    // Show error notification
+                    notifications.error('Login Failed', data.detail || 'Please check your credentials and try again.');
+                    
                     loginMessage.textContent = data.detail || 'Login failed. Please check your credentials.';
                     loginMessage.className = 'auth-message error';
                 }
             } catch (error) {
                 console.error('Login error:', error);
+                
+                // Close loading notification
+                notifications.close(notificationId);
+                
+                // Show error notification
+                notifications.error('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
+                
                 loginMessage.textContent = 'An error occurred. Please try again.';
                 loginMessage.className = 'auth-message error';
             }
@@ -132,10 +151,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const hasNumber = /[0-9]/.test(password);
             
             if (!hasLength || !hasUppercase || !hasLowercase || !hasNumber) {
+                notifications.warning('Password Requirements', 'Please make sure your password meets all the requirements.');
                 registerMessage.textContent = 'Please meet all password requirements.';
                 registerMessage.className = 'auth-message error';
                 return;
             }
+            
+            // Show loading notification
+            const notificationId = notifications.info('Creating Account', 'Please wait while we set up your account...');
             
             registerMessage.textContent = 'Creating your account...';
             registerMessage.className = 'auth-message info';
@@ -155,6 +178,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (response.ok) {
+                    // Close loading notification
+                    notifications.close(notificationId);
+                    
+                    // Show success notification
+                    notifications.success('Account Created', 'Your account has been created successfully! Please check your email to verify your account.');
+                    
                     registerMessage.textContent = 'Account created! Please check your email to verify your account.';
                     registerMessage.className = 'auth-message success';
                     
@@ -164,11 +193,24 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = 'verify-prompt.html';
                     }, 2000);
                 } else {
+                    // Close loading notification
+                    notifications.close(notificationId);
+                    
+                    // Show error notification
+                    notifications.error('Registration Failed', data.detail || 'Unable to create your account. Please try again.');
+                    
                     registerMessage.textContent = data.detail || 'Registration failed. Please try again.';
                     registerMessage.className = 'auth-message error';
                 }
             } catch (error) {
                 console.error('Registration error:', error);
+                
+                // Close loading notification
+                notifications.close(notificationId);
+                
+                // Show error notification
+                notifications.error('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
+                
                 registerMessage.textContent = 'An error occurred. Please try again.';
                 registerMessage.className = 'auth-message error';
             }
@@ -183,6 +225,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const email = document.getElementById('reset-email').value;
             const resetMessage = document.getElementById('reset-message');
+            
+            // Show loading notification
+            const notificationId = notifications.info('Sending Reset Link', 'Please wait while we send you a reset code...');
             
             resetMessage.textContent = 'Sending reset link...';
             resetMessage.className = 'auth-message info';
@@ -201,6 +246,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (response.ok) {
+                    // Close loading notification
+                    notifications.close(notificationId);
+                    
+                    // Show success notification
+                    notifications.success('Reset Code Sent', 'A password reset code has been sent to your email address.');
+                    
                     resetMessage.textContent = 'Reset code sent! Please check your email.';
                     resetMessage.className = 'auth-message success';
                     
@@ -210,11 +261,24 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = 'reset-code.html';
                     }, 2000);
                 } else {
+                    // Close loading notification
+                    notifications.close(notificationId);
+                    
+                    // Show error notification
+                    notifications.error('Reset Failed', data.detail || 'Unable to send reset code. Please verify your email address.');
+                    
                     resetMessage.textContent = data.detail || 'Failed to send reset link. Please try again.';
                     resetMessage.className = 'auth-message error';
                 }
             } catch (error) {
                 console.error('Reset request error:', error);
+                
+                // Close loading notification
+                notifications.close(notificationId);
+                
+                // Show error notification
+                notifications.error('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
+                
                 resetMessage.textContent = 'An error occurred. Please try again.';
                 resetMessage.className = 'auth-message error';
             }
@@ -280,10 +344,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const hasNumber = /[0-9]/.test(newPassword);
             
             if (!hasLength || !hasUppercase || !hasLowercase || !hasNumber) {
+                notifications.warning('Password Requirements', 'Please make sure your new password meets all the requirements.');
                 resetCodeMessage.textContent = 'Please meet all password requirements.';
                 resetCodeMessage.className = 'auth-message error';
                 return;
             }
+            
+            // Show loading notification
+            const notificationId = notifications.info('Resetting Password', 'Please wait while we reset your password...');
             
             resetCodeMessage.textContent = 'Resetting password...';
             resetCodeMessage.className = 'auth-message info';
@@ -304,6 +372,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (response.ok) {
+                    // Close loading notification
+                    notifications.close(notificationId);
+                    
+                    // Show success notification
+                    notifications.success('Password Reset', 'Your password has been reset successfully! You can now log in with your new password.');
+                    
                     resetCodeMessage.textContent = 'Password reset successful! Redirecting to login...';
                     resetCodeMessage.className = 'auth-message success';
                     
@@ -313,11 +387,24 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = 'login.html';
                     }, 2000);
                 } else {
+                    // Close loading notification
+                    notifications.close(notificationId);
+                    
+                    // Show error notification
+                    notifications.error('Reset Failed', data.detail || 'Invalid reset code or the code has expired. Please try again.');
+                    
                     resetCodeMessage.textContent = data.detail || 'Failed to reset password. Please try again.';
                     resetCodeMessage.className = 'auth-message error';
                 }
             } catch (error) {
                 console.error('Password reset error:', error);
+                
+                // Close loading notification
+                notifications.close(notificationId);
+                
+                // Show error notification
+                notifications.error('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
+                
                 resetCodeMessage.textContent = 'An error occurred. Please try again.';
                 resetCodeMessage.className = 'auth-message error';
             }

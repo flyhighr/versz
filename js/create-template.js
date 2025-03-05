@@ -10,22 +10,32 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Mobile menu toggle
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    
     if (mobileMenuToggle) {
         mobileMenuToggle.addEventListener('click', function() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('collapsed');
+            sidebar.classList.toggle('show');
         });
     }
     
     // Sidebar toggle for mobile
     const sidebarToggle = document.querySelector('.sidebar-toggle');
-    const sidebar = document.querySelector('.sidebar');
     
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
+            sidebar.classList.remove('show');
         });
     }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768 && 
+            !e.target.closest('.sidebar') && 
+            !e.target.closest('#mobile-menu-toggle') &&
+            sidebar.classList.contains('show')) {
+            sidebar.classList.remove('show');
+        }
+    });
     
     // Load user data
     loadUserData();
@@ -53,24 +63,52 @@ document.addEventListener('DOMContentLoaded', function() {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
                     window.location.href = 'login.html';
+                    return;
                 }
-                return;
+                throw new Error('Failed to fetch user data');
             }
             
             const userData = await response.json();
             
             // Update sidebar user info
-            document.getElementById('sidebar-username').textContent = userData.username || 'User';
-            document.getElementById('sidebar-email').textContent = userData.email;
+            const sidebarUsername = document.getElementById('sidebar-username');
+            const sidebarEmail = document.getElementById('sidebar-email');
+            const sidebarAvatar = document.getElementById('sidebar-avatar');
             
-            if (userData.avatar_url) {
-                document.getElementById('sidebar-avatar').src = userData.avatar_url;
+            if (sidebarUsername) sidebarUsername.textContent = userData.username || 'User';
+            if (sidebarEmail) sidebarEmail.textContent = userData.email;
+            
+            if (sidebarAvatar && userData.avatar_url) {
+                sidebarAvatar.src = userData.avatar_url;
+                sidebarAvatar.onload = function() {
+                    sidebarAvatar.classList.add('loaded');
+                    const avatarLoading = document.querySelector('.avatar-loading');
+                    if (avatarLoading) {
+                        avatarLoading.style.display = 'none';
+                    }
+                };
+                sidebarAvatar.onerror = function() {
+                    sidebarAvatar.src = 'img/default-avatar.png';
+                    sidebarAvatar.classList.add('loaded');
+                    const avatarLoading = document.querySelector('.avatar-loading');
+                    if (avatarLoading) {
+                        avatarLoading.style.display = 'none';
+                    }
+                };
+            } else if (sidebarAvatar) {
+                sidebarAvatar.src = 'img/default-avatar.png';
+                sidebarAvatar.classList.add('loaded');
+                const avatarLoading = document.querySelector('.avatar-loading');
+                if (avatarLoading) {
+                    avatarLoading.style.display = 'none';
+                }
             }
             
             // Store user data
             localStorage.setItem('user', JSON.stringify(userData));
         } catch (error) {
             console.error('Error loading user data:', error);
+            showNotification('Failed to load user data', 'error');
         }
     }
     
@@ -78,8 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`${API_URL}/fonts`);
             if (!response.ok) {
-                console.error('Failed to load fonts');
-                return;
+                throw new Error('Failed to load fonts');
             }
             
             const data = await response.json();
@@ -87,6 +124,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const nameFontSelect = document.getElementById('name-font');
             const usernameFontSelect = document.getElementById('username-font');
+            
+            if (!nameFontSelect || !usernameFontSelect) return;
             
             // Clear existing options except the first one
             while (nameFontSelect.options.length > 1) {
@@ -113,6 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } catch (error) {
             console.error('Error loading fonts:', error);
+            showNotification('Failed to load fonts', 'warning');
         }
     }
     
@@ -120,14 +160,14 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`${API_URL}/timezones`);
             if (!response.ok) {
-                console.error('Failed to load timezones');
-                return;
+                throw new Error('Failed to load timezones');
             }
             
             const data = await response.json();
             const timezones = data.timezones;
             
             const timezoneSelect = document.getElementById('template-timezone');
+            if (!timezoneSelect) return;
             
             // Clear existing options except the first one
             while (timezoneSelect.options.length > 1) {
@@ -149,15 +189,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Error loading timezones:', error);
+            showNotification('Failed to load timezones', 'warning');
         }
     }
     
     async function loadSocialPlatforms() {
         try {
             const response = await fetch(`${API_URL}/social-platforms`);
+            if (!response.ok) {
+                throw new Error('Failed to load social platforms');
+            }
+            
             const data = await response.json();
             
             const platformSelect = document.getElementById('social-platform');
+            if (!platformSelect) return;
+            
             platformSelect.innerHTML = '<option value="">Select Platform</option>';
             
             data.platforms.forEach(platform => {
@@ -170,6 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } catch (error) {
             console.error('Error loading social platforms:', error);
+            showNotification('Failed to load social platforms', 'warning');
         }
     }
     
@@ -177,15 +225,22 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`${API_URL}/effects`);
             if (!response.ok) {
-                console.error('Failed to load effects');
-                return;
+                throw new Error('Failed to load effects');
             }
             
             const data = await response.json();
-            const effects = data.effects;
+            const effects = data.effects || [
+                {name: 'none', label: 'None'},
+                {name: 'typewriter', label: 'Typewriter'},
+                {name: 'fade-in', label: 'Fade In'},
+                {name: 'bounce', label: 'Bounce'},
+                {name: 'pulse', label: 'Pulse'}
+            ];
             
             const nameEffectSelect = document.getElementById('name-effect');
             const bioEffectSelect = document.getElementById('bio-effect');
+            
+            if (!nameEffectSelect || !bioEffectSelect) return;
             
             // Clear existing options
             nameEffectSelect.innerHTML = '';
@@ -207,6 +262,37 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } catch (error) {
             console.error('Error loading effects:', error);
+            
+            // Fallback to hardcoded effects if API fails
+            const fallbackEffects = [
+                {name: 'none', label: 'None'},
+                {name: 'typewriter', label: 'Typewriter'},
+                {name: 'fade-in', label: 'Fade In'},
+                {name: 'bounce', label: 'Bounce'},
+                {name: 'pulse', label: 'Pulse'}
+            ];
+            
+            const nameEffectSelect = document.getElementById('name-effect');
+            const bioEffectSelect = document.getElementById('bio-effect');
+            
+            if (nameEffectSelect && bioEffectSelect) {
+                nameEffectSelect.innerHTML = '';
+                bioEffectSelect.innerHTML = '';
+                
+                fallbackEffects.forEach(effect => {
+                    // For name effect
+                    const nameOption = document.createElement('option');
+                    nameOption.value = effect.name;
+                    nameOption.textContent = effect.label;
+                    nameEffectSelect.appendChild(nameOption);
+                    
+                    // For bio effect
+                    const bioOption = document.createElement('option');
+                    bioOption.value = effect.name;
+                    bioOption.textContent = effect.label;
+                    bioEffectSelect.appendChild(bioOption);
+                });
+            }
         }
     }
     
@@ -252,115 +338,175 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Container toggle
         const containerToggle = document.getElementById('container-enabled');
-        containerToggle.addEventListener('change', () => {
-            document.getElementById('container-settings').style.display = containerToggle.checked ? 'block' : 'none';
-        });
+        if (containerToggle) {
+            containerToggle.addEventListener('change', () => {
+                document.getElementById('container-settings').style.display = containerToggle.checked ? 'block' : 'none';
+            });
+        }
         
         // Range input values
-        document.getElementById('bg-opacity').addEventListener('input', function() {
-            document.getElementById('opacity-value').textContent = this.value;
-        });
+        const bgOpacity = document.getElementById('bg-opacity');
+        const opacityValue = document.getElementById('opacity-value');
+        if (bgOpacity && opacityValue) {
+            bgOpacity.addEventListener('input', function() {
+                opacityValue.textContent = parseFloat(this.value).toFixed(1);
+            });
+        }
         
-        document.getElementById('container-opacity').addEventListener('input', function() {
-            document.getElementById('container-opacity-value').textContent = this.value;
-        });
+        const containerOpacity = document.getElementById('container-opacity');
+        const containerOpacityValue = document.getElementById('container-opacity-value');
+        if (containerOpacity && containerOpacityValue) {
+            containerOpacity.addEventListener('input', function() {
+                containerOpacityValue.textContent = parseFloat(this.value).toFixed(1);
+            });
+        }
         
-        document.getElementById('container-radius').addEventListener('input', function() {
-            document.getElementById('radius-value').textContent = `${this.value}px`;
-        });
+        const containerRadius = document.getElementById('container-radius');
+        const radiusValue = document.getElementById('radius-value');
+        if (containerRadius && radiusValue) {
+            containerRadius.addEventListener('input', function() {
+                radiusValue.textContent = `${this.value}px`;
+            });
+        }
         
         // Preview image
-        document.getElementById('template-preview').addEventListener('input', function() {
-            const previewImage = document.getElementById('preview-image');
-            if (this.value) {
-                previewImage.src = this.value;
-                previewImage.onerror = () => {
+        const templatePreview = document.getElementById('template-preview');
+        const previewImage = document.getElementById('preview-image');
+        const previewLoading = document.querySelector('.preview-loading');
+        
+        if (templatePreview && previewImage) {
+            templatePreview.addEventListener('input', function() {
+                if (this.value) {
+                    previewLoading.style.display = 'flex';
+                    previewImage.style.opacity = '0';
+                    
+                    previewImage.src = this.value;
+                    previewImage.onload = () => {
+                        previewLoading.style.display = 'none';
+                        previewImage.style.opacity = '1';
+                    };
+                    previewImage.onerror = () => {
+                        previewImage.src = 'img/template-placeholder.jpg';
+                        previewLoading.style.display = 'none';
+                        previewImage.style.opacity = '1';
+                        showNotification('Invalid image URL', 'warning');
+                    };
+                } else {
                     previewImage.src = 'img/template-placeholder.jpg';
-                };
-            } else {
-                previewImage.src = 'img/template-placeholder.jpg';
-            }
-        });
+                }
+            });
+        }
         
         // Social links
-        document.getElementById('add-social-btn').addEventListener('click', function() {
-            const modal = document.getElementById('add-social-modal');
-            modal.classList.add('active');
-        });
+        const addSocialBtn = document.getElementById('add-social-btn');
+        if (addSocialBtn) {
+            addSocialBtn.addEventListener('click', function() {
+                const modal = document.getElementById('add-social-modal');
+                modal.classList.add('active');
+            });
+        }
         
-        document.querySelectorAll('.modal-close').forEach(button => {
+        // Modal close buttons
+        document.querySelectorAll('.modal-close, .modal-cancel-btn').forEach(button => {
             button.addEventListener('click', function() {
                 this.closest('.modal').classList.remove('active');
             });
         });
         
-        document.getElementById('social-link-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const platform = document.getElementById('social-platform').value;
-            const url = document.getElementById('social-url').value;
-            const displayName = document.getElementById('social-display-name').value;
-            
-            if (!platform || !url) {
-                return;
-            }
-            
-            const selectedOption = document.querySelector(`#social-platform option[value="${platform}"]`);
-            const icon = selectedOption.dataset.icon || 'fab fa-link';
-            
-            addSocialLink({
-                platform: platform,
-                url: url,
-                display_name: displayName,
-                icon: icon
+        // Close modals when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
             });
-            
-            document.getElementById('add-social-modal').classList.remove('active');
-            document.getElementById('social-link-form').reset();
         });
+        
+        // Social link form submission
+        const socialLinkForm = document.getElementById('social-link-form');
+        if (socialLinkForm) {
+            socialLinkForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const platform = document.getElementById('social-platform').value;
+                const url = document.getElementById('social-url').value;
+                const displayName = document.getElementById('social-display-name').value;
+                
+                if (!platform || !url) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+                
+                const selectedOption = document.querySelector(`#social-platform option[value="${platform}"]`);
+                const icon = selectedOption.dataset.icon || 'fab fa-link';
+                
+                addSocialLink({
+                    platform: platform,
+                    url: url,
+                    display_name: displayName,
+                    icon: icon
+                });
+                
+                document.getElementById('add-social-modal').classList.remove('active');
+                socialLinkForm.reset();
+                showNotification('Social link added', 'success');
+            });
+        }
         
         // Songs
-        document.getElementById('add-song-btn').addEventListener('click', function() {
-            const modal = document.getElementById('add-song-modal');
-            modal.classList.add('active');
-        });
-        
-        document.getElementById('song-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const title = document.getElementById('song-title').value;
-            const artist = document.getElementById('song-artist').value;
-            const coverUrl = document.getElementById('song-cover').value;
-            const youtubeUrl = document.getElementById('song-youtube').value;
-            
-            if (!title || !artist || !coverUrl || !youtubeUrl) {
-                return;
-            }
-            
-            addSong({
-                title: title,
-                artist: artist,
-                cover_url: coverUrl,
-                youtube_url: youtubeUrl
+        const addSongBtn = document.getElementById('add-song-btn');
+        if (addSongBtn) {
+            addSongBtn.addEventListener('click', function() {
+                const modal = document.getElementById('add-song-modal');
+                modal.classList.add('active');
             });
-            
-            document.getElementById('add-song-modal').classList.remove('active');
-            document.getElementById('song-form').reset();
-        });
+        }
+        
+        // Song form submission
+        const songForm = document.getElementById('song-form');
+        if (songForm) {
+            songForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const title = document.getElementById('song-title').value;
+                const artist = document.getElementById('song-artist').value;
+                const coverUrl = document.getElementById('song-cover').value;
+                const youtubeUrl = document.getElementById('song-youtube').value;
+                
+                if (!title || !artist || !coverUrl || !youtubeUrl) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+                
+                addSong({
+                    title: title,
+                    artist: artist,
+                    cover_url: coverUrl,
+                    youtube_url: youtubeUrl
+                });
+                
+                document.getElementById('add-song-modal').classList.remove('active');
+                songForm.reset();
+                showNotification('Song added', 'success');
+            });
+        }
         
         // Tags
         const tagInput = document.getElementById('tag-input');
-        tagInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ',') {
-                e.preventDefault();
-                const tag = this.value.trim();
-                if (tag) {
-                    addTag(tag);
-                    this.value = '';
+        if (tagInput) {
+            tagInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    const tag = this.value.trim().toLowerCase();
+                    if (tag) {
+                        addTag(tag);
+                        this.value = '';
+                    }
                 }
-            }
-        });
+            });
+        }
         
+        // Tag suggestions
         document.querySelectorAll('.tag-suggestion').forEach(suggestion => {
             suggestion.addEventListener('click', function() {
                 addTag(this.dataset.tag);
@@ -368,20 +514,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Save template
-        document.getElementById('save-template-btn').addEventListener('click', saveTemplate);
+        const saveTemplateBtn = document.getElementById('save-template-btn');
+        if (saveTemplateBtn) {
+            saveTemplateBtn.addEventListener('click', saveTemplate);
+        }
         
         // Cancel button
-        document.getElementById('cancel-template-btn').addEventListener('click', function() {
-            window.location.href = 'templates.html';
-        });
+        const cancelTemplateBtn = document.getElementById('cancel-template-btn');
+        if (cancelTemplateBtn) {
+            cancelTemplateBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+                    window.location.href = 'templates.html';
+                }
+            });
+        }
         
         // Logout
-        document.getElementById('logout-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
-        });
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            });
+        }
     }
     
     function addSocialLink(socialLink) {
@@ -402,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="social-url">${socialLink.display_name || socialLink.url}</div>
             </div>
             <div class="social-actions">
-                <button type="button" class="btn btn-sm btn-icon remove-social-btn">
+                <button type="button" class="remove-social-btn">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -435,14 +592,14 @@ document.addEventListener('DOMContentLoaded', function() {
         songItem.dataset.youtubeUrl = song.youtube_url;
         songItem.innerHTML = `
             <div class="song-cover">
-                <img src="${song.cover_url}" alt="${song.title}">
+                <img src="${song.cover_url}" alt="${song.title}" onerror="this.src='img/placeholder-music.png'">
             </div>
             <div class="song-info">
                 <div class="song-title">${song.title}</div>
                 <div class="song-artist">${song.artist}</div>
             </div>
             <div class="song-actions">
-                <button type="button" class="btn btn-sm btn-icon remove-song-btn">
+                <button type="button" class="remove-song-btn">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -464,6 +621,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function addTag(tag) {
+        // Clean the tag - lowercase, no spaces, max 20 chars
+        tag = tag.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').substring(0, 20);
+        
+        if (!tag) return;
+        
         // Check if tag already exists
         const existingTags = Array.from(document.querySelectorAll('.selected-tag')).map(el => el.dataset.tag);
         if (existingTags.includes(tag)) {
@@ -653,6 +815,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            if (!templateData.preview_image) {
+                showNotification('Preview image is required', 'error');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Template';
+                return;
+            }
+            
             if (templateData.tags.length === 0) {
                 showNotification('Please add at least one tag', 'error');
                 saveBtn.disabled = false;
@@ -723,29 +892,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Improved notification system
     function showNotification(message, type = 'info') {
-        // Create notification element if it doesn't exist
-        let notification = document.querySelector('.notification');
-        if (!notification) {
-            notification = document.createElement('div');
-            notification.className = 'notification';
-            document.body.appendChild(notification);
+        const notificationContainer = document.querySelector('.notification-container');
+        if (!notificationContainer) {
+            const container = document.createElement('div');
+            container.className = 'notification-container';
+            document.body.appendChild(container);
         }
         
-        // Set message and type
-        notification.textContent = message;
+        const notification = document.createElement('div');
         notification.className = `notification ${type}`;
-        notification.style.display = 'block';
         
-        // Show notification
-        notification.classList.add('active');
+        // Set icon based on notification type
+        let iconClass = 'fa-info-circle';
+        if (type === 'success') iconClass = 'fa-check-circle';
+        else if (type === 'error') iconClass = 'fa-exclamation-circle';
+        else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
         
-        // Hide after 3 seconds
+        notification.innerHTML = `
+            <div class="notification-icon">
+                <i class="fas ${iconClass}"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="notification-progress"></div>
+        `;
+        
+        // Add to container
+        document.querySelector('.notification-container').appendChild(notification);
+        
+        // Animate in
         setTimeout(() => {
-            notification.classList.remove('active');
+            notification.classList.add('show');
+        }, 10);
+        
+        // Set up close button
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => {
+            notification.classList.remove('show');
             setTimeout(() => {
-                notification.style.display = 'none';
+                notification.remove();
             }, 300);
-        }, 3000);
+        });
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }
+        }, 5000);
     }
 });
