@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const API_URL = 'https://versz-vs1b.onrender.com';
+    const API_URL = 'https://api.versz.fun';
     
     const userEmail = document.getElementById('user-email');
     const resendBtn = document.getElementById('resend-btn');
