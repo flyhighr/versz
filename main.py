@@ -961,69 +961,101 @@ async def register_user(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body {{
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333333;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
                 margin: 0;
                 padding: 0;
-                background-color: #f5f5f5;
+                background-color: #000000;
+                color: #ffffff;
             }}
             .container {{
-                max-width: 600px;
+                max-width: 420px;
                 margin: 0 auto;
-                padding: 40px 20px;
-                background-color: #ffffff;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                background-color: #000000;
             }}
             .header {{
                 text-align: center;
-                padding-bottom: 20px;
-                border-bottom: 1px solid #eeeeee;
+                padding: 20px 0 10px;
             }}
-            .content {{
-                padding: 30px 0;
+            .logo {{
+                width: 150px;
+                height: auto;
+            }}
+            .content-box {{
+                background-color: #121212;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 0 20px;
+            }}
+            h1 {{
+                font-size: 20px;
+                font-weight: 500;
+                margin: 0 0 5px 0;
+                padding: 0;
+            }}
+            .username {{
+                font-weight: normal;
+            }}
+            p {{
+                font-size: 16px;
+                line-height: 1.4;
+                margin: 15px 0;
+                color: #e0e0e0;
+            }}
+            .code-container {{
+                text-align: center;
+                padding: 20px 0;
+            }}
+            .verification-code {{
+                font-size: 32px;
+                font-weight: bold;
+                color: #ffffff;
+            }}
+            .small-text {{
+                font-size: 14px;
+                color: #9e9e9e;
+                margin-top: 25px;
+            }}
+            a {{
+                color: #4a99e9;
+                text-decoration: none;
+            }}
+            .footer {{
+                margin-top: 15px;
+                color: #9e9e9e;
+                font-size: 14px;
+                padding: 0 20px 20px;
             }}
             .button {{
                 display: inline-block;
                 padding: 10px 20px;
-                background-color: #4ecdc4;
+                background-color: #4a99e9;
                 color: white;
                 text-decoration: none;
                 border-radius: 5px;
                 text-align: center;
                 margin: 20px 0;
             }}
-            .footer {{
-                text-align: center;
-                color: #666666;
-                font-size: 14px;
-                border-top: 1px solid #eeeeee;
-                padding-top: 20px;
-            }}
-            .warning {{
-                color: #856404;
-                background-color: #fff3cd;
-                padding: 10px;
-                border-radius: 4px;
-                margin-top: 20px;
-                font-size: 14px;
-            }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
+                <img src="https://versz.fun/logo.png" alt="Versz" class="logo">
+            </div>
+            
+            <div class="content-box">
                 <h1>Verify Your Email Address</h1>
-            </div>
-            <div class="content">
                 <p>Thank you for registering! Please click the link below to verify your email:</p>
-                <a href="{verification_link}" class="button">Verify Email</a>
-                <p>This link will expire in 1 hour.</p>
-                <div class="warning">
-                    Your registration will be canceled if you don't verify within 1 hour(s).
+                
+                <div style="text-align: center;">
+                    <a href="{verification_link}" class="button">Verify Email</a>
                 </div>
+                
+                <p class="small-text">This link will expire in 1 hour.</p>
+                
+                <p>If you did not request this verification, you can safely ignore this email.</p>
             </div>
+            
             <div class="footer">
                 <p>This is an automated message, please do not reply to this email.</p>
             </div>
@@ -1243,69 +1275,101 @@ async def resend_verification_email(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body {{
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333333;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
                 margin: 0;
                 padding: 0;
-                background-color: #f5f5f5;
+                background-color: #000000;
+                color: #ffffff;
             }}
             .container {{
-                max-width: 600px;
+                max-width: 420px;
                 margin: 0 auto;
-                padding: 40px 20px;
-                background-color: #ffffff;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                background-color: #000000;
             }}
             .header {{
                 text-align: center;
-                padding-bottom: 20px;
-                border-bottom: 1px solid #eeeeee;
+                padding: 20px 0 10px;
             }}
-            .content {{
-                padding: 30px 0;
+            .logo {{
+                width: 150px;
+                height: auto;
+            }}
+            .content-box {{
+                background-color: #121212;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 0 20px;
+            }}
+            h1 {{
+                font-size: 20px;
+                font-weight: 500;
+                margin: 0 0 5px 0;
+                padding: 0;
+            }}
+            .username {{
+                font-weight: normal;
+            }}
+            p {{
+                font-size: 16px;
+                line-height: 1.4;
+                margin: 15px 0;
+                color: #e0e0e0;
+            }}
+            .code-container {{
+                text-align: center;
+                padding: 20px 0;
+            }}
+            .verification-code {{
+                font-size: 32px;
+                font-weight: bold;
+                color: #ffffff;
+            }}
+            .small-text {{
+                font-size: 14px;
+                color: #9e9e9e;
+                margin-top: 25px;
+            }}
+            a {{
+                color: #4a99e9;
+                text-decoration: none;
+            }}
+            .footer {{
+                margin-top: 15px;
+                color: #9e9e9e;
+                font-size: 14px;
+                padding: 0 20px 20px;
             }}
             .button {{
                 display: inline-block;
                 padding: 10px 20px;
-                background-color: #4ecdc4;
+                background-color: #4a99e9;
                 color: white;
                 text-decoration: none;
                 border-radius: 5px;
                 text-align: center;
                 margin: 20px 0;
             }}
-            .footer {{
-                text-align: center;
-                color: #666666;
-                font-size: 14px;
-                border-top: 1px solid #eeeeee;
-                padding-top: 20px;
-            }}
-            .warning {{
-                color: #856404;
-                background-color: #fff3cd;
-                padding: 10px;
-                border-radius: 4px;
-                margin-top: 20px;
-                font-size: 14px;
-            }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
+                <img src="https://versz.fun/logo.png" alt="Versz" class="logo">
+            </div>
+            
+            <div class="content-box">
                 <h1>Verify Your Email Address</h1>
-            </div>
-            <div class="content">
                 <p>Here's your new verification link:</p>
-                <a href="{verification_link}" class="button">Verify Email</a>
-                <p>This link will expire in 1 hour.</p>
-                <div class="warning">
-                    Please verify your email within 1 hour to complete the registration process.
+                
+                <div style="text-align: center;">
+                    <a href="{verification_link}" class="button">Verify Email</a>
                 </div>
+                
+                <p class="small-text">This link will expire in 1 hour.</p>
+                
+                <p>Please verify your email within 1 hour to complete the registration process.</p>
             </div>
+            
             <div class="footer">
                 <p>This is an automated message, please do not reply to this email.</p>
             </div>
@@ -1536,81 +1600,91 @@ async def request_password_reset(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body {{
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333333;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
                 margin: 0;
                 padding: 0;
-                background-color: #f5f5f5;
+                background-color: #000000;
+                color: #ffffff;
             }}
             .container {{
-                max-width: 600px;
+                max-width: 420px;
                 margin: 0 auto;
-                padding: 40px 20px;
-                background-color: #ffffff;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                background-color: #000000;
             }}
             .header {{
                 text-align: center;
-                padding-bottom: 20px;
-                border-bottom: 1px solid #eeeeee;
+                padding: 20px 0 10px;
             }}
             .logo {{
-                width: 120px;
+                width: 150px;
                 height: auto;
-                margin-bottom: 20px;
+            }}
+            .content-box {{
+                background-color: #121212;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 0 20px;
             }}
             h1 {{
-                color: #2c3e50;
-                font-size: 24px;
-                margin: 0;
+                font-size: 20px;
+                font-weight: 500;
+                margin: 0 0 5px 0;
                 padding: 0;
             }}
-            .content {{
-                padding: 30px 0;
+            .username {{
+                font-weight: normal;
             }}
-            .code {{
-                background-color: #f8f9fa;
-                color: #2c3e50;
+            p {{
+                font-size: 16px;
+                line-height: 1.4;
+                margin: 15px 0;
+                color: #e0e0e0;
+            }}
+            .code-container {{
+                text-align: center;
+                padding: 20px 0;
+            }}
+            .verification-code {{
                 font-size: 32px;
                 font-weight: bold;
-                text-align: center;
-                padding: 20px;
-                margin: 20px 0;
-                border-radius: 4px;
-                letter-spacing: 5px;
+                color: #ffffff;
+            }}
+            .small-text {{
+                font-size: 14px;
+                color: #9e9e9e;
+                margin-top: 25px;
+            }}
+            a {{
+                color: #4a99e9;
+                text-decoration: none;
             }}
             .footer {{
-                text-align: center;
-                color: #666666;
+                margin-top: 15px;
+                color: #9e9e9e;
                 font-size: 14px;
-                border-top: 1px solid #eeeeee;
-                padding-top: 20px;
-            }}
-            .security-notice {{
-                background-color: #e8f4fd;
-                padding: 15px;
-                border-radius: 4px;
-                margin-top: 20px;
-                font-size: 14px;
-                color: #0d47a1;
+                padding: 0 20px 20px;
             }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
+                <img src="https://versz.fun/logo.png" alt="Versz" class="logo">
+            </div>
+            
+            <div class="content-box">
                 <h1>Reset Your Password</h1>
-            </div>
-            <div class="content">
                 <p>We received a request to reset your password. Use the following code to complete the password reset:</p>
-                <div class="code">{reset_code}</div>
-                <p>This code will expire in 30 minutes.</p>
-                <div class="security-notice">
-                    If you didn't request this password reset, please ignore this email or contact support if you have concerns about your account security.
+                
+                <div class="code-container">
+                    <div class="verification-code">{reset_code}</div>
                 </div>
+                
+                <p class="small-text">This code will expire in 30 minutes.</p>
+                
+                <p>If you didn't request this password reset, please ignore this email or contact support if you have concerns about your account security.</p>
             </div>
+            
             <div class="footer">
                 <p>This is an automated message, please do not reply to this email.</p>
             </div>
