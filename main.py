@@ -1757,16 +1757,18 @@ async def connect_discord(request: Request, current_user: dict = Depends(get_cur
         "expires_at": datetime.utcnow() + timedelta(minutes=10)
     })
     
-
+    # Use urllib.parse.urlencode to properly encode the parameters
+    from urllib.parse import urlencode
     params = {
         "client_id": settings.DISCORD_CLIENT_ID,
         "redirect_uri": settings.DISCORD_REDIRECT_URI,
         "response_type": "code",
         "state": state,
-        "scope": "identify activities.read",
+        "scope": "identify activities.read",  # No space here
         "prompt": "consent"
     }
-    auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
+    
+    auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?{urlencode(params)}"
     
     return {"auth_url": auth_url}
 
@@ -1950,6 +1952,7 @@ async def get_discord_status(request: Request, current_user: dict = Depends(get_
             "expires_at": datetime.utcnow() + timedelta(minutes=10)
         })
         
+        from urllib.parse import urlencode
         params = {
             "client_id": settings.DISCORD_CLIENT_ID,
             "redirect_uri": settings.DISCORD_REDIRECT_URI,
@@ -1959,7 +1962,7 @@ async def get_discord_status(request: Request, current_user: dict = Depends(get_
             "prompt": "consent"
         }
         
-        auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
+        auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?{urlencode(params)}"
     
     # Format response
     discord_data = {
@@ -2006,14 +2009,14 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
         # Generate new state and auth URL
         state = secrets.token_urlsafe(32)
         
-        # Store state in database
+        state = secrets.token_urlsafe(32)
         await db.discord_states.insert_one({
             "state": state,
             "user_id": current_user["id"],
             "expires_at": datetime.utcnow() + timedelta(minutes=10)
         })
-        
-        # Discord OAuth2 authorization URL
+
+        from urllib.parse import urlencode
         params = {
             "client_id": settings.DISCORD_CLIENT_ID,
             "redirect_uri": settings.DISCORD_REDIRECT_URI,
@@ -2022,8 +2025,7 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
             "scope": "identify activities.read",
             "prompt": "consent"
         }
-        
-        auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
+        auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?{urlencode(params)}"
         
         return {
             "needs_verification": True,
