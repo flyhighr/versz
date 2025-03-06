@@ -6,16 +6,41 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Global helper function for Discord auth
     window.setDiscordAuth = function(code, state) {
-        console.log("setDiscordAuth called with code and state");
+        console.log("setDiscordAuth called with code and state", code, state);
+        
         // Only process once
         if (!authCodeProcessed) {
             authCodeProcessed = true;
-            // Simulate a message event
-            window.dispatchEvent(
-                new MessageEvent('message', {
-                    data: { code, state }
-                })
-            );
+            
+            // Make the API call directly here rather than relying on event handling
+            fetch(`${API_URL}/discord/exchange-code`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ code, state })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to exchange code for token');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Exchange successful:", data);
+                if (data.success) {
+                    // Reload Discord status
+                    loadDiscordStatus();
+                    showNotification('Discord account connected successfully!', 'success');
+                } else {
+                    throw new Error('Failed to connect Discord account');
+                }
+            })
+            .catch(error => {
+                console.error('Error exchanging code:', error);
+                showNotification('Failed to connect Discord account: ' + error.message, 'error');
+            });
         }
     };
     
