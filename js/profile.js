@@ -1532,12 +1532,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    const verifyDiscord = async (authUrl) => {
+    const verifyDiscord = async (encodedAuthUrl) => {
         try {
             const verifyBtn = document.querySelector('.discord-verification-btn');
             if (verifyBtn) {
                 verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
                 verifyBtn.disabled = true;
+            }
+            
+            // Decode the URL that was encoded for HTML safety
+            const authUrl = decodeURIComponent(encodedAuthUrl);
+            
+            if (!authUrl) {
+                throw new Error('No authorization URL provided');
             }
             
             // Open Discord OAuth in a popup
@@ -1551,6 +1558,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 'discord-oauth',
                 `width=${width},height=${height},left=${left},top=${top}`
             );
+            
+            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                throw new Error('Popup blocked. Please allow popups for this site.');
+            }
             
             // Create a message listener for the popup callback
             const messageListener = async (event) => {
@@ -1613,12 +1624,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         verifyBtn.innerHTML = '<i class="fab fa-discord"></i> Verify with Discord';
                         verifyBtn.disabled = false;
                     }
+                    
+                    showNotification('Discord verification was cancelled or failed', 'warning');
                 }
             }, 500);
             
         } catch (error) {
             console.error('Error verifying Discord:', error);
-            showNotification('Failed to verify Discord account', 'error');
+            showNotification(error.message || 'Failed to verify Discord account', 'error');
             
             const verifyBtn = document.querySelector('.discord-verification-btn');
             if (verifyBtn) {
@@ -1750,19 +1763,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('discord-connection');
         if (!container) return;
         
-        // If no authUrl is provided, we need to refresh the connection first
-        const refreshButton = authUrl ? 
-            `<button class="discord-verification-btn" onclick="verifyDiscord('${authUrl}')">
-                <i class="fab fa-discord"></i> Verify with Discord
-            </button>` :
-            `<button class="discord-refresh-btn" onclick="refreshDiscordConnection()">
-                <i class="fas fa-sync-alt"></i> Refresh Connection
-            </button>`;
+        // Make sure authUrl is properly encoded for use in HTML
+        const safeAuthUrl = authUrl ? encodeURIComponent(authUrl) : '';
         
         container.innerHTML = `
             <div class="discord-verification-needed">
                 <p>Your Discord connection needs to be verified again. This happens when permissions change or the connection expires.</p>
-                ${refreshButton}
+                <button class="discord-verification-btn" onclick="verifyDiscord('${safeAuthUrl}')">
+                    <i class="fab fa-discord"></i> Verify with Discord
+                </button>
             </div>
         `;
         
