@@ -1454,7 +1454,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.needs_verification) {
                 // Need to re-authorize with Discord
-                renderDiscordVerificationNeeded(data.auth_url);
+                renderDiscordVerificationNeeded(data.auth_url || null);
             } else {
                 // Reload Discord status
                 await loadDiscordStatus();
@@ -1742,7 +1742,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // If connection needs verification, show that instead
         if (data.needs_verification) {
-            renderDiscordVerificationNeeded(data.auth_url);
+            renderDiscordVerificationNeeded(data.auth_url || null);
         }
     };
 
@@ -1750,15 +1750,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('discord-connection');
         if (!container) return;
         
-        // Make sure authUrl is defined, otherwise the onclick will be 'undefined'
-        const authUrlValue = authUrl || '';
+        // If no authUrl is provided, we need to refresh the connection first
+        const refreshButton = authUrl ? 
+            `<button class="discord-verification-btn" onclick="verifyDiscord('${authUrl}')">
+                <i class="fab fa-discord"></i> Verify with Discord
+            </button>` :
+            `<button class="discord-refresh-btn" onclick="refreshDiscordConnection()">
+                <i class="fas fa-sync-alt"></i> Refresh Connection
+            </button>`;
         
         container.innerHTML = `
             <div class="discord-verification-needed">
                 <p>Your Discord connection needs to be verified again. This happens when permissions change or the connection expires.</p>
-                <button class="discord-verification-btn" onclick="verifyDiscord('${authUrlValue}')">
-                    <i class="fab fa-discord"></i> Verify with Discord
-                </button>
+                ${refreshButton}
             </div>
         `;
         
