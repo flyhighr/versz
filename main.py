@@ -1629,134 +1629,134 @@ async def request_password_reset(
     background_tasks: BackgroundTasks,
     reset_request: UserPasswordReset
 ):
+    # Don't reveal if the user exists or not to prevent enumeration attacks
     user = await db.users.find_one(
         {"email": reset_request.email},
-        projection={"_id": 1}
+        projection={"_id": 1, "is_verified": 1}
     )
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
     
-    reset_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) 
-                        for _ in range(8))
-    
-    await db.password_reset.insert_one({
-        "email": reset_request.email,
-        "code": reset_code,
-        "expires_at": datetime.utcnow() + timedelta(minutes=30)
-    })
-    
-    reset_email = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            body {{
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-                margin: 0;
-                padding: 0;
-                background-color: #000000;
-                color: #ffffff;
-            }}
-            .container {{
-                max-width: 420px;
-                margin: 0 auto;
-                background-color: #000000;
-            }}
-            .header {{
-                text-align: center;
-                padding: 20px 0 10px;
-            }}
-            .logo {{
-                width: 150px;
-                height: auto;
-            }}
-            .content-box {{
-                background-color: #121212;
-                border-radius: 10px;
-                padding: 20px;
-                margin: 0 20px;
-            }}
-            h1 {{
-                font-size: 20px;
-                font-weight: 500;
-                margin: 0 0 5px 0;
-                padding: 0;
-            }}
-            .username {{
-                font-weight: normal;
-            }}
-            p {{
-                font-size: 16px;
-                line-height: 1.4;
-                margin: 15px 0;
-                color: #e0e0e0;
-            }}
-            .code-container {{
-                text-align: center;
-                padding: 20px 0;
-            }}
-            .verification-code {{
-                font-size: 32px;
-                font-weight: bold;
-                color: #ffffff;
-            }}
-            .small-text {{
-                font-size: 14px;
-                color: #9e9e9e;
-                margin-top: 25px;
-            }}
-            a {{
-                color: #4a99e9;
-                text-decoration: none;
-            }}
-            .footer {{
-                margin-top: 15px;
-                color: #9e9e9e;
-                font-size: 14px;
-                padding: 0 20px 20px;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <img src="https://versz.fun/logo.png" alt="Versz" class="logo">
-            </div>
-            
-            <div class="content-box">
-                <h1>Reset Your Password</h1>
-                <p>We received a request to reset your password. Use the following code to complete the password reset:</p>
-                
-                <div class="code-container">
-                    <div class="verification-code">{reset_code}</div>
+    # Only proceed with verified users, but don't reveal this in the response
+    if user and user.get("is_verified", False):
+        reset_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) 
+                            for _ in range(8))
+        
+        await db.password_reset.insert_one({
+            "email": reset_request.email,
+            "code": reset_code,
+            "expires_at": datetime.utcnow() + timedelta(minutes=30)
+        })
+        
+        reset_email = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #000000;
+                    color: #ffffff;
+                }}
+                .container {{
+                    max-width: 420px;
+                    margin: 0 auto;
+                    background-color: #000000;
+                }}
+                .header {{
+                    text-align: center;
+                    padding: 20px 0 10px;
+                }}
+                .logo {{
+                    width: 150px;
+                    height: auto;
+                }}
+                .content-box {{
+                    background-color: #121212;
+                    border-radius: 10px;
+                    padding: 20px;
+                    margin: 0 20px;
+                }}
+                h1 {{
+                    font-size: 20px;
+                    font-weight: 500;
+                    margin: 0 0 5px 0;
+                    padding: 0;
+                }}
+                .username {{
+                    font-weight: normal;
+                }}
+                p {{
+                    font-size: 16px;
+                    line-height: 1.4;
+                    margin: 15px 0;
+                    color: #e0e0e0;
+                }}
+                .code-container {{
+                    text-align: center;
+                    padding: 20px 0;
+                }}
+                .verification-code {{
+                    font-size: 32px;
+                    font-weight: bold;
+                    color: #ffffff;
+                }}
+                .small-text {{
+                    font-size: 14px;
+                    color: #9e9e9e;
+                    margin-top: 25px;
+                }}
+                a {{
+                    color: #4a99e9;
+                    text-decoration: none;
+                }}
+                .footer {{
+                    margin-top: 15px;
+                    color: #9e9e9e;
+                    font-size: 14px;
+                    padding: 0 20px 20px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <img src="https://versz.fun/logo.png" alt="Versz" class="logo">
                 </div>
                 
-                <p class="small-text">This code will expire in 30 minutes.</p>
+                <div class="content-box">
+                    <h1>Reset Your Password</h1>
+                    <p>We received a request to reset your password. Use the following code to complete the password reset:</p>
+                    
+                    <div class="code-container">
+                        <div class="verification-code">{reset_code}</div>
+                    </div>
+                    
+                    <p class="small-text">This code will expire in 30 minutes.</p>
+                    
+                    <p>If you didn't request this password reset, please ignore this email or contact support if you have concerns about your account security.</p>
+                </div>
                 
-                <p>If you didn't request this password reset, please ignore this email or contact support if you have concerns about your account security.</p>
+                <div class="footer">
+                    <p>This is an automated message, please do not reply to this email.</p>
+                </div>
             </div>
-            
-            <div class="footer">
-                <p>This is an automated message, please do not reply to this email.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
+        </body>
+        </html>
+        """
+        
+        background_tasks.add_task(
+            send_email_async,
+            reset_request.email,
+            "Password Reset Request",
+            reset_email
+        )
     
-    background_tasks.add_task(
-        send_email_async,
-        reset_request.email,
-        "Password Reset Request",
-        reset_email
-    )
-    
-    return {"message": "Password reset email sent"}
+    # Always return the same message regardless of whether the email exists
+    # This prevents user enumeration
+    return {"message": "If your email is registered and verified, you will receive a password reset code shortly."}
 
 @app.post("/reset-password")
 @limiter.limit(RateLimits.AUTH_LIMIT)
@@ -2070,9 +2070,9 @@ async def get_discord_status(request: Request, current_user: dict = Depends(get_
     needs_refresh = connection["expires_at"] < datetime.utcnow() + timedelta(minutes=10)
     needs_verification = connection.get("needs_verification", False)
     
-    # Generate auth URL if verification is needed
+    # If token is expired or needs verification, generate auth URL immediately
     auth_url = None
-    if needs_verification:
+    if needs_verification or (needs_refresh and connection["expires_at"] < datetime.utcnow()):
         state = secrets.token_urlsafe(32)
         await db.discord_states.insert_one({
             "state": state,
@@ -2110,6 +2110,7 @@ async def get_discord_status(request: Request, current_user: dict = Depends(get_
     # Add auth_url if verification is needed
     if auth_url:
         discord_data["auth_url"] = auth_url
+        discord_data["token_expired"] = connection["expires_at"] < datetime.utcnow()
         
     # Add avatar URL if avatar is available
     if connection.get("avatar"):
@@ -3937,6 +3938,10 @@ async def startup_event():
     await db.discord_connections.create_index("discord_id")
     await db.discord_states.create_index("state", unique=True)
     await db.discord_states.create_index("expires_at")
+    await db.password_reset.create_index("email")
+    await db.password_reset.create_index("code")
+    await db.password_reset.create_index("expires_at")
+    await db.page_previews.create_index("expires_at")
     
     # Start cleanup tasks
     asyncio.create_task(start_cleanup_scheduler())
