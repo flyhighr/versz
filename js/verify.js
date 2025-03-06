@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const API_URL = 'https://versz-vs1b.onrender.com';
+    const API_URL = 'https://api.versz.fun';
     
     const verifyLoading = document.getElementById('verify-loading');
     const verifySuccess = document.getElementById('verify-success');
