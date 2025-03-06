@@ -3045,7 +3045,7 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
         projection={
             "username": 1, "name": 1, "joined_at": 1, "tags": 1, 
             "display_preferences": 1, "location": 1, "date_of_birth": 1, 
-            "timezone": 1, "gender": 1, "pronouns": 1
+            "timezone": 1, "gender": 1, "pronouns": 1, "id": 1  # Added "id" to the projection
         }
     )
     if not user:
@@ -3128,9 +3128,9 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
     if display_prefs.get("show_timezone", True) and "timezone" in user:
         response_data["user"]["timezone"] = user["timezone"]
 
-    if user:
+    # Check if user exists and has a Discord connection
+    if user and "id" in user:
         discord_connection = await db.discord_connections.find_one({"user_id": user["id"]})
-        display_prefs = user.get("display_preferences", {})
         
         if discord_connection and display_prefs.get("show_discord", True) and discord_connection.get("show_discord", True):
             response_data["user"]["discord"] = {
