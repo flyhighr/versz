@@ -1763,7 +1763,7 @@ async def connect_discord(request: Request, current_user: dict = Depends(get_cur
         "redirect_uri": settings.DISCORD_REDIRECT_URI,
         "response_type": "code",
         "state": state,
-        "scope": "identify guilds.members.read connections presence.read",
+        "scope": "identify guilds.members.read connections activities.read",
         "prompt": "consent"
     }
     
@@ -1995,7 +1995,7 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
             "redirect_uri": settings.DISCORD_REDIRECT_URI,
             "response_type": "code",
             "state": state,
-            "scope": "identify guilds.members.read connections presence.read",
+            "scope": "identify guilds.members.read connections activities.read",
             "prompt": "consent"
         }
         
@@ -2041,7 +2041,7 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
                     "redirect_uri": settings.DISCORD_REDIRECT_URI,
                     "response_type": "code",
                     "state": state,
-                    "scope": "identify guilds.members.read connections presence.read",
+                    "scope": "identify guilds.members.read connections activities.read",
                     "prompt": "consent"
                 }
                 
