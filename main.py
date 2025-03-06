@@ -1764,7 +1764,8 @@ async def reset_password(request: Request, reset_data: UserPasswordChange):
     reset_record = await db.password_reset.find_one({
         "email": reset_data.email,
         "code": reset_data.reset_code,
-        "expires_at": {"$gt": datetime.utcnow()}
+        "expires_at": {"$gt": datetime.utcnow()},
+        "used": {"$ne": True}  # Check if token was already used
     })
     
     if not reset_record:
@@ -1773,13 +1774,18 @@ async def reset_password(request: Request, reset_data: UserPasswordChange):
             detail="Invalid or expired reset code"
         )
     
+    # Mark token as used immediately to prevent race conditions
+    await db.password_reset.update_one(
+        {"_id": reset_record["_id"]},
+        {"$set": {"used": True}}
+    )
+    
     hashed_password = get_password_hash(reset_data.new_password)
     await db.users.update_one(
         {"email": reset_data.email},
         {"$set": {"hashed_password": hashed_password}}
     )
     
-    await db.password_reset.delete_one({"email": reset_data.email})
     await user_cache.delete(f"user:{reset_data.email}")
     
     return {"message": "Password reset successfully"}
