@@ -72,6 +72,13 @@ class Settings:
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
     MAX_AVATAR_SIZE: int = 1024 * 1024  # 1MB
     PREVIEW_EXPIRATION_MINUTES: int = 30  # How long preview pages are valid
+
+    
+    DISCORD_CLIENT_ID: str = os.getenv("DISCORD_CLIENT_ID", "")
+    DISCORD_CLIENT_SECRET: str = os.getenv("DISCORD_CLIENT_SECRET", "")
+    DISCORD_REDIRECT_URI: str = os.getenv("DISCORD_REDIRECT_URI", "http://localhost:8000/discord/callback")
+    DISCORD_API_ENDPOINT: str = "https://discord.com/api/v10"
+    
     DEFAULT_TAGS = {
         "early_supporter": {
             "icon": """<svg viewBox="0 0 24 24" width="24" height="24">
@@ -307,6 +314,8 @@ class DisplayPreferences(BaseModel):
     show_gender: bool = True
     show_pronouns: bool = True
     show_timezone: bool = True
+    show_discord: bool = True  # New field
+    show_discord_activity: bool = True  # New field
     default_layout: str = "standard"
     default_background: BackgroundConfig = BackgroundConfig(
         type="solid", 
@@ -432,6 +441,22 @@ class URLCheckResponse(BaseModel):
 class PreviewResponse(BaseModel):
     preview_id: str
     expires_at: datetime
+
+class DiscordConnection(BaseModel):
+    user_id: str
+    discord_id: str
+    username: str
+    discriminator: Optional[str] = None
+    avatar: Optional[str] = None
+    access_token: str
+    refresh_token: str
+    expires_at: datetime
+    connected_at: datetime = Field(default_factory=datetime.utcnow)
+    show_discord: bool = True
+    show_activity: bool = True
+    last_status_update: Optional[datetime] = None
+    current_status: Optional[str] = None
+    current_activity: Optional[dict] = None
 
 # Optimized JSON serialization
 def json_serialize(obj):
@@ -1644,6 +1669,8 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
         "show_gender": True,
         "show_pronouns": True,
         "show_timezone": True,
+        "show_discord": True,
+        "show_discord_activity": True,
         "default_layout": "standard",
         "default_background": {
             "type": "solid",
@@ -1672,7 +1699,23 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
     if current_user.get("date_of_birth"):
         age = calculate_age(current_user["date_of_birth"])
     
-    return {
+    # Get Discord connection if available
+    discord_connected = False
+    discord_username = None
+    discord_avatar = None
+    discord_status = None
+    discord_activity = None
+    
+    discord_connection = await db.discord_connections.find_one({"user_id": current_user["id"]})
+    if discord_connection:
+        discord_connected = True
+        discord_username = discord_connection["username"]
+        if discord_connection.get("avatar"):
+            discord_avatar = f"https://cdn.discordapp.com/avatars/{discord_connection['discord_id']}/{discord_connection['avatar']}.png"
+        discord_status = discord_connection.get("current_status", "offline")
+        discord_activity = discord_connection.get("current_activity")
+    
+    response = {
         "id": current_user["id"],
         "user_number": current_user.get("user_number"),
         "email": current_user["email"],
@@ -1691,8 +1734,556 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
         "timezone": current_user.get("timezone"),
         "gender": current_user.get("gender"),
         "pronouns": current_user.get("pronouns"),
-        "bio": current_user.get("bio")
+        "bio": current_user.get("bio"),
+        "discord_connected": discord_connected,
+        "discord_username": discord_username,
+        "discord_avatar": discord_avatar,
+        "discord_status": discord_status,
+        "discord_activity": discord_activity
     }
+    
+    return response
+
+@app.get("/discord/connect")
+@limiter.limit(RateLimits.AUTH_LIMIT)
+async def connect_discord(request: Request, current_user: dict = Depends(get_current_verified_user)):
+    """Generate Discord OAuth2 authorization URL for connecting accounts"""
+    state = secrets.token_urlsafe(32)
+    
+    # Store state in database to prevent CSRF
+    await db.discord_states.insert_one({
+        "state": state,
+        "user_id": current_user["id"],
+        "expires_at": datetime.utcnow() + timedelta(minutes=10)
+    })
+    
+    # Discord OAuth2 authorization URL
+    params = {
+        "client_id": settings.DISCORD_CLIENT_ID,
+        "redirect_uri": settings.DISCORD_REDIRECT_URI,
+        "response_type": "code",
+        "state": state,
+        "scope": "identify guilds.members.read connections presence.read",
+        "prompt": "consent"
+    }
+    
+    auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
+    
+    return {"auth_url": auth_url}
+
+@app.post("/discord/exchange-code")
+@limiter.limit(RateLimits.AUTH_LIMIT)
+async def exchange_discord_code(
+    request: Request,
+    data: dict = Body(...),
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Exchange Discord authorization code for token and save connection"""
+    code = data.get("code")
+    state = data.get("state")
+    
+    if not code or not state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing code or state"
+        )
+    
+    # Verify state to prevent CSRF
+    state_record = await db.discord_states.find_one({
+        "state": state,
+        "expires_at": {"$gt": datetime.utcnow()}
+    })
+    
+    if not state_record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired state"
+        )
+    
+    # Verify user matches the state
+    if state_record["user_id"] != current_user["id"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="State does not match current user"
+        )
+    
+    # Exchange code for token
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            token_response = await client.post(
+                f"{settings.DISCORD_API_ENDPOINT}/oauth2/token",
+                data={
+                    "client_id": settings.DISCORD_CLIENT_ID,
+                    "client_secret": settings.DISCORD_CLIENT_SECRET,
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "redirect_uri": settings.DISCORD_REDIRECT_URI
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"}
+            )
+            
+            if token_response.status_code != 200:
+                logger.error(f"Discord token error: {token_response.text}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to exchange code for token"
+                )
+                
+            token_data = token_response.json()
+            
+            # Get user info
+            user_response = await client.get(
+                f"{settings.DISCORD_API_ENDPOINT}/users/@me",
+                headers={"Authorization": f"Bearer {token_data['access_token']}"}
+            )
+            
+            if user_response.status_code != 200:
+                logger.error(f"Discord user error: {user_response.text}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to get Discord user info"
+                )
+                
+            user_data = user_response.json()
+            
+            # Calculate token expiration
+            expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+            
+            # Store Discord connection
+            discord_connection = {
+                "user_id": current_user["id"],
+                "discord_id": user_data["id"],
+                "username": user_data["username"],
+                "discriminator": user_data.get("discriminator", "0"),
+                "avatar": user_data.get("avatar"),
+                "access_token": token_data["access_token"],
+                "refresh_token": token_data["refresh_token"],
+                "expires_at": expires_at,
+                "connected_at": datetime.utcnow(),
+                "show_discord": True,
+                "show_activity": True,
+                "last_status_update": datetime.utcnow(),
+                "current_status": "offline"
+            }
+            
+            # Check if user already has a Discord connection
+            existing_connection = await db.discord_connections.find_one({
+                "user_id": current_user["id"]
+            })
+            
+            if existing_connection:
+                # Update existing connection
+                await db.discord_connections.update_one(
+                    {"user_id": current_user["id"]},
+                    {"$set": discord_connection}
+                )
+            else:
+                # Create new connection
+                await db.discord_connections.insert_one(discord_connection)
+            
+            # Delete used state
+            await db.discord_states.delete_one({"state": state})
+            
+            # Prepare response
+            avatar_url = None
+            if user_data.get("avatar"):
+                avatar_url = f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png"
+            
+            return {
+                "success": True,
+                "discord": {
+                    "id": user_data["id"],
+                    "username": user_data["username"],
+                    "discriminator": user_data.get("discriminator", "0"),
+                    "avatar": user_data.get("avatar"),
+                    "avatar_url": avatar_url
+                }
+            }
+            
+    except httpx.RequestError as e:
+        logger.error(f"Discord connection error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to connect to Discord API"
+        )
+
+@app.delete("/discord/disconnect")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def disconnect_discord(request: Request, current_user: dict = Depends(get_current_verified_user)):
+    """Disconnect Discord account from user profile"""
+    result = await db.discord_connections.delete_one({
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Discord connection found"
+        )
+    
+    return {"message": "Discord account disconnected successfully"}
+
+@app.get("/discord/status")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_discord_status(request: Request, current_user: dict = Depends(get_current_verified_user)):
+    """Get current Discord connection status and activity"""
+    connection = await db.discord_connections.find_one({
+        "user_id": current_user["id"]
+    })
+    
+    if not connection:
+        return {
+            "connected": False,
+            "message": "Discord account not connected"
+        }
+    
+    # Check if token needs refresh
+    needs_refresh = connection["expires_at"] < datetime.utcnow() + timedelta(minutes=10)
+    needs_verification = connection.get("needs_verification", False)
+    
+    # Format response
+    discord_data = {
+        "connected": True,
+        "username": connection["username"],
+        "discriminator": connection.get("discriminator", "0"),
+        "avatar": connection.get("avatar"),
+        "connected_at": connection["connected_at"],
+        "show_discord": connection.get("show_discord", True),
+        "show_activity": connection.get("show_activity", True),
+        "current_status": connection.get("current_status", "offline"),
+        "current_activity": connection.get("current_activity"),
+        "last_updated": connection.get("last_status_update"),
+        "needs_refresh": needs_refresh,
+        "needs_verification": needs_verification
+    }
+    
+    # Add avatar URL if avatar is available
+    if connection.get("avatar"):
+        discord_data["avatar_url"] = f"https://cdn.discordapp.com/avatars/{connection['discord_id']}/{connection['avatar']}.png"
+    
+    return discord_data
+
+@app.post("/discord/refresh")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def refresh_discord_connection(request: Request, current_user: dict = Depends(get_current_verified_user)):
+    """Manually refresh Discord token and status"""
+    connection = await db.discord_connections.find_one({
+        "user_id": current_user["id"]
+    })
+    
+    if not connection:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Discord connection found"
+        )
+    
+    # If connection needs verification, just return auth URL
+    if connection.get("needs_verification", False):
+        # Generate new state and auth URL
+        state = secrets.token_urlsafe(32)
+        
+        # Store state in database
+        await db.discord_states.insert_one({
+            "state": state,
+            "user_id": current_user["id"],
+            "expires_at": datetime.utcnow() + timedelta(minutes=10)
+        })
+        
+        # Discord OAuth2 authorization URL
+        params = {
+            "client_id": settings.DISCORD_CLIENT_ID,
+            "redirect_uri": settings.DISCORD_REDIRECT_URI,
+            "response_type": "code",
+            "state": state,
+            "scope": "identify guilds.members.read connections presence.read",
+            "prompt": "consent"
+        }
+        
+        auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
+        
+        return {
+            "needs_verification": True,
+            "auth_url": auth_url
+        }
+    
+    # Try to refresh token
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{settings.DISCORD_API_ENDPOINT}/oauth2/token",
+                data={
+                    "client_id": settings.DISCORD_CLIENT_ID,
+                    "client_secret": settings.DISCORD_CLIENT_SECRET,
+                    "grant_type": "refresh_token",
+                    "refresh_token": connection["refresh_token"]
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"}
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Discord token refresh error: {response.text}")
+                # Token refresh failed, mark as needing verification
+                await db.discord_connections.update_one(
+                    {"user_id": current_user["id"]},
+                    {"$set": {"needs_verification": True}}
+                )
+                
+                # Generate new auth URL
+                state = secrets.token_urlsafe(32)
+                await db.discord_states.insert_one({
+                    "state": state,
+                    "user_id": current_user["id"],
+                    "expires_at": datetime.utcnow() + timedelta(minutes=10)
+                })
+                
+                params = {
+                    "client_id": settings.DISCORD_CLIENT_ID,
+                    "redirect_uri": settings.DISCORD_REDIRECT_URI,
+                    "response_type": "code",
+                    "state": state,
+                    "scope": "identify guilds.members.read connections presence.read",
+                    "prompt": "consent"
+                }
+                
+                auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
+                
+                return {
+                    "success": False,
+                    "needs_verification": True,
+                    "auth_url": auth_url
+                }
+                
+            token_data = response.json()
+            
+            # Update connection with new tokens
+            expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+            await db.discord_connections.update_one(
+                {"user_id": current_user["id"]},
+                {"$set": {
+                    "access_token": token_data["access_token"],
+                    "refresh_token": token_data["refresh_token"],
+                    "expires_at": expires_at,
+                    "needs_verification": False
+                }}
+            )
+            
+            # Update Discord status immediately
+            await update_discord_status(connection)
+            
+            # Get updated connection
+            updated_connection = await db.discord_connections.find_one({
+                "user_id": current_user["id"]
+            })
+            
+            # Prepare response
+            avatar_url = None
+            if updated_connection.get("avatar"):
+                avatar_url = f"https://cdn.discordapp.com/avatars/{updated_connection['discord_id']}/{updated_connection['avatar']}.png"
+            
+            return {
+                "success": True,
+                "discord": {
+                    "username": updated_connection["username"],
+                    "discriminator": updated_connection.get("discriminator", "0"),
+                    "avatar_url": avatar_url,
+                    "current_status": updated_connection.get("current_status", "offline"),
+                    "current_activity": updated_connection.get("current_activity")
+                }
+            }
+    except Exception as e:
+        logger.error(f"Discord refresh error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to refresh Discord connection"
+        )
+
+async def refresh_discord_token(connection):
+    """Refresh Discord OAuth2 token if expired"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{settings.DISCORD_API_ENDPOINT}/oauth2/token",
+                data={
+                    "client_id": settings.DISCORD_CLIENT_ID,
+                    "client_secret": settings.DISCORD_CLIENT_SECRET,
+                    "grant_type": "refresh_token",
+                    "refresh_token": connection["refresh_token"]
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"}
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Discord token refresh error: {response.text}")
+                return False
+                
+            token_data = response.json()
+            
+            # Update connection with new tokens
+            expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+            await db.discord_connections.update_one(
+                {"user_id": connection["user_id"]},
+                {"$set": {
+                    "access_token": token_data["access_token"],
+                    "refresh_token": token_data["refresh_token"],
+                    "expires_at": expires_at,
+                    "needs_verification": False
+                }}
+            )
+            
+            return True
+    except Exception as e:
+        logger.error(f"Discord token refresh error: {str(e)}")
+        return False
+
+async def update_discord_status(connection):
+    """Update Discord user status and activity"""
+    # Check if token needs refresh
+    if connection["expires_at"] < datetime.utcnow():
+        success = await refresh_discord_token(connection)
+        if not success:
+            # Failed to refresh token, mark connection as needing verification
+            await db.discord_connections.update_one(
+                {"user_id": connection["user_id"]},
+                {"$set": {
+                    "current_status": "unknown",
+                    "last_status_update": datetime.utcnow(),
+                    "needs_verification": True
+                }}
+            )
+            return
+    
+    try:
+        # Get updated connection with fresh token
+        if connection["expires_at"] < datetime.utcnow():
+            connection = await db.discord_connections.find_one({"user_id": connection["user_id"]})
+            if not connection or connection.get("needs_verification", False):
+                return
+        
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            # Try to get presence data
+            presence_response = await client.get(
+                f"{settings.DISCORD_API_ENDPOINT}/users/@me/guilds/@me/member",
+                headers={"Authorization": f"Bearer {connection['access_token']}"}
+            )
+            
+            status = "offline"
+            activity = None
+            
+            if presence_response.status_code == 200:
+                presence_data = presence_response.json()
+                
+                # Extract presence information
+                if "presence" in presence_data:
+                    status = presence_data["presence"].get("status", "offline")
+                    activities = presence_data["presence"].get("activities", [])
+                    
+                    if activities:
+                        activity = activities[0]
+            elif presence_response.status_code == 401:
+                # Token invalid, try refreshing
+                success = await refresh_discord_token(connection)
+                if not success:
+                    await db.discord_connections.update_one(
+                        {"user_id": connection["user_id"]},
+                        {"$set": {
+                            "current_status": "unknown",
+                            "last_status_update": datetime.utcnow(),
+                            "needs_verification": True
+                        }}
+                    )
+                return
+            
+            # Update connection with status info
+            await db.discord_connections.update_one(
+                {"user_id": connection["user_id"]},
+                {"$set": {
+                    "current_status": status,
+                    "current_activity": activity,
+                    "last_status_update": datetime.utcnow(),
+                    "needs_verification": False
+                }}
+            )
+    except Exception as e:
+        logger.error(f"Discord status update error: {str(e)}")
+
+async def discord_status_updater():
+    """Background task to update Discord status for all connections"""
+    while True:
+        try:
+            # Find all Discord connections
+            connections = await db.discord_connections.find().to_list(length=None)
+            
+            for connection in connections:
+                # Only update if last update was more than 2 minutes ago
+                if not connection.get("last_status_update") or \
+                   connection["last_status_update"] < datetime.utcnow() - timedelta(minutes=2):
+                    await update_discord_status(connection)
+                    
+                    # Small delay between updates to avoid rate limits
+                    await asyncio.sleep(1)
+            
+            # Wait before next batch of updates
+            await asyncio.sleep(120)  # Update every 2 minutes
+        except Exception as e:
+            logger.error(f"Discord status updater error: {str(e)}")
+            await asyncio.sleep(60)  # Retry after a minute on error
+
+
+@app.put("/discord/preferences")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def update_discord_preferences(
+    request: Request,
+    preferences: dict = Body(...),
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Update Discord display preferences"""
+    # Check if user has a Discord connection
+    connection = await db.discord_connections.find_one({
+        "user_id": current_user["id"]
+    })
+    
+    if not connection:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Discord connection found"
+        )
+    
+    # Update preferences
+    show_discord = preferences.get("show_discord")
+    show_activity = preferences.get("show_activity")
+    
+    update_data = {}
+    if show_discord is not None:
+        update_data["show_discord"] = show_discord
+    if show_activity is not None:
+        update_data["show_activity"] = show_activity
+    
+    if update_data:
+        await db.discord_connections.update_one(
+            {"user_id": current_user["id"]},
+            {"$set": update_data}
+        )
+    
+    # Also update user display preferences
+    user_prefs_update = {}
+    if show_discord is not None:
+        user_prefs_update["display_preferences.show_discord"] = show_discord
+    
+    if show_activity is not None:
+        user_prefs_update["display_preferences.show_discord_activity"] = show_activity
+    
+    if user_prefs_update:
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": user_prefs_update}
+        )
+    
+    # Clear cache
+    await user_cache.delete(f"user:{current_user['email']}")
+    if current_user.get("username"):
+        await user_cache.delete(f"username:{current_user['username']}")
+    
+    return {"message": "Discord preferences updated successfully"}
 
 @app.put("/onboarding", response_model=UserResponse, response_class=ORJSONResponse)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
@@ -2512,6 +3103,27 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
         
     if display_prefs.get("show_timezone", True) and "timezone" in user:
         response_data["user"]["timezone"] = user["timezone"]
+
+    if user:
+        discord_connection = await db.discord_connections.find_one({"user_id": user["id"]})
+        display_prefs = user.get("display_preferences", {})
+        
+        if discord_connection and display_prefs.get("show_discord", True) and discord_connection.get("show_discord", True):
+            response_data["user"]["discord"] = {
+                "username": discord_connection["username"],
+                "discriminator": discord_connection.get("discriminator", "0")
+            }
+            
+            # Add avatar if available
+            if discord_connection.get("avatar"):
+                response_data["user"]["discord"]["avatar_url"] = f"https://cdn.discordapp.com/avatars/{discord_connection['discord_id']}/{discord_connection['avatar']}.png"
+            
+            # Add status and activity if user has chosen to display it
+            if display_prefs.get("show_discord_activity", True) and discord_connection.get("show_activity", True):
+                response_data["user"]["discord"]["status"] = discord_connection.get("current_status", "offline")
+                
+                if discord_connection.get("current_activity"):
+                    response_data["user"]["discord"]["activity"] = discord_connection.get("current_activity")
     
     return response_data
 
@@ -3118,6 +3730,24 @@ async def start_cleanup_scheduler():
         await cleanup_expired_previews()
         await asyncio.sleep(12 * 60 * 60)  # Run twice daily instead of daily
 
+async def cleanup_expired_discord_states():
+    """Cleanup function to remove expired Discord states"""
+    result = await db.discord_states.delete_many({
+        "expires_at": {"$lt": datetime.utcnow()}
+    })
+    if result.deleted_count > 0:
+        logger.info(f"Cleaned up {result.deleted_count} expired Discord states")
+
+# Add to your existing periodic cleanup tasks
+async def periodic_discord_cleanup():
+    while True:
+        try:
+            await cleanup_expired_discord_states()
+            await asyncio.sleep(3600)  # Run hourly
+        except Exception as e:
+            logger.error(f"Error in periodic Discord cleanup: {str(e)}")
+            await asyncio.sleep(60)  # Retry after a minute if there's an error
+
 @app.on_event("startup")
 async def startup_event():
     global db_client, db
@@ -3148,6 +3778,11 @@ async def startup_event():
     await db.verification.create_index("email")
     await db.verification.create_index("expires_at")
     await db.view_records.create_index([("url", 1), ("device_hash", 1), ("timestamp", -1)])
+    # Add to startup_event function
+    await db.discord_connections.create_index("user_id", unique=True)
+    await db.discord_connections.create_index("discord_id")
+    await db.discord_states.create_index("state", unique=True)
+    await db.discord_states.create_index("expires_at")
     
     # Start cleanup tasks
     asyncio.create_task(start_cleanup_scheduler())
@@ -3162,6 +3797,9 @@ async def startup_event():
                 await asyncio.sleep(60)  # Retry after a minute if there's an error
     
     asyncio.create_task(periodic_registration_cleanup())
+    # Add to startup_event function
+    asyncio.create_task(discord_status_updater())
+    asyncio.create_task(periodic_discord_cleanup())
    
     ping_thread = threading.Thread(target=start_ping_scheduler, daemon=True)
     ping_thread.start()
