@@ -1419,12 +1419,25 @@ async def verify_email(request: Request, token: str):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Registration expired or not found"
                 )
+        
+        # Generate a temporary username if none is provided
+        username = pending_user.get("username")
+        if username is None:
+            # Use email prefix as temporary username with random suffix
+            email_prefix = verification["email"].split('@')[0]
+            random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+            username = f"{email_prefix}_{random_suffix}"
+            
+            # Check if this generated username already exists
+            while await db.users.find_one({"username": username}, projection={"_id": 1}):
+                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                username = f"{email_prefix}_{random_suffix}"
             
         user_data = {
             "id": pending_user["id"],
             "user_number": pending_user["user_number"],
             "email": verification["email"],
-            "username": pending_user.get("username"),
+            "username": username,  # Use the generated username if original was None
             "name": pending_user.get("name"),
             "avatar_url": pending_user.get("avatar_url"),
             "avatar_decoration": pending_user.get("avatar_decoration"),
@@ -1484,7 +1497,6 @@ async def verify_email(request: Request, token: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while verifying your email"
         )
-
 @app.post("/token", response_class=ORJSONResponse)
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
