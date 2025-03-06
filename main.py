@@ -1764,7 +1764,7 @@ async def connect_discord(request: Request, current_user: dict = Depends(get_cur
         "redirect_uri": settings.DISCORD_REDIRECT_URI,
         "response_type": "code",
         "state": state,
-        "scope": "identify activities.read",  # No space here
+        "scope": "identify activities.read".replace(" ", "+"),  # No space here
         "prompt": "consent"
     }
     
@@ -1958,7 +1958,7 @@ async def get_discord_status(request: Request, current_user: dict = Depends(get_
             "redirect_uri": settings.DISCORD_REDIRECT_URI,
             "response_type": "code",
             "state": state,
-            "scope": "identify activities.read",
+            "scope": "identify activities.read".replace(" ", "+"),
             "prompt": "consent"
         }
         
@@ -2022,7 +2022,7 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
             "redirect_uri": settings.DISCORD_REDIRECT_URI,
             "response_type": "code",
             "state": state,
-            "scope": "identify activities.read",
+            "scope": "identify activities.read".replace(" ", "+"),
             "prompt": "consent"
         }
         auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?{urlencode(params)}"
@@ -2068,7 +2068,7 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
                     "redirect_uri": settings.DISCORD_REDIRECT_URI,
                     "response_type": "code",
                     "state": state,
-                    "scope": "identify activities.read",
+                    "scope": "identify activities.read".replace(" ", "+"),
                     "prompt": "consent"
                 }
                 auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
