@@ -87,12 +87,13 @@ document.addEventListener('DOMContentLoaded', function() {
             resendMessage.className = 'auth-message info';
             
             try {
+                // Fix: Use JSON content type and format instead of form-urlencoded
                 const response = await fetch(`${API_URL}/resend-verification`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
+                        'Content-Type': 'application/json'
                     },
-                    body: `email=${encodeURIComponent(email)}`
+                    body: JSON.stringify({ email: email })
                 });
                 
                 const data = await response.json();
