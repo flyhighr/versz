@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!authCodeProcessed) {
             authCodeProcessed = true;
             
-            // Make the API call directly here rather than relying on event handling
+            // Make the API call directly
             fetch(`${API_URL}/discord/exchange-code`, {
                 method: 'POST',
                 headers: {
@@ -52,7 +52,9 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Failed to exchange code for token');
+                    return response.json().then(data => {
+                        throw new Error(data.detail || 'Failed to exchange code for token');
+                    });
                 }
                 return response.json();
             })
@@ -69,7 +71,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error exchanging code:', error);
                 showNotification('Failed to connect Discord account: ' + error.message, 'error');
+                
+                // Reset the authCodeProcessed flag after a delay to allow retrying
+                setTimeout(() => {
+                    authCodeProcessed = false;
+                }, 2000);
             });
+        } else {
+            console.log("Ignoring duplicate Discord auth code");
         }
     };
     
