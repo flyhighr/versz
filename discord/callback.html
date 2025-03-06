@@ -126,12 +126,8 @@
                 window.close();
             }, 5000);
         }
-        // Check if we have the code and state
-        else if (code && state) {
-            // Try different approaches to communicate with the opener window
-            let messageSent = false;
-            
-            // Approach 1: Try direct function call
+        // In the callback page:
+        if (code && state) {
             if (window.opener && window.opener.setDiscordAuth) {
                 try {
                     console.log("Using direct function call to communicate with opener");
@@ -142,20 +138,7 @@
                 }
             }
             
-            // Approach 2: Try postMessage
-            if (!messageSent && window.opener) {
-                try {
-                    console.log("Using postMessage to communicate with opener");
-                    window.opener.postMessage({ code, state }, window.location.origin);
-                    // Also try with wildcard origin as fallback
-                    window.opener.postMessage({ code, state }, '*');
-                    messageSent = true;
-                } catch (e) {
-                    console.error("Error with postMessage:", e);
-                }
-            }
-            
-            // Approach 3: Store in localStorage as a last resort
+            // If direct function call failed, try localStorage as fallback
             if (!messageSent) {
                 try {
                     console.log("Using localStorage as fallback");
@@ -166,21 +149,6 @@
                     console.error("Error with localStorage:", e);
                 }
             }
-            
-            showState('success-state');
-            
-            // Close window after 3 seconds
-            setTimeout(() => {
-                window.close();
-            }, 3000);
-        } else {
-            showState('error-state');
-            document.getElementById('error-message').textContent = 'Invalid response from Discord. Please try again.';
-            
-            // Close window after 5 seconds
-            setTimeout(() => {
-                window.close();
-            }, 5000);
         }
     </script>
 </body>
