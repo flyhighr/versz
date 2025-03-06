@@ -223,6 +223,29 @@
                         </div>
                     </div>
 
+                    <!-- Discord Integration Section (New) -->
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h2>Discord Integration</h2>
+                            <button type="button" id="edit-discord-btn" class="btn btn-sm" style="display: none;">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        <div class="profile-info-card">
+                            <div id="discord-connection">
+                                <!-- Content will be loaded dynamically -->
+                                <div class="discord-loading">
+                                    <div class="loading-spinner"></div>
+                                    <p>Loading Discord connection...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="edit-actions" id="discord-edit-actions" style="display: none;">
+                            <button type="button" id="cancel-discord-btn" class="btn btn-outline">Cancel</button>
+                            <button type="button" id="save-discord-btn" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+
                     <div class="profile-section">
                         <div class="section-header">
                             <h2>Display Preferences</h2>
@@ -308,6 +331,27 @@
                                     <div class="preference-edit" style="display: none;">
                                         <label class="switch">
                                             <input type="checkbox" id="edit-show-timezone" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <!-- Add Discord Preferences -->
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Discord</div>
+                                    <div class="preference-value" id="pref-show-discord">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-discord" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <div class="preference-label">Show Discord Activity</div>
+                                    <div class="preference-value" id="pref-show-discord-activity">Yes</div>
+                                    <div class="preference-edit" style="display: none;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="edit-show-discord-activity" checked>
                                             <span class="slider round"></span>
                                         </label>
                                     </div>
