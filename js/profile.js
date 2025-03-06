@@ -3,6 +3,35 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Global flag to prevent duplicate auth code processing
     let authCodeProcessed = false;
+    // Add this to your DOMContentLoaded event handler
+    const checkLocalStorageForDiscordAuth = () => {
+        try {
+            const code = localStorage.getItem('discord_auth_code');
+            const state = localStorage.getItem('discord_auth_state');
+            const timestamp = localStorage.getItem('discord_auth_timestamp');
+            
+            if (code && state && timestamp) {
+                // Check if this is a recent auth (within last 30 seconds)
+                const now = Date.now();
+                const authTime = parseInt(timestamp, 10);
+                
+                if (now - authTime < 30000 && !authCodeProcessed) {
+                    console.log("Found Discord auth in localStorage");
+                    
+                    // Process the auth
+                    window.setDiscordAuth(code, state);
+                    
+                    // Clear the stored auth
+                    localStorage.removeItem('discord_auth_code');
+                    localStorage.removeItem('discord_auth_state');
+                    localStorage.removeItem('discord_auth_timestamp');
+                }
+            }
+        } catch (e) {
+            console.error("Error checking localStorage:", e);
+        }
+    };
+
     
     // Global helper function for Discord auth
     window.setDiscordAuth = function(code, state) {
@@ -1333,7 +1362,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const data = await response.json();
-            renderDiscordConnection(data);
+            
+            // If needs verification, don't try to refresh automatically
+            if (data.needs_verification) {
+                renderDiscordVerificationNeeded(data.auth_url || null);
+            } else {
+                renderDiscordConnection(data);
+            }
+            
             return data;
         } catch (error) {
             console.error('Error loading Discord status:', error);
@@ -1344,6 +1380,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const connectDiscord = async () => {
         try {
+            // Reset the authCodeProcessed flag for this new connection attempt
+            authCodeProcessed = false;
+            
             const connectBtn = document.querySelector('.discord-connect-btn');
             if (connectBtn) {
                 connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
@@ -1375,8 +1414,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 `width=${width},height=${height},left=${left},top=${top}`
             );
             
-            // Reset the flag for this new connection attempt
-            authCodeProcessed = false;
+            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                throw new Error('Popup blocked. Please allow popups for this site.');
+            }
             
             // Create a message listener for the popup callback
             const messageListener = async (event) => {
@@ -1421,11 +1461,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (error) {
                         console.error('Error exchanging code:', error);
-                        showNotification('Failed to connect Discord account', 'error');
+                        showNotification('Failed to connect Discord account: ' + error.message, 'error');
                         if (connectBtn) {
                             connectBtn.innerHTML = '<i class="fab fa-discord"></i> Connect Discord';
                             connectBtn.disabled = false;
                         }
+                        
+                        // Reset the flag after a failure
+                        setTimeout(() => {
+                            authCodeProcessed = false;
+                        }, 2000);
                     }
                     
                     // Remove the event listener
@@ -1455,13 +1500,16 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Error connecting to Discord:', error);
-            showNotification('Failed to connect to Discord', 'error');
+            showNotification('Failed to connect to Discord: ' + error.message, 'error');
             
             const connectBtn = document.querySelector('.discord-connect-btn');
             if (connectBtn) {
                 connectBtn.innerHTML = '<i class="fab fa-discord"></i> Connect Discord';
                 connectBtn.disabled = false;
             }
+            
+            // Reset the flag after an error
+            authCodeProcessed = false;
         }
     };
 
@@ -1506,28 +1554,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            if (!response.ok) {
-                throw new Error('Failed to refresh Discord connection');
-            }
-            
             const data = await response.json();
             
+            if (!response.ok) {
+                throw new Error(data.detail || 'Failed to refresh Discord connection');
+            }
+            
             if (data.needs_verification) {
-                // Need to re-authorize with Discord
-                renderDiscordVerificationNeeded(data.auth_url || null);
+                // Need to re-authorize with Discord - this is the critical part
+                showNotification('Your Discord connection needs to be verified again', 'info');
+                
+                // Instead of trying to use the existing auth_url immediately, let's reconnect from scratch
+                await connectDiscord();
             } else {
                 // Reload Discord status
                 await loadDiscordStatus();
                 showNotification('Discord connection refreshed successfully', 'success');
             }
+            
+            // Reset the refresh button
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                refreshBtn.disabled = false;
+            }
         } catch (error) {
             console.error('Error refreshing Discord:', error);
-            showNotification('Failed to refresh Discord connection', 'error');
+            showNotification('Failed to refresh Discord connection: ' + error.message, 'error');
             
             const refreshBtn = document.querySelector('.discord-refresh');
             if (refreshBtn) {
                 refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
                 refreshBtn.disabled = false;
+            }
+            
+            // If refresh fails, offer to reconnect
+            if (confirm('Discord connection could not be refreshed. Would you like to reconnect?')) {
+                await connectDiscord();
             }
         }
     };
@@ -2009,6 +2071,9 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             await loadUserData();
             await loadDiscordStatus();
+            
+            // Call this function during initialization
+            checkLocalStorageForDiscordAuth();
         } catch (error) {
             console.error('Error initializing profile page:', error);
             showNotification('Failed to load profile data. Please refresh the page.', 'error');
