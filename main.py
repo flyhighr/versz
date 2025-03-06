@@ -1847,8 +1847,7 @@ async def exchange_discord_code(
             
             # Calculate token expiration
             expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
-            
-            # Store Discord connection
+
             discord_connection = {
                 "user_id": current_user["id"],
                 "discord_id": user_data["id"],
@@ -1862,7 +1861,8 @@ async def exchange_discord_code(
                 "show_discord": True,
                 "show_activity": True,
                 "last_status_update": datetime.utcnow(),
-                "current_status": "offline"
+                "current_status": "offline",
+                "needs_verification": False  # Make sure this is explicitly set to False
             }
             
             # Check if user already has a Discord connection
