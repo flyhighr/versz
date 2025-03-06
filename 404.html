@@ -959,18 +959,22 @@
         }
 
         /* Discord presence section */
+        /* Discord presence section */
         .discord-presence {
             margin-top: 15px;
-            background-color: #5865F2;
+            margin-bottom: 15px;
+            background-color: #ffffff;
             border-radius: 12px;
-            padding: 10px;
+            padding: 12px;
             display: flex;
             align-items: center;
             gap: 10px;
-            color: white;
+            color: #333;
             font-size: 14px;
             max-width: 100%;
             overflow: hidden;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
         .discord-avatar {
@@ -1678,7 +1682,7 @@
     }
 
     // Function to render Discord presence
-    function renderDiscordPresence(discord) {
+    function renderDiscordPresence(discord, layout) {
         if (!discord) return;
         
         const discordPresence = document.getElementById('discordPresence');
@@ -1689,6 +1693,33 @@
         const discordStatusText = document.getElementById('discordStatusText');
         const discordActivity = document.getElementById('discordActivity');
         const discordLastSeen = document.getElementById('discordLastSeen');
+        
+        // Check if container style is enabled
+        const containerEnabled = layout && layout.container_style && layout.container_style.enabled;
+        
+        // Apply container style to match other sections
+        if (containerEnabled) {
+            // Apply container background if enabled
+            if (layout.container_style.background_color) {
+                discordPresence.style.backgroundColor = layout.container_style.background_color;
+            }
+            
+            if (layout.container_style.border_radius !== undefined) {
+                discordPresence.style.borderRadius = `${layout.container_style.border_radius}px`;
+            }
+            
+            if (layout.container_style.opacity !== undefined) {
+                discordPresence.style.opacity = layout.container_style.opacity;
+            }
+            
+            if (layout.container_style.shadow) {
+                discordPresence.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+            }
+        } else {
+            // If containers disabled, make completely transparent with no background
+            discordPresence.style.backgroundColor = 'transparent';
+            discordPresence.style.boxShadow = 'none';
+        }
         
         // Set Discord avatar
         if (discord.avatar_url) {
@@ -2242,7 +2273,15 @@
         
         // Set Discord presence if available
         if (user.discord) {
-            renderDiscordPresence(user.discord);
+            // Only show Discord if it's enabled in user preferences
+            const showDiscord = user.discord.show_discord !== false && 
+                                (user.display_preferences?.show_discord !== false);
+            
+            if (showDiscord) {
+                renderDiscordPresence(user.discord, page.layout);
+            } else {
+                document.getElementById('discordPresence').style.display = 'none';
+            }
         } else {
             document.getElementById('discordPresence').style.display = 'none';
         }
