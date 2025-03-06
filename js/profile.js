@@ -1556,6 +1556,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 refreshBtn.disabled = true;
             }
             
+            // Clear any previous auth state
+            authCodeProcessed = false;
+            
             const response = await fetch(`${API_URL}/discord/refresh`, {
                 method: 'POST',
                 headers: {
@@ -1564,41 +1567,41 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.detail || 'Failed to refresh Discord connection');
-            }
+            console.log("Refresh response:", data);
             
             if (data.needs_verification) {
-                // Need to re-authorize with Discord - this is the critical part
+                // Need to re-authorize with Discord
                 showNotification('Your Discord connection needs to be verified again', 'info');
                 
-                // Instead of trying to use the existing auth_url immediately, let's reconnect from scratch
-                await connectDiscord();
-            } else {
-                // Reload Discord status
+                // Store the auth URL for verification
+                if (data.auth_url) {
+                    // Start the verification process with the provided URL
+                    await verifyDiscord(data.auth_url);
+                } else {
+                    // If no auth URL is provided, fall back to a new connection
+                    await connectDiscord();
+                }
+            } else if (data.success) {
+                // Successfully refreshed without verification
                 await loadDiscordStatus();
                 showNotification('Discord connection refreshed successfully', 'success');
-            }
-            
-            // Reset the refresh button
-            if (refreshBtn) {
-                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-                refreshBtn.disabled = false;
+            } else {
+                throw new Error('Failed to refresh Discord connection');
             }
         } catch (error) {
             console.error('Error refreshing Discord:', error);
             showNotification('Failed to refresh Discord connection: ' + error.message, 'error');
             
+            // Offer to reconnect
+            if (confirm('Discord connection could not be refreshed. Would you like to reconnect?')) {
+                await connectDiscord();
+            }
+        } finally {
+            // Reset the refresh button
             const refreshBtn = document.querySelector('.discord-refresh');
             if (refreshBtn) {
                 refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
                 refreshBtn.disabled = false;
-            }
-            
-            // If refresh fails, offer to reconnect
-            if (confirm('Discord connection could not be refreshed. Would you like to reconnect?')) {
-                await connectDiscord();
             }
         }
     };
@@ -1665,126 +1668,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const verifyDiscord = async (encodedAuthUrl) => {
         try {
+            // Reset auth state
+            authCodeProcessed = false;
+            
             const verifyBtn = document.querySelector('.discord-verification-btn');
             if (verifyBtn) {
                 verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
                 verifyBtn.disabled = true;
             }
             
-            // Decode the URL that was encoded for HTML safety
+            // Decode the URL
             const authUrl = decodeURIComponent(encodedAuthUrl);
             
             if (!authUrl) {
                 throw new Error('No authorization URL provided');
             }
             
-            // Reset the flag for this new verification attempt
-            authCodeProcessed = false;
+            console.log("Starting Discord verification with URL:", authUrl);
             
-            // Set up a localStorage check interval as a fallback
-            const localStorageCheckInterval = setInterval(() => {
-                try {
-                    const storedCode = localStorage.getItem('discord_auth_code');
-                    const storedState = localStorage.getItem('discord_auth_state');
-                    const timestamp = localStorage.getItem('discord_auth_timestamp');
-                    
-                    if (storedCode && storedState && timestamp) {
-                        // Check if this is a recent auth (within last 30 seconds)
-                        const now = Date.now();
-                        const authTime = parseInt(timestamp, 10);
-                        
-                        if (now - authTime < 30000 && !authCodeProcessed) {
-                            console.log("Found Discord auth in localStorage");
-                            authCodeProcessed = true;
-                            
-                            // Process the auth
-                            processDiscordAuth(storedCode, storedState);
-                            
-                            // Clear the stored auth
-                            localStorage.removeItem('discord_auth_code');
-                            localStorage.removeItem('discord_auth_state');
-                            localStorage.removeItem('discord_auth_timestamp');
-                            
-                            // Clear the interval
-                            clearInterval(localStorageCheckInterval);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error checking localStorage:", e);
-                }
-            }, 1000);
-            
-            // Set up message listener
-            const messageListener = (event) => {
-                console.log("Received message:", event.data);
-                
-                if (event.data && event.data.code && event.data.state && !authCodeProcessed) {
-                    console.log("Processing Discord auth from message event");
-                    authCodeProcessed = true;
-                    
-                    // Process the auth
-                    processDiscordAuth(event.data.code, event.data.state);
-                    
-                    // Remove listeners
-                    window.removeEventListener('message', messageListener);
-                    clearInterval(localStorageCheckInterval);
-                }
-            };
-            
-            // Add message listener
-            window.addEventListener('message', messageListener);
-            
-            // Function to process Discord auth
-            const processDiscordAuth = async (code, state) => {
-                try {
-                    console.log("Exchanging code for token...");
-                    const exchangeResponse = await fetch(`${API_URL}/discord/exchange-code`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ code, state })
-                    });
-                    
-                    console.log("Exchange response status:", exchangeResponse.status);
-                    
-                    if (!exchangeResponse.ok) {
-                        const errorText = await exchangeResponse.text();
-                        console.error("Exchange response error:", errorText);
-                        throw new Error('Failed to exchange code for token');
-                    }
-                    
-                    const exchangeData = await exchangeResponse.json();
-                    console.log("Exchange data:", exchangeData);
-                    
-                    if (exchangeData.success) {
-                        // Reload Discord status
-                        await loadDiscordStatus();
-                        showNotification('Discord account verified successfully!', 'success');
-                        
-                        // Reset button
-                        const verifyBtn = document.querySelector('.discord-verification-btn');
-                        if (verifyBtn) {
-                            verifyBtn.innerHTML = '<i class="fab fa-discord"></i> Verify with Discord';
-                            verifyBtn.disabled = false;
-                        }
-                    } else {
-                        throw new Error('Failed to verify Discord account');
-                    }
-                } catch (error) {
-                    console.error('Error exchanging code:', error);
-                    showNotification('Failed to verify Discord account: ' + error.message, 'error');
-                    
-                    const verifyBtn = document.querySelector('.discord-verification-btn');
-                    if (verifyBtn) {
-                        verifyBtn.innerHTML = '<i class="fab fa-discord"></i> Verify with Discord';
-                        verifyBtn.disabled = false;
-                    }
-                }
-            };
-            
-            // Open Discord OAuth in a popup
+            // Open popup for Discord auth
             const width = 600;
             const height = 700;
             const left = window.screenX + (window.outerWidth - width) / 2;
@@ -1800,29 +1702,106 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Popup blocked. Please allow popups for this site.');
             }
             
-            // Check if popup was closed without completing
-            const checkClosed = setInterval(() => {
-                if (popup.closed) {
-                    clearInterval(checkClosed);
-                    clearInterval(localStorageCheckInterval);
-                    window.removeEventListener('message', messageListener);
+            // Function to process the auth code
+            const processAuth = async (code, state) => {
+                if (authCodeProcessed) return;
+                authCodeProcessed = true;
+                
+                console.log("Processing auth code and state:", code, state);
+                
+                try {
+                    const response = await fetch(`${API_URL}/discord/exchange-code`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ code, state })
+                    });
                     
-                    const verifyBtn = document.querySelector('.discord-verification-btn');
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Failed to exchange code');
+                    }
+                    
+                    const data = await response.json();
+                    console.log("Exchange response:", data);
+                    
+                    if (data.success) {
+                        // Refresh Discord status
+                        await loadDiscordStatus();
+                        showNotification('Discord account verified successfully!', 'success');
+                        
+                        // Close popup if still open
+                        if (popup && !popup.closed) {
+                            popup.close();
+                        }
+                    } else {
+                        throw new Error('Failed to verify Discord account');
+                    }
+                } catch (error) {
+                    console.error('Error during verification:', error);
+                    showNotification('Verification failed: ' + error.message, 'error');
+                    
+                    // Reset button
                     if (verifyBtn) {
                         verifyBtn.innerHTML = '<i class="fab fa-discord"></i> Verify with Discord';
                         verifyBtn.disabled = false;
                     }
+                }
+            };
+            
+            // Set up message listener
+            const messageHandler = (event) => {
+                console.log("Received message:", event.data);
+                if (event.data && event.data.code && event.data.state) {
+                    window.removeEventListener('message', messageHandler);
+                    processAuth(event.data.code, event.data.state);
+                }
+            };
+            window.addEventListener('message', messageHandler);
+            
+            // Check localStorage as fallback
+            const checkInterval = setInterval(() => {
+                const code = localStorage.getItem('discord_auth_code');
+                const state = localStorage.getItem('discord_auth_state');
+                
+                if (code && state) {
+                    clearInterval(checkInterval);
+                    
+                    // Clear localStorage
+                    localStorage.removeItem('discord_auth_code');
+                    localStorage.removeItem('discord_auth_state');
+                    localStorage.removeItem('discord_auth_timestamp');
+                    
+                    processAuth(code, state);
+                }
+            }, 1000);
+            
+            // Check if popup closed
+            const closedInterval = setInterval(() => {
+                if (popup.closed) {
+                    clearInterval(closedInterval);
+                    clearInterval(checkInterval);
+                    window.removeEventListener('message', messageHandler);
                     
                     if (!authCodeProcessed) {
-                        showNotification('Discord verification was cancelled or failed', 'warning');
+                        console.log("Popup closed without completing auth");
+                        showNotification('Discord verification was cancelled', 'warning');
+                        
+                        if (verifyBtn) {
+                            verifyBtn.innerHTML = '<i class="fab fa-discord"></i> Verify with Discord';
+                            verifyBtn.disabled = false;
+                        }
                     }
                 }
             }, 500);
             
         } catch (error) {
-            console.error('Error verifying Discord:', error);
-            showNotification(error.message || 'Failed to verify Discord account', 'error');
+            console.error('Error initiating verification:', error);
+            showNotification(error.message, 'error');
             
+            // Reset button
             const verifyBtn = document.querySelector('.discord-verification-btn');
             if (verifyBtn) {
                 verifyBtn.innerHTML = '<i class="fab fa-discord"></i> Verify with Discord';
