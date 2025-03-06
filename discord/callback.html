@@ -128,27 +128,48 @@
         }
         // Check if we have the code and state
         else if (code && state) {
-            // Initialize message sent flag
-            let messageSent = false;
-            
-            // Try to communicate with the opener window
-            if (window.opener && window.opener.setDiscordAuth) {
+                console.log("Got code and state in callback:", code, state);
+                
+                // Try all available communication methods
+                
+                // Method 1: postMessage
                 try {
-                    console.log("Using direct function call to communicate with opener");
-                    window.opener.setDiscordAuth(code, state);
-                    messageSent = true;
-                    
-                    // Show success state
-                    showState('success-state');
-                    
-                    // Close window after 3 seconds
-                    setTimeout(() => {
-                        window.close();
-                    }, 3000);
+                    if (window.opener) {
+                        console.log("Attempting postMessage");
+                        window.opener.postMessage({ code, state }, "*");
+                    }
                 } catch (e) {
-                    console.error("Error with direct function call:", e);
-                    messageSent = false;
+                    console.error("postMessage failed:", e);
                 }
+                
+                // Method 2: Direct function call
+                try {
+                    if (window.opener && typeof window.opener.setDiscordAuth === 'function') {
+                        console.log("Attempting direct function call");
+                        window.opener.setDiscordAuth(code, state);
+                    }
+                } catch (e) {
+                    console.error("Direct function call failed:", e);
+                }
+                
+                // Method 3: localStorage (fallback)
+                try {
+                    console.log("Setting localStorage as fallback");
+                    localStorage.setItem('discord_auth_code', code);
+                    localStorage.setItem('discord_auth_state', state);
+                    localStorage.setItem('discord_auth_timestamp', Date.now().toString());
+                } catch (e) {
+                    console.error("localStorage failed:", e);
+                }
+                
+                // Show success message
+                document.getElementById('loading-state').style.display = 'none';
+                document.getElementById('success-state').style.display = 'block';
+                
+                // Close window after a delay
+                setTimeout(() => {
+                    window.close();
+                }, 2000);
             }
             
             // If direct function call failed, try localStorage as fallback
