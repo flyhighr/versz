@@ -2399,11 +2399,6 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
         template_cache[cache_key] = response_data
         return response_data
     
-    # Try to get from cache
-    cache_key = f"page:{url}"
-    cached_page = page_cache.get(cache_key)
-    if cached_page:
-        return cached_page
     
     # Try to find the page by URL
     page = await db.profile_pages.find_one({"url": url})
