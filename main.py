@@ -1432,25 +1432,12 @@ async def verify_email(request: Request, token: str):
                     content={"detail": "Registration expired or not found"}
                 )
         
-        # Generate a temporary username if none is provided
-        username = pending_user.get("username")
-        if username is None:
-            # Use email prefix as temporary username with random suffix
-            email_prefix = verification["email"].split('@')[0]
-            random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-            username = f"{email_prefix}_{random_suffix}"
-            
-            # Check if this generated username already exists
-            while await db.users.find_one({"username": username}, projection={"_id": 1}):
-                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-                username = f"{email_prefix}_{random_suffix}"
-            
         # Prepare user data for insertion
         user_data = {
             "id": pending_user["id"],
             "user_number": pending_user["user_number"],
             "email": verification["email"],
-            "username": username,  # Use the generated username if original was None
+            "username": pending_user.get("username"),
             "name": pending_user.get("name"),
             "avatar_url": pending_user.get("avatar_url"),
             "avatar_decoration": pending_user.get("avatar_decoration"),
