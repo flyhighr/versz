@@ -1,22 +1,30 @@
 document.addEventListener('DOMContentLoaded', function() {
     const API_URL = 'https://api.versz.fun';
     
+    // Global flag to prevent duplicate auth code processing
+    let authCodeProcessed = false;
+    
+    // Global helper function for Discord auth
+    window.setDiscordAuth = function(code, state) {
+        console.log("setDiscordAuth called with code and state");
+        // Only process once
+        if (!authCodeProcessed) {
+            authCodeProcessed = true;
+            // Simulate a message event
+            window.dispatchEvent(
+                new MessageEvent('message', {
+                    data: { code, state }
+                })
+            );
+        }
+    };
+    
     // Check if user is logged in
     const token = localStorage.getItem('token');
     if (!token) {
         window.location.href = 'login.html';
         return;
     }
-    // Add this near the top of your profile.js
-    window.setDiscordAuth = function(code, state) {
-        console.log("setDiscordAuth called with code and state");
-        // Simulate a message event
-        window.dispatchEvent(
-            new MessageEvent('message', {
-                data: { code, state }
-            })
-        );
-    };
 
     // Mobile menu toggle
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
@@ -1342,10 +1350,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 `width=${width},height=${height},left=${left},top=${top}`
             );
             
+            // Reset the flag for this new connection attempt
+            authCodeProcessed = false;
+            
             // Create a message listener for the popup callback
             const messageListener = async (event) => {
+                console.log("Received message from popup:", event.data);
+                
                 // Check if the message is from our popup with the code and state
-                if (event.data && event.data.code && event.data.state) {
+                if (event.data && event.data.code && event.data.state && !authCodeProcessed) {
+                    // Set the flag to prevent duplicate processing
+                    authCodeProcessed = true;
+                    
                     // Exchange the code for a token
                     try {
                         const exchangeResponse = await fetch(`${API_URL}/discord/exchange-code`, {
@@ -1360,11 +1376,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             })
                         });
                         
+                        console.log("Exchange response status:", exchangeResponse.status);
+                        
                         if (!exchangeResponse.ok) {
+                            const errorText = await exchangeResponse.text();
+                            console.error("Exchange response error:", errorText);
                             throw new Error('Failed to exchange code for token');
                         }
                         
                         const exchangeData = await exchangeResponse.json();
+                        console.log("Exchange data:", exchangeData);
                         
                         if (exchangeData.success) {
                             // Reload Discord status
@@ -1399,6 +1420,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (connectBtn) {
                         connectBtn.innerHTML = '<i class="fab fa-discord"></i> Connect Discord';
                         connectBtn.disabled = false;
+                    }
+                    
+                    if (!authCodeProcessed) {
+                        showNotification('Discord connection was cancelled or failed', 'warning');
                     }
                 }
             }, 500);
@@ -1573,13 +1598,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Popup blocked. Please allow popups for this site.');
             }
             
+            // Reset the flag for this new verification attempt
+            authCodeProcessed = false;
+            
             // Create a message listener for the popup callback
             const messageListener = async (event) => {
-                // Log the received message for debugging
                 console.log("Received message from popup:", event.data);
                 
                 // Check if the message is from our popup with the code and state
-                if (event.data && event.data.code && event.data.state) {
+                if (event.data && event.data.code && event.data.state && !authCodeProcessed) {
+                    // Set the flag to prevent duplicate processing
+                    authCodeProcessed = true;
+                    
                     // Exchange the code for a token
                     try {
                         const exchangeResponse = await fetch(`${API_URL}/discord/exchange-code`, {
@@ -1614,7 +1644,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (error) {
                         console.error('Error exchanging code:', error);
-                        showNotification('Failed to verify Discord account: ' + error.message, 'error');
+                        showNotification('Failed to verify Discord account', 'error');
                         
                         const verifyBtn = document.querySelector('.discord-verification-btn');
                         if (verifyBtn) {
@@ -1643,7 +1673,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         verifyBtn.disabled = false;
                     }
                     
-                    showNotification('Discord verification was cancelled or failed', 'warning');
+                    if (!authCodeProcessed) {
+                        showNotification('Discord verification was cancelled or failed', 'warning');
+                    }
                 }
             }, 500);
             
@@ -1907,7 +1939,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const initProfilePage = async () => {
         try {
             await loadUserData();
-            await loadDiscordStatus(); // Add this line
+            await loadDiscordStatus();
         } catch (error) {
             console.error('Error initializing profile page:', error);
             showNotification('Failed to load profile data. Please refresh the page.', 'error');
