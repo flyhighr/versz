@@ -1940,6 +1940,27 @@ async def get_discord_status(request: Request, current_user: dict = Depends(get_
     needs_refresh = connection["expires_at"] < datetime.utcnow() + timedelta(minutes=10)
     needs_verification = connection.get("needs_verification", False)
     
+    # Generate auth URL if verification is needed
+    auth_url = None
+    if needs_verification:
+        state = secrets.token_urlsafe(32)
+        await db.discord_states.insert_one({
+            "state": state,
+            "user_id": current_user["id"],
+            "expires_at": datetime.utcnow() + timedelta(minutes=10)
+        })
+        
+        params = {
+            "client_id": settings.DISCORD_CLIENT_ID,
+            "redirect_uri": settings.DISCORD_REDIRECT_URI,
+            "response_type": "code",
+            "state": state,
+            "scope": "identify",
+            "prompt": "consent"
+        }
+        
+        auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
+    
     # Format response
     discord_data = {
         "connected": True,
@@ -1956,6 +1977,10 @@ async def get_discord_status(request: Request, current_user: dict = Depends(get_
         "needs_verification": needs_verification
     }
     
+    # Add auth_url if verification is needed
+    if auth_url:
+        discord_data["auth_url"] = auth_url
+        
     # Add avatar URL if avatar is available
     if connection.get("avatar"):
         discord_data["avatar_url"] = f"https://cdn.discordapp.com/avatars/{connection['discord_id']}/{connection['avatar']}.png"
