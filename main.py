@@ -1757,13 +1757,13 @@ async def connect_discord(request: Request, current_user: dict = Depends(get_cur
         "expires_at": datetime.utcnow() + timedelta(minutes=10)
     })
     
-    # Discord OAuth2 authorization URL
+
     params = {
         "client_id": settings.DISCORD_CLIENT_ID,
         "redirect_uri": settings.DISCORD_REDIRECT_URI,
         "response_type": "code",
         "state": state,
-        "scope": "identify email connections activities", # Fixed scopes
+        "scope": "identify email connections activities.read",
         "prompt": "consent"
     }
     auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
@@ -1994,7 +1994,7 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
             "redirect_uri": settings.DISCORD_REDIRECT_URI,
             "response_type": "code",
             "state": state,
-            "scope": "identify email connections activities", # Fixed scopes
+            "scope": "identify email connections activities.read",
             "prompt": "consent"
         }
         
@@ -2041,7 +2041,7 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
                     "redirect_uri": settings.DISCORD_REDIRECT_URI,
                     "response_type": "code",
                     "state": state,
-                    "scope": "identify email connections activities", # Fixed scopes
+                    "scope": "identify email connections activities.read",
                     "prompt": "consent"
                 }
                 auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
