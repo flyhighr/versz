@@ -1390,93 +1390,100 @@ async def resend_verification_email(
 @app.get("/verify")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def verify_email(request: Request, token: str):
-    verification = await db.verification.find_one({
-        "token": token,
-        "expires_at": {"$gt": datetime.utcnow()}
-    })
-    if not verification:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired verification link"
-        )
-        
-    pending_user = await db.pending_users.find_one({"email": verification["email"]})
-    if not pending_user:
-        # Check if the user is already in the main users collection
-        user = await db.users.find_one({"email": verification["email"]})
-        if user:
-            # Just update the verified status if the user exists
-            await db.users.update_one(
-                {"email": verification["email"]},
-                {"$set": {"is_verified": True}}
-            )
-            await db.verification.delete_one({"email": verification["email"]})
-            await user_cache.delete(f"user:{verification['email']}")
-            return {"message": "Email verified successfully"}
-        else:
+    try:
+        verification = await db.verification.find_one({
+            "token": token,
+            "expires_at": {"$gt": datetime.utcnow()}
+        })
+        if not verification:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Registration expired or not found"
+                detail="Invalid or expired verification link"
             )
+            
+        pending_user = await db.pending_users.find_one({"email": verification["email"]})
+        if not pending_user:
+            # Check if the user is already in the main users collection
+            user = await db.users.find_one({"email": verification["email"]})
+            if user:
+                # Just update the verified status if the user exists
+                await db.users.update_one(
+                    {"email": verification["email"]},
+                    {"$set": {"is_verified": True}}
+                )
+                await db.verification.delete_one({"email": verification["email"]})
+                await user_cache.delete(f"user:{verification['email']}")
+                return {"message": "Email verified successfully"}
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Registration expired or not found"
+                )
+            
+        user_data = {
+            "id": pending_user["id"],
+            "user_number": pending_user["user_number"],
+            "email": verification["email"],
+            "username": pending_user.get("username"),
+            "name": pending_user.get("name"),
+            "avatar_url": pending_user.get("avatar_url"),
+            "avatar_decoration": pending_user.get("avatar_decoration"),
+            "hashed_password": pending_user["hashed_password"],
+            "is_active": True,
+            "is_verified": True,
+            "joined_at": pending_user["created_at"],
+            "tags": pending_user.get("tags", []),
+            "display_preferences": pending_user.get("display_preferences", {
+                "show_views": True,
+                "show_uuid": True,
+                "show_tags": True,
+                "show_joined_date": True,
+                "show_location": True,
+                "show_dob": True,
+                "show_gender": True,
+                "show_pronouns": True,
+                "show_timezone": True,
+                "default_layout": "standard",
+                "default_background": {
+                    "type": "solid",
+                    "value": "#ffffff"
+                },
+                "default_name_style": {
+                    "color": "#000000",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                },
+                "default_username_style": {
+                    "color": "#555555",
+                    "font": {
+                        "name": "Default",
+                        "value": "",
+                        "link": ""
+                    }
+                }
+            }),
+            "location": pending_user.get("location"),
+            "date_of_birth": pending_user.get("date_of_birth"),
+            "timezone": pending_user.get("timezone"),
+            "gender": pending_user.get("gender"),
+            "pronouns": pending_user.get("pronouns")
+        }
         
-    user_data = {
-        "id": pending_user["id"],
-        "user_number": pending_user["user_number"],
-        "email": verification["email"],
-        "username": pending_user.get("username"),
-        "name": pending_user.get("name"),
-        "avatar_url": pending_user.get("avatar_url"),
-        "avatar_decoration": pending_user.get("avatar_decoration"),
-        "hashed_password": pending_user["hashed_password"],
-        "is_active": True,
-        "is_verified": True,
-        "joined_at": pending_user["created_at"],
-        "tags": pending_user.get("tags", []),
-        "display_preferences": pending_user.get("display_preferences", {
-            "show_views": True,
-            "show_uuid": True,
-            "show_tags": True,
-            "show_joined_date": True,
-            "show_location": True,
-            "show_dob": True,
-            "show_gender": True,
-            "show_pronouns": True,
-            "show_timezone": True,
-            "default_layout": "standard",
-            "default_background": {
-                "type": "solid",
-                "value": "#ffffff"
-            },
-            "default_name_style": {
-                "color": "#000000",
-                "font": {
-                    "name": "Default",
-                    "value": "",
-                    "link": ""
-                }
-            },
-            "default_username_style": {
-                "color": "#555555",
-                "font": {
-                    "name": "Default",
-                    "value": "",
-                    "link": ""
-                }
-            }
-        }),
-        "location": pending_user.get("location"),
-        "date_of_birth": pending_user.get("date_of_birth"),
-        "timezone": pending_user.get("timezone"),
-        "gender": pending_user.get("gender"),
-        "pronouns": pending_user.get("pronouns")
-    }
-    
-    await db.users.insert_one(user_data)
-    await db.pending_users.delete_one({"email": verification["email"]})
-    await db.verification.delete_one({"email": verification["email"]})
-    await user_cache.delete(f"user:{verification['email']}")
-    
-    return {"message": "Email verified successfully"}
+        await db.users.insert_one(user_data)
+        await db.pending_users.delete_one({"email": verification["email"]})
+        await db.verification.delete_one({"email": verification["email"]})
+        await user_cache.delete(f"user:{verification['email']}")
+        
+        return {"message": "Email verified successfully"}
+    except Exception as e:
+        logger.error(f"Error verifying email: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while verifying your email"
+        )
 
 @app.post("/token", response_class=ORJSONResponse)
 @limiter.limit(RateLimits.AUTH_LIMIT)
