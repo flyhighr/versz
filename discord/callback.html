@@ -130,13 +130,29 @@
         else if (code && state) {
             // Pass the code and state to the parent window
             if (window.opener) {
-                window.opener.postMessage({ code, state }, '*');
-                showState('success-state');
-                
-                // Close window after 3 seconds
-                setTimeout(() => {
-                    window.close();
-                }, 3000);
+                try {
+                    console.log("Sending message to opener with code and state");
+                    // Try different approaches to communicate with the opener
+                    
+                    // Approach 1: postMessage
+                    window.opener.postMessage({ code, state }, '*');
+                    
+                    // Approach 2: Direct property setting (backup)
+                    if (window.opener.setDiscordAuth) {
+                        window.opener.setDiscordAuth(code, state);
+                    }
+                    
+                    showState('success-state');
+                    
+                    // Close window after 3 seconds
+                    setTimeout(() => {
+                        window.close();
+                    }, 3000);
+                } catch (err) {
+                    console.error("Error communicating with opener:", err);
+                    showState('error-state');
+                    document.getElementById('error-message').textContent = 'Error communicating with main window: ' + err.message;
+                }
             } else {
                 showState('error-state');
                 document.getElementById('error-message').textContent = 'Unable to communicate with the main window. Please try again.';
