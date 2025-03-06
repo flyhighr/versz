@@ -1758,16 +1758,14 @@ async def connect_discord(request: Request, current_user: dict = Depends(get_cur
     })
     
 
-    # Update in any other functions where auth URLs are generated
     params = {
         "client_id": settings.DISCORD_CLIENT_ID,
         "redirect_uri": settings.DISCORD_REDIRECT_URI,
         "response_type": "code",
         "state": state,
-        "scope": "identify+activities.read+presence.read",
+        "scope": "identify",
         "prompt": "consent"
     }
-
     auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
     
     return {"auth_url": auth_url}
@@ -1952,13 +1950,12 @@ async def get_discord_status(request: Request, current_user: dict = Depends(get_
             "expires_at": datetime.utcnow() + timedelta(minutes=10)
         })
         
-        # Update in any other functions where auth URLs are generated
         params = {
             "client_id": settings.DISCORD_CLIENT_ID,
             "redirect_uri": settings.DISCORD_REDIRECT_URI,
             "response_type": "code",
             "state": state,
-            "scope": "identify+activities.read+presence.read",
+            "scope": "identify",
             "prompt": "consent"
         }
         
@@ -2016,13 +2013,13 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
             "expires_at": datetime.utcnow() + timedelta(minutes=10)
         })
         
-        # Update in any other functions where auth URLs are generated
+        # Discord OAuth2 authorization URL
         params = {
             "client_id": settings.DISCORD_CLIENT_ID,
             "redirect_uri": settings.DISCORD_REDIRECT_URI,
             "response_type": "code",
             "state": state,
-            "scope": "identify+activities.read+presence.read",
+            "scope": "identify",
             "prompt": "consent"
         }
         
@@ -2063,13 +2060,13 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
                     "expires_at": datetime.utcnow() + timedelta(minutes=10)
                 })
                 
-                # Update in any other functions where auth URLs are generated
+                # Discord OAuth2 authorization URL
                 params = {
                     "client_id": settings.DISCORD_CLIENT_ID,
                     "redirect_uri": settings.DISCORD_REDIRECT_URI,
                     "response_type": "code",
                     "state": state,
-                    "scope": "identify+activities.read+presence.read",
+                    "scope": "identify",
                     "prompt": "consent"
                 }
                 auth_url = f"{settings.DISCORD_API_ENDPOINT}/oauth2/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
