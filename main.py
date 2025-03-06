@@ -1391,17 +1391,24 @@ async def resend_verification_email(
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def verify_email(request: Request, token: str):
     try:
+        # Look up the verification token
         verification = await db.verification.find_one({
             "token": token,
             "expires_at": {"$gt": datetime.utcnow()}
         })
+        
+        # If no valid token found, return clear error
         if not verification:
-            raise HTTPException(
+            logger.warning(f"Invalid or expired verification token attempted: {token[:10]}...")
+            return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired verification link"
+                content={"detail": "Invalid or expired verification link"}
             )
             
+        # Look up the pending user
         pending_user = await db.pending_users.find_one({"email": verification["email"]})
+        
+        # If no pending user found, check if user already exists
         if not pending_user:
             # Check if the user is already in the main users collection
             user = await db.users.find_one({"email": verification["email"]})
@@ -1411,13 +1418,18 @@ async def verify_email(request: Request, token: str):
                     {"email": verification["email"]},
                     {"$set": {"is_verified": True}}
                 )
-                await db.verification.delete_one({"email": verification["email"]})
+                await db.verification.delete_one({"token": token})
                 await user_cache.delete(f"user:{verification['email']}")
-                return {"message": "Email verified successfully"}
+                
+                return JSONResponse(
+                    status_code=status.HTTP_200_OK,
+                    content={"message": "Email verified successfully"}
+                )
             else:
-                raise HTTPException(
+                logger.error(f"Verification for non-existent user: {verification['email']}")
+                return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Registration expired or not found"
+                    content={"detail": "Registration expired or not found"}
                 )
         
         # Generate a temporary username if none is provided
@@ -1433,6 +1445,7 @@ async def verify_email(request: Request, token: str):
                 random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
                 username = f"{email_prefix}_{random_suffix}"
             
+        # Prepare user data for insertion
         user_data = {
             "id": pending_user["id"],
             "user_number": pending_user["user_number"],
@@ -1485,18 +1498,29 @@ async def verify_email(request: Request, token: str):
             "pronouns": pending_user.get("pronouns")
         }
         
+        # Insert the new user
         await db.users.insert_one(user_data)
+        
+        # Clean up pending user and verification records
         await db.pending_users.delete_one({"email": verification["email"]})
-        await db.verification.delete_one({"email": verification["email"]})
+        await db.verification.delete_one({"token": token})
         await user_cache.delete(f"user:{verification['email']}")
         
-        return {"message": "Email verified successfully"}
-    except Exception as e:
-        logger.error(f"Error verifying email: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while verifying your email"
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Email verified successfully"}
         )
+        
+    except Exception as e:
+        # Log the detailed error
+        logger.error(f"Error verifying email: {str(e)}", exc_info=True)
+        
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "An error occurred while verifying your email"}
+        )
+
+        
 @app.post("/token", response_class=ORJSONResponse)
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
