@@ -2513,9 +2513,6 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
     if display_prefs.get("show_timezone", True) and "timezone" in user:
         response_data["user"]["timezone"] = user["timezone"]
     
-    # Cache the response
-    page_cache[cache_key] = response_data
-    
     return response_data
 
 @app.get("/views/{url}")
