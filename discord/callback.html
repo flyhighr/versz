@@ -126,15 +126,28 @@
                 window.close();
             }, 5000);
         }
-        // In the callback page:
-        if (code && state) {
+        // Check if we have the code and state
+        else if (code && state) {
+            // Initialize message sent flag
+            let messageSent = false;
+            
+            // Try to communicate with the opener window
             if (window.opener && window.opener.setDiscordAuth) {
                 try {
                     console.log("Using direct function call to communicate with opener");
                     window.opener.setDiscordAuth(code, state);
                     messageSent = true;
+                    
+                    // Show success state
+                    showState('success-state');
+                    
+                    // Close window after 3 seconds
+                    setTimeout(() => {
+                        window.close();
+                    }, 3000);
                 } catch (e) {
                     console.error("Error with direct function call:", e);
+                    messageSent = false;
                 }
             }
             
@@ -145,10 +158,36 @@
                     localStorage.setItem('discord_auth_code', code);
                     localStorage.setItem('discord_auth_state', state);
                     localStorage.setItem('discord_auth_timestamp', Date.now().toString());
+                    
+                    // Show success state
+                    showState('success-state');
+                    
+                    // Close window after 3 seconds
+                    setTimeout(() => {
+                        window.close();
+                    }, 3000);
                 } catch (e) {
                     console.error("Error with localStorage:", e);
+                    
+                    // Show error state
+                    showState('error-state');
+                    document.getElementById('error-message').textContent = 'Failed to store authentication data. Please try again.';
+                    
+                    // Close window after 5 seconds
+                    setTimeout(() => {
+                        window.close();
+                    }, 5000);
                 }
             }
+        } else {
+            // No code/state or error, something went wrong
+            showState('error-state');
+            document.getElementById('error-message').textContent = 'Invalid response from Discord. Please try again.';
+            
+            // Close window after 5 seconds
+            setTimeout(() => {
+                window.close();
+            }, 5000);
         }
     </script>
 </body>
