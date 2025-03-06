@@ -7,6 +7,16 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = 'login.html';
         return;
     }
+    // Add this near the top of your profile.js
+    window.setDiscordAuth = function(code, state) {
+        console.log("setDiscordAuth called with code and state");
+        // Simulate a message event
+        window.dispatchEvent(
+            new MessageEvent('message', {
+                data: { code, state }
+            })
+        );
+    };
 
     // Mobile menu toggle
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
@@ -1565,6 +1575,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Create a message listener for the popup callback
             const messageListener = async (event) => {
+                // Log the received message for debugging
+                console.log("Received message from popup:", event.data);
+                
                 // Check if the message is from our popup with the code and state
                 if (event.data && event.data.code && event.data.state) {
                     // Exchange the code for a token
@@ -1581,11 +1594,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             })
                         });
                         
+                        console.log("Exchange response status:", exchangeResponse.status);
+                        
                         if (!exchangeResponse.ok) {
+                            const errorText = await exchangeResponse.text();
+                            console.error("Exchange response error:", errorText);
                             throw new Error('Failed to exchange code for token');
                         }
                         
                         const exchangeData = await exchangeResponse.json();
+                        console.log("Exchange data:", exchangeData);
                         
                         if (exchangeData.success) {
                             // Reload Discord status
@@ -1596,7 +1614,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (error) {
                         console.error('Error exchanging code:', error);
-                        showNotification('Failed to verify Discord account', 'error');
+                        showNotification('Failed to verify Discord account: ' + error.message, 'error');
                         
                         const verifyBtn = document.querySelector('.discord-verification-btn');
                         if (verifyBtn) {
