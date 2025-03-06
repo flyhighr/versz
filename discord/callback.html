@@ -71,6 +71,19 @@
         .hidden {
             display: none;
         }
+        .debug-info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            font-size: 12px;
+            text-align: left;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -96,16 +109,32 @@
             </div>
             <h1>Connection Failed</h1>
             <p id="error-message">There was an error connecting your Discord account. Please try again.</p>
+            <button id="retry-button" class="hidden" style="background: #4ecdc4; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+                Try Again
+            </button>
         </div>
+        
+        <div id="debug-info" class="debug-info"></div>
     </div>
 
     <script>
-        // Parse the URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const error = urlParams.get('error');
-        const error_description = urlParams.get('error_description');
+        // Enable debug mode
+        const DEBUG = true;
+        
+        // Log function for debugging
+        function logDebug(message) {
+            if (DEBUG) {
+                console.log("[Discord Debug]", message);
+                
+                const debugInfo = document.getElementById('debug-info');
+                if (debugInfo) {
+                    debugInfo.style.display = 'block';
+                    const timestamp = new Date().toISOString().substring(11, 19);
+                    debugInfo.innerHTML += `[${timestamp}] ${message}\n`;
+                    debugInfo.scrollTop = debugInfo.scrollHeight;
+                }
+            }
+        }
         
         // Function to show a specific state
         function showState(stateId) {
@@ -116,10 +145,20 @@
             document.getElementById(stateId).classList.remove('hidden');
         }
         
+        // Parse the URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const error = urlParams.get('error');
+        const error_description = urlParams.get('error_description');
+        
+        logDebug(`URL params: code=${code ? 'present' : 'missing'}, state=${state ? 'present' : 'missing'}, error=${error || 'none'}`);
+        
         // Check if there was an error
         if (error) {
             showState('error-state');
             document.getElementById('error-message').textContent = error_description || 'Authorization was denied or canceled.';
+            logDebug(`Error: ${error} - ${error_description || 'No description'}`);
             
             // Close window after 5 seconds
             setTimeout(() => {
@@ -128,88 +167,141 @@
         }
         // Check if we have the code and state
         else if (code && state) {
-                console.log("Got code and state in callback:", code, state);
-                
-                // Try all available communication methods
-                
-                // Method 1: postMessage
-                try {
-                    if (window.opener) {
-                        console.log("Attempting postMessage");
-                        window.opener.postMessage({ code, state }, "*");
-                    }
-                } catch (e) {
-                    console.error("postMessage failed:", e);
+            logDebug("Auth code and state received, attempting to communicate with parent window");
+            
+            // Track success of communication methods
+            let communicationSuccess = false;
+            
+            // Method 1: Try postMessage to communicate with opener
+            try {
+                if (window.opener) {
+                    logDebug("Attempting postMessage communication");
+                    window.opener.postMessage({ code, state }, "*");
+                    communicationSuccess = true;
+                    logDebug("postMessage sent successfully");
+                } else {
+                    logDebug("window.opener is not available");
                 }
-                
-                // Method 2: Direct function call
-                try {
-                    if (window.opener && typeof window.opener.setDiscordAuth === 'function') {
-                        console.log("Attempting direct function call");
-                        window.opener.setDiscordAuth(code, state);
-                    }
-                } catch (e) {
-                    console.error("Direct function call failed:", e);
-                }
-                
-                // Method 3: localStorage (fallback)
-                try {
-                    console.log("Setting localStorage as fallback");
-                    localStorage.setItem('discord_auth_code', code);
-                    localStorage.setItem('discord_auth_state', state);
-                    localStorage.setItem('discord_auth_timestamp', Date.now().toString());
-                } catch (e) {
-                    console.error("localStorage failed:", e);
-                }
-                
-                // Show success message
-                document.getElementById('loading-state').style.display = 'none';
-                document.getElementById('success-state').style.display = 'block';
-                
-                // Close window after a delay
-                setTimeout(() => {
-                    window.close();
-                }, 2000);
+            } catch (e) {
+                logDebug(`postMessage error: ${e.message}`);
             }
             
-            // If direct function call failed, try localStorage as fallback
-            if (!messageSent) {
+            // Method 2: Try direct function call
+            if (!communicationSuccess) {
                 try {
-                    console.log("Using localStorage as fallback");
-                    localStorage.setItem('discord_auth_code', code);
-                    localStorage.setItem('discord_auth_state', state);
-                    localStorage.setItem('discord_auth_timestamp', Date.now().toString());
-                    
-                    // Show success state
-                    showState('success-state');
-                    
-                    // Close window after 3 seconds
-                    setTimeout(() => {
-                        window.close();
-                    }, 3000);
+                    if (window.opener && typeof window.opener.setDiscordAuth === 'function') {
+                        logDebug("Attempting direct function call");
+                        window.opener.setDiscordAuth(code, state);
+                        communicationSuccess = true;
+                        logDebug("Direct function call successful");
+                    } else {
+                        logDebug("setDiscordAuth function not available on opener");
+                    }
                 } catch (e) {
-                    console.error("Error with localStorage:", e);
-                    
-                    // Show error state
-                    showState('error-state');
-                    document.getElementById('error-message').textContent = 'Failed to store authentication data. Please try again.';
-                    
-                    // Close window after 5 seconds
-                    setTimeout(() => {
-                        window.close();
-                    }, 5000);
+                    logDebug(`Direct function call error: ${e.message}`);
                 }
+            }
+            
+            // Method 3: Use localStorage as fallback
+            try {
+                logDebug("Storing auth data in localStorage as fallback");
+                localStorage.setItem('discord_auth_code', code);
+                localStorage.setItem('discord_auth_state', state);
+                localStorage.setItem('discord_auth_timestamp', Date.now().toString());
+                logDebug("Auth data stored in localStorage");
+                
+                // Consider this a success even if other methods failed
+                communicationSuccess = true;
+            } catch (e) {
+                logDebug(`localStorage error: ${e.message}`);
+            }
+            
+            // Show appropriate state based on communication success
+            if (communicationSuccess) {
+                showState('success-state');
+                logDebug("Communication successful, showing success state");
+                
+                // Close window after 3 seconds
+                setTimeout(() => {
+                    logDebug("Auto-closing window");
+                    window.close();
+                }, 3000);
+            } else {
+                showState('error-state');
+                document.getElementById('error-message').textContent = 
+                    'Could not communicate with the main window. Please try again or close this window and refresh the main page.';
+                logDebug("All communication methods failed, showing error state");
+                
+                // Show retry button
+                const retryButton = document.getElementById('retry-button');
+                retryButton.classList.remove('hidden');
+                retryButton.addEventListener('click', () => {
+                    logDebug("Retry button clicked");
+                    retryAuth();
+                });
             }
         } else {
             // No code/state or error, something went wrong
             showState('error-state');
             document.getElementById('error-message').textContent = 'Invalid response from Discord. Please try again.';
+            logDebug("No code/state or error parameters found in URL");
             
             // Close window after 5 seconds
             setTimeout(() => {
                 window.close();
             }, 5000);
         }
+        
+        // Function to retry authentication
+        function retryAuth() {
+            logDebug("Retrying authentication");
+            
+            // Try methods again
+            let retrySuccess = false;
+            
+            // Try direct function call again
+            try {
+                if (window.opener && typeof window.opener.setDiscordAuth === 'function') {
+                    logDebug("Retrying direct function call");
+                    window.opener.setDiscordAuth(code, state);
+                    retrySuccess = true;
+                    logDebug("Retry direct function call successful");
+                }
+            } catch (e) {
+                logDebug(`Retry direct function call error: ${e.message}`);
+            }
+            
+            // Try localStorage again (refresh timestamp)
+            try {
+                logDebug("Refreshing localStorage data");
+                localStorage.setItem('discord_auth_code', code);
+                localStorage.setItem('discord_auth_state', state);
+                localStorage.setItem('discord_auth_timestamp', Date.now().toString());
+                retrySuccess = true;
+                logDebug("Auth data refreshed in localStorage");
+            } catch (e) {
+                logDebug(`localStorage refresh error: ${e.message}`);
+            }
+            
+            if (retrySuccess) {
+                showState('success-state');
+                logDebug("Retry successful, showing success state");
+                
+                // Close window after 3 seconds
+                setTimeout(() => {
+                    window.close();
+                }, 3000);
+            } else {
+                document.getElementById('error-message').textContent = 
+                    'Retry failed. Please close this window and try connecting again from the main page.';
+                logDebug("Retry failed");
+            }
+        }
+        
+        // Log when window is about to close
+        window.addEventListener('beforeunload', () => {
+            logDebug("Window closing");
+        });
     </script>
 </body>
 </html>
