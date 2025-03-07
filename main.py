@@ -2340,6 +2340,9 @@ async def connect_discord(
         )
     
     try:
+        # Log the code for debugging (remove in production)
+        logger.info(f"Connecting Discord with code: {code[:10]}...")
+        
         # Exchange code for tokens
         token_data = await get_discord_tokens(code)
         
@@ -2406,7 +2409,7 @@ async def connect_discord(
         logger.error(f"Error connecting Discord account: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to connect Discord account"
+            detail=f"Failed to connect Discord account: {str(e)}"
         )
 
 @app.post("/discord/disconnect")
