@@ -335,6 +335,82 @@
                             </div>
                         </div>
                     </div>
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h2>Discord Integration</h2>
+                            <div id="discord-connect-actions">
+                                <button type="button" id="connect-discord-btn" class="btn btn-discord">
+                                    <i class="fab fa-discord"></i> Connect Discord
+                                </button>
+                                <button type="button" id="disconnect-discord-btn" class="btn btn-outline" style="display: none;">
+                                    <i class="fas fa-unlink"></i> Disconnect
+                                </button>
+                            </div>
+                        </div>
+                        <div class="profile-info-card">
+                            <div id="discord-not-connected" class="discord-placeholder">
+                                <div class="discord-icon">
+                                    <i class="fab fa-discord"></i>
+                                </div>
+                                <div class="discord-message">
+                                    <h3>Connect your Discord account</h3>
+                                    <p>Link your Discord account to display your Discord status and activity on your profile.</p>
+                                </div>
+                            </div>
+                            
+                            <div id="discord-connected" class="discord-profile" style="display: none;">
+                                <div class="discord-header">
+                                    <div class="discord-avatar">
+                                        <img id="discord-avatar" src="" alt="Discord Avatar">
+                                        <div id="discord-status" class="discord-status-indicator"></div>
+                                    </div>
+                                    <div class="discord-user-info">
+                                        <div class="discord-username" id="discord-username"></div>
+                                        <div class="discord-tag" id="discord-tag"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="discord-details">
+                                    <div class="discord-field">
+                                        <div class="field-label">Status</div>
+                                        <div class="field-value" id="discord-status-text">Offline</div>
+                                    </div>
+                                    <div class="discord-field">
+                                        <div class="field-label">Activity</div>
+                                        <div class="field-value" id="discord-activity">None</div>
+                                    </div>
+                                    <div class="discord-field">
+                                        <div class="field-label">Connected Since</div>
+                                        <div class="field-value" id="discord-connected-at"></div>
+                                    </div>
+                                    <div class="discord-field">
+                                        <div class="field-label">Show on Profile</div>
+                                        <div class="field-value" id="discord-show-on-profile">Yes</div>
+                                        <div class="field-edit" style="display: none;">
+                                            <label class="switch">
+                                                <input type="checkbox" id="edit-show-discord" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="discord-token-expired" class="discord-token-expired" style="display: none;">
+                                    <div class="token-expired-message">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>Your Discord connection has expired. Please reconnect your account.</span>
+                                    </div>
+                                    <button type="button" id="reconnect-discord-btn" class="btn btn-discord">
+                                        <i class="fab fa-discord"></i> Reconnect Discord
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="edit-actions" id="discord-edit-actions" style="display: none;">
+                            <button type="button" id="cancel-discord-btn" class="btn btn-outline">Cancel</button>
+                            <button type="button" id="save-discord-btn" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="profile-sidebar">
