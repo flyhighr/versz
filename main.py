@@ -835,36 +835,17 @@ async def register_user(
     background_tasks: BackgroundTasks,
     email: str = Body(...),
     password: str = Body(...),
-    username: Optional[str] = Body(None),
+    username: str = Body(...),  
     name: Optional[str] = Body(None)
 ) -> Dict[str, Any]:
     try:
-        # If username is not provided, generate one based on email
-        if not username:
-            # Extract email prefix and clean it
-            email_prefix = email.split('@')[0]
-            # Remove special characters and limit length
-            clean_prefix = ''.join(c for c in email_prefix if c.isalnum() or c == '_')
-            clean_prefix = clean_prefix[:10]  # Limit to 10 chars
+        # Validate username
+        if not username.isalnum() and not all(c.isalnum() or c == '_' for c in username):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username can only contain alphanumeric characters and underscores"
+            )
             
-            # Add random suffix to ensure uniqueness
-            random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-            username = f"{clean_prefix}_{random_suffix}"
-            
-            # Check if this generated username already exists
-            attempts = 0
-            max_attempts = 5
-            while await db.users.find_one({"username": username}, projection={"_id": 1}) or \
-                  await db.pending_users.find_one({"username": username}, projection={"_id": 1}):
-                if attempts >= max_attempts:
-                    raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail="Could not generate a unique username. Please try again with a specific username."
-                    )
-                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-                username = f"{clean_prefix}_{random_suffix}"
-                attempts += 1
-        
         user = UserCreate(email=email, password=password, username=username, name=name)
     except ValidationError as ve:
         raise HTTPException(
@@ -883,13 +864,12 @@ async def register_user(
         )
     
     # Check if username is already taken
-    if user.username:
-        existing_username = await db.users.find_one({"username": user.username}, projection={"_id": 1})
-        if existing_username:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already taken"
-            )
+    existing_username = await db.users.find_one({"username": user.username}, projection={"_id": 1})
+    if existing_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already taken"
+        )
     
     # Check pending registrations
     existing_pending = await db.pending_users.find_one({"email": user.email})
