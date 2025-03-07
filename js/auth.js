@@ -62,13 +62,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         name: data.name,
                         avatar_url: data.avatar_url,
                         is_verified: data.is_verified
-                        // Don't store onboarding_completed locally as we'll always use the API response
                     }));
                     
                     // Redirect based on verification status
                     if (data.is_verified) {
-                        // Check if onboarding is completed directly from API response
-                        if (data.onboarding_completed === false) {
+                        if (!data.username) {
                             // User needs to complete onboarding
                             window.location.href = 'onboarding.html';
                         } else {
@@ -143,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const email = document.getElementById('register-email').value;
-            const username = document.getElementById('register-username').value; // Get username value
             const password = document.getElementById('register-password').value;
             const registerMessage = document.getElementById('register-message');
             
@@ -156,14 +153,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!hasLength || !hasUppercase || !hasLowercase || !hasNumber) {
                 notifications.warning('Password Requirements', 'Please make sure your password meets all the requirements.');
                 registerMessage.textContent = 'Please meet all password requirements.';
-                registerMessage.className = 'auth-message error';
-                return;
-            }
-            
-            // Validate username
-            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-                notifications.warning('Invalid Username', 'Username can only contain letters, numbers, and underscores.');
-                registerMessage.textContent = 'Username can only contain letters, numbers, and underscores.';
                 registerMessage.className = 'auth-message error';
                 return;
             }
@@ -182,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     body: JSON.stringify({
                         email: email,
-                        username: username, // Include username in request
                         password: password
                     })
                 });
