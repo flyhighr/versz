@@ -2349,7 +2349,7 @@ async def connect_discord(
         )
     
     try:
-        # Log the code for debugging (remove in production)
+        # Log the code for debugging
         logger.info(f"Connecting Discord with code: {code[:10]}...")
         
         # Exchange code for tokens
@@ -2378,6 +2378,9 @@ async def connect_discord(
             "activity": None
         }
         
+        # Log the Discord connection data for debugging
+        logger.debug(f"Discord connection data: {discord_connection}")
+        
         # Check if this Discord account is already connected to another user
         existing_connection = await db.users.find_one(
             {"discord.discord_id": user_data.get("id")},
@@ -2396,7 +2399,7 @@ async def connect_discord(
             {"$set": {"discord": discord_connection}}
         )
         
-        # Clear cache
+        # Clear cache - IMPORTANT: This ensures fresh data is fetched
         await user_cache.delete(f"user:{current_user['email']}")
         if current_user.get("username"):
             await user_cache.delete(f"username:{current_user['username']}")
