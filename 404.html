@@ -957,139 +957,6 @@
                 left: -15px;
             }
         }
-
-        /* Discord presence section */
-        /* Discord presence section */
-        .discord-presence {
-            margin-top: 15px;
-            margin-bottom: 15px;
-            background-color: #ffffff;
-            border-radius: 12px;
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #333;
-            font-size: 14px;
-            max-width: 100%;
-            overflow: hidden;
-            border: 1px solid #ddd;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
-        .discord-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #3c45a5;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .discord-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .discord-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .discord-name {
-            font-weight: bold;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .discord-status {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            opacity: 0.9;
-            font-size: 12px;
-        }
-
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .status-online {
-            background-color: #43b581;
-        }
-
-        .status-idle {
-            background-color: #faa61a;
-        }
-
-        .status-dnd {
-            background-color: #f04747;
-        }
-
-        .status-offline {
-            background-color: #747f8d;
-        }
-
-        .discord-activity {
-            font-size: 12px;
-            opacity: 0.9;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .discord-last-seen {
-            font-size: 11px;
-            opacity: 0.7;
-        }
-
-        /* Video interaction overlay */
-        .video-interaction-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            cursor: pointer;
-        }
-
-        .video-interaction-message {
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .video-interaction-icon {
-            width: 60px;
-            height: 60px;
-            border: 2px solid white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            animation: pulse 2s infinite;
-        }
-
-        .video-play-icon {
-            width: 0;
-            height: 0;
-            border-top: 15px solid transparent;
-            border-left: 25px solid white;
-            border-bottom: 15px solid transparent;
-            margin-left: 5px;
-        }
     </style>
 </head>
 <body>
@@ -1104,13 +971,6 @@
             Rate limit exceeded. Please try again in a few minutes.
         </div>
         <a href="/" class="back-btn">Go Back</a>
-    </div>
-
-    <div id="videoInteractionOverlay" class="video-interaction-overlay" style="display: none;">
-        <div class="video-interaction-message">Click anywhere to continue</div>
-        <div class="video-interaction-icon">
-            <div class="video-play-icon"></div>
-        </div>
     </div>
 
     <div id="previewBanner" class="preview-banner" style="display: none;">
@@ -1156,7 +1016,7 @@
         </div>
     </div>
 
-<div class="profile-container" id="profileContainer">
+    <div class="profile-container" id="profileContainer">
         <div class="bio" id="bio">This is my bio</div>
         
         <div class="profile-details">
@@ -1175,22 +1035,6 @@
             <div class="detail-item" id="locationContainer" style="display: none;">
                 <img src="https://cdn-icons-png.flaticon.com/512/484/484167.png" alt="Location" class="detail-icon">
                 <span id="locationText">Location</span>
-            </div>
-        </div>
-
-        <!-- Discord Presence Section -->
-        <div class="discord-presence" id="discordPresence" style="display: none;">
-            <div class="discord-avatar">
-                <img id="discordAvatar" src="" alt="Discord Avatar">
-            </div>
-            <div class="discord-info">
-                <div class="discord-name" id="discordName">Username</div>
-                <div class="discord-status" id="discordStatus">
-                    <div class="status-indicator status-offline"></div>
-                    <span id="discordStatusText">Offline</span>
-                </div>
-                <div class="discord-activity" id="discordActivity" style="display: none;">Playing a game</div>
-                <div class="discord-last-seen" id="discordLastSeen">Last seen: Unknown</div>
             </div>
         </div>
 
@@ -1268,8 +1112,6 @@
     let fullTitle = '';
     let timezoneInterval = null;
     let pendingLink = null; // Store link when confirmation popup is shown
-    let hasVideoBackground = false; // Flag to track if page has video background
-    let videoStarted = false; // Flag to track if video has been started
 
     window.addEventListener('resize', () => {
         isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -1346,29 +1188,6 @@
                 npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/3318/3318638.png";
                 isPlaying = false;
             }
-        });
-    }
-
-    // Initialize video interaction overlay
-    function initVideoInteraction() {
-        const overlay = document.getElementById('videoInteractionOverlay');
-        
-        overlay.addEventListener('click', () => {
-            // Start all videos on the page
-            const videos = document.querySelectorAll('video');
-            videos.forEach(video => {
-                if (video.paused) {
-                    video.play()
-                        .then(() => {
-                            videoStarted = true;
-                            overlay.style.display = 'none';
-                        })
-                        .catch(err => {
-                            console.error('Video playback error:', err);
-                            // Keep overlay visible if there's an error
-                        });
-                }
-            });
         });
     }
     
@@ -1681,160 +1500,6 @@
         timezoneInterval = setInterval(updateTime, 60000);
     }
 
-    // Function to render Discord presence
-    function renderDiscordPresence(discord, layout) {
-        if (!discord) return;
-        
-        const discordPresence = document.getElementById('discordPresence');
-        const discordAvatar = document.getElementById('discordAvatar');
-        const discordName = document.getElementById('discordName');
-        const discordStatus = document.getElementById('discordStatus');
-        const discordStatusIndicator = discordStatus.querySelector('.status-indicator');
-        const discordStatusText = document.getElementById('discordStatusText');
-        const discordActivity = document.getElementById('discordActivity');
-        const discordLastSeen = document.getElementById('discordLastSeen');
-        
-        // Check if container style is enabled
-        const containerEnabled = layout && layout.container_style && layout.container_style.enabled;
-        
-        // Apply container style to match other sections
-        if (containerEnabled) {
-            // Apply container background if enabled
-            if (layout.container_style.background_color) {
-                discordPresence.style.backgroundColor = layout.container_style.background_color;
-            }
-            
-            if (layout.container_style.border_radius !== undefined) {
-                discordPresence.style.borderRadius = `${layout.container_style.border_radius}px`;
-            }
-            
-            if (layout.container_style.opacity !== undefined) {
-                discordPresence.style.opacity = layout.container_style.opacity;
-            }
-            
-            if (layout.container_style.shadow) {
-                discordPresence.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
-            }
-        } else {
-            // If containers disabled, make completely transparent with no background
-            discordPresence.style.backgroundColor = 'transparent';
-            discordPresence.style.boxShadow = 'none';
-        }
-        
-        // Set Discord avatar
-        if (discord.avatar_url) {
-            discordAvatar.src = discord.avatar_url;
-            discordAvatar.onerror = function() {
-                this.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
-            };
-        } else {
-            discordAvatar.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
-        }
-        
-        // Set Discord username
-        discordName.textContent = discord.username || 'User';
-        if (discord.discriminator && discord.discriminator !== '0') {
-            discordName.textContent += `#${discord.discriminator}`;
-        }
-        
-        // Set status indicator
-        discordStatusIndicator.className = 'status-indicator';
-        let statusClass = 'status-offline';
-        let statusText = 'Offline';
-        
-        if (discord.status) {
-            switch (discord.status.toLowerCase()) {
-                case 'online':
-                    statusClass = 'status-online';
-                    statusText = 'Online';
-                    break;
-                case 'idle':
-                    statusClass = 'status-idle';
-                    statusText = 'Idle';
-                    break;
-                case 'dnd':
-                    statusClass = 'status-dnd';
-                    statusText = 'Do Not Disturb';
-                    break;
-                default:
-                    statusClass = 'status-offline';
-                    statusText = 'Offline';
-            }
-        }
-        
-        discordStatusIndicator.classList.add(statusClass);
-        discordStatusText.textContent = statusText;
-        
-        // Set activity if available
-        if (discord.activity) {
-            let activityText = '';
-            
-            if (typeof discord.activity === 'string') {
-                activityText = discord.activity;
-            } else if (discord.activity.name) {
-                activityText = `Playing ${discord.activity.name}`;
-                
-                if (discord.activity.type) {
-                    switch (discord.activity.type) {
-                        case 1:
-                            activityText = `Streaming ${discord.activity.name}`;
-                            break;
-                        case 2:
-                            activityText = `Listening to ${discord.activity.name}`;
-                            break;
-                        case 3:
-                            activityText = `Watching ${discord.activity.name}`;
-                            break;
-                        case 4:
-                            activityText = discord.activity.name; // Custom status
-                            break;
-                        case 5:
-                            activityText = `Competing in ${discord.activity.name}`;
-                            break;
-                    }
-                }
-                
-                if (discord.activity.details) {
-                    activityText += ` - ${discord.activity.details}`;
-                }
-            }
-            
-            if (activityText) {
-                discordActivity.textContent = activityText;
-                discordActivity.style.display = 'block';
-            } else {
-                discordActivity.style.display = 'none';
-            }
-        } else {
-            discordActivity.style.display = 'none';
-        }
-        
-        // Set last seen text
-        if (discord.last_updated) {
-            const lastUpdated = new Date(discord.last_updated);
-            const now = new Date();
-            const diffMs = now - lastUpdated;
-            const diffMins = Math.floor(diffMs / 60000);
-            
-            if (diffMins < 1) {
-                discordLastSeen.textContent = 'Last seen: Just now';
-            } else if (diffMins < 60) {
-                discordLastSeen.textContent = `Last seen: ${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-            } else if (diffMins < 1440) {
-                const hours = Math.floor(diffMins / 60);
-                discordLastSeen.textContent = `Last seen: ${hours} hour${hours > 1 ? 's' : ''} ago`;
-            } else {
-                const days = Math.floor(diffMins / 1440);
-                discordLastSeen.textContent = `Last seen: ${days} day${days > 1 ? 's' : ''} ago`;
-            }
-        } else {
-            discordLastSeen.textContent = 'Last seen: Unknown';
-        }
-        
-        // Show the Discord presence section
-        discordPresence.style.display = 'flex';
-    }
-
     // Function to process @mentions in bio text
     function processBioText(text) {
         if (!text) return '';
@@ -1962,6 +1627,7 @@
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
                 data = await response.json();
                 
                 // For preview data, we need to format it properly
@@ -2271,21 +1937,6 @@
             document.getElementById('timezoneContainer').style.display = 'none';
         }
         
-        // Set Discord presence if available
-        if (user.discord) {
-            // Only show Discord if it's enabled in user preferences
-            const showDiscord = user.discord.show_discord !== false && 
-                                (user.display_preferences?.show_discord !== false);
-            
-            if (showDiscord) {
-                renderDiscordPresence(user.discord, page.layout);
-            } else {
-                document.getElementById('discordPresence').style.display = 'none';
-            }
-        } else {
-            document.getElementById('discordPresence').style.display = 'none';
-        }
-        
         // Set bio with @mention processing
         if (page.bio) {
             const bioElement = document.getElementById('bio');
@@ -2351,11 +2002,6 @@
             }
         }
         
-        // Show video interaction overlay if there's a video background and it hasn't been started yet
-        if (hasVideoBackground && !videoStarted) {
-            document.getElementById('videoInteractionOverlay').style.display = 'flex';
-        }
-        
         // Hide loading screen
         if (loading) {
             loading.style.opacity = '0';
@@ -2371,7 +2017,6 @@
         
         const bgContainer = document.getElementById('backgroundContainer');
         bgContainer.innerHTML = '';
-        hasVideoBackground = false;
         
         if (background.type === 'solid') {
             document.body.style.backgroundColor = background.value;
@@ -2391,15 +2036,13 @@
                 bgContainer.appendChild(overlay);
             }
         } else if (background.type === 'video') {
-            hasVideoBackground = true;
-            
             const video = document.createElement('video');
             video.src = background.value;
             video.className = 'bg-video';
+            video.autoplay = true;
             video.loop = true;
             video.muted = true;
             video.playsInline = true; // Important for iOS
-            // Don't autoplay - we'll handle playback after user interaction
             bgContainer.appendChild(video);
             
             if (background.opacity < 1) {
@@ -2704,9 +2347,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize audio player
         initAudioPlayer();
-        
-        // Initialize video interaction
-        initVideoInteraction();
         
         // Initialize link popup
         initLinkPopup();
