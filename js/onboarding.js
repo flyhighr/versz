@@ -435,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Setting up your profile...', 'info');
             
             try {
-                // Use the onboarding endpoint instead of update-profile for proper onboarding process
+                // Use the onboarding endpoint which sets onboarding_completed to true
                 const response = await fetch(`${API_URL}/onboarding`, {
                     method: 'PUT',
                     headers: {
@@ -461,13 +461,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const responseData = await response.json();
                 
-                // Update local storage
+                // Update local storage with new user data
+                // Note: We don't need to store onboarding_completed as we'll always check the API
                 const userData = JSON.parse(localStorage.getItem('user')) || {};
                 userData.username = username;
                 userData.name = name;
                 userData.avatar_url = avatarUrl || null;
-                userData.date_of_birth = dateOfBirth || null;
-                userData.timezone = timezone || null;
                 localStorage.setItem('user', JSON.stringify(userData));
                 
                 // Close loading notification
@@ -531,8 +530,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update the user in localStorage with fresh data
             localStorage.setItem('user', JSON.stringify(userData));
             
-            // If user already has completed onboarding, redirect to dashboard
-            if (userData.username && userData.onboarding_completed) {
+            // Check if onboarding is already completed from API response
+            if (userData.onboarding_completed) {
                 notifications.close(loadingId);
                 notifications.info('Profile Complete', 'Your profile is already set up. Redirecting to dashboard...');
                 
