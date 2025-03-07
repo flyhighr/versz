@@ -531,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('user', JSON.stringify(userData));
             
             // Check if onboarding is already completed from API response
-            if (userData.onboarding_completed) {
+            if (userData.onboarding_completed === true) {
                 notifications.close(loadingId);
                 notifications.info('Profile Complete', 'Your profile is already set up. Redirecting to dashboard...');
                 
