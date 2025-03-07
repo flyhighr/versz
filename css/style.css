@@ -1,21 +1,21 @@
 /* Base Styles and Variables */
 :root {
   --primary-color: #4ecdc4;
-  --primary-hover: #33b5ac;
-  --secondary-color: #ff6b6b;
-  --accent-color: #7f5af0;
-  --dark-bg: #1f2029;
-  --darker-bg: #16161e;
-  --light-bg: #242535;
-  --lighter-bg: #2e2f42;
+  --primary-hover: #4ecdc4;
+  --secondary-color: #4ecdc4;
+  --accent-color: #3fa7a7;
+  --dark-bg: #0f0f0f;
+  --darker-bg: #070707;
+  --light-bg: #1a1a1a;
+  --lighter-bg: #242424;
   --text-color: #fffffe;
   --text-muted: #94a1b2;
-  --border-color: #383a50;
+  --border-color: #2e2e2e;
   --success-color: #2cb67d;
   --warning-color: #ffd166;
   --error-color: #ef476f;
   --info-color: #118ab2;
-  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   --transition: all 0.3s ease;
   --border-radius: 8px;
   --card-radius: 12px;
@@ -138,7 +138,7 @@ p {
 }
 
 .btn-secondary:hover {
-  background-color: #ff5252;
+  background-color: #33b5ac;
   color: var(--text-color);
 }
 
@@ -204,6 +204,7 @@ p {
   padding: 1.25rem 5%;
   position: relative;
   z-index: 100;
+  background-color: var(--dark-bg);
 }
 
 .navbar-brand {
@@ -267,6 +268,7 @@ p {
   justify-content: space-between;
   padding: 3rem 5% 5rem;
   min-height: 80vh;
+  background-color: var(--dark-bg);
 }
 
 .hero-content {
@@ -312,7 +314,7 @@ p {
 
 .profile-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
 }
 
 .profile-header {
@@ -395,7 +397,7 @@ p {
   justify-content: center;
   width: 60px;
   height: 60px;
-  background-color: rgba(78, 205, 196, 0.2);
+  background-color: rgba(39, 157, 136, 0.2);
   border-radius: 50%;
   margin-bottom: 1.5rem;
 }
@@ -417,6 +419,7 @@ p {
 /* Templates Preview Section */
 .templates-preview {
   padding: 5rem 5%;
+  background-color: var(--dark-bg);
 }
 
 .templates-slider {
