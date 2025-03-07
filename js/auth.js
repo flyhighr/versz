@@ -61,13 +61,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         username: data.username,
                         name: data.name,
                         avatar_url: data.avatar_url,
-                        is_verified: data.is_verified,
-                        onboarding_completed: data.onboarding_completed
+                        is_verified: data.is_verified
+                        // Don't store onboarding_completed locally as we'll always use the API response
                     }));
                     
                     // Redirect based on verification status
                     if (data.is_verified) {
-                        // Check if onboarding is completed instead of just username
+                        // Check if onboarding is completed directly from API response
                         if (!data.onboarding_completed) {
                             // User needs to complete onboarding
                             window.location.href = 'onboarding.html';
@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
     // Register form handler
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
