@@ -1863,12 +1863,14 @@ async def complete_onboarding(
         "date_of_birth": onboarding_data.date_of_birth,
         "timezone": onboarding_data.timezone,
         "gender": onboarding_data.gender,
-        "pronouns": onboarding_data.pronouns,
-        "onboarding_completed": True
+        "pronouns": onboarding_data.pronouns
     }
     
     # Remove None values
     update_data = {k: v for k, v in update_data.items() if v is not None}
+    
+    # Always set onboarding_completed to True, separate from the None filtering
+    update_data["onboarding_completed"] = True
     
     await db.users.update_one(
         {"id": current_user["id"]},
@@ -1958,6 +1960,7 @@ async def complete_onboarding(
         "avatar_url": updated_user.get("avatar_url"),
         "avatar_decoration": updated_user.get("avatar_decoration"),
         "is_verified": updated_user.get("is_verified", False),
+        "onboarding_completed": True,  # Explicitly set in the response
         "page_count": page_count,
         "joined_at": updated_user.get("joined_at", datetime.utcnow()),
         "tags": updated_user.get("tags", []),
