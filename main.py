@@ -2258,6 +2258,98 @@ async def refresh_discord_connection(request: Request, current_user: dict = Depe
             detail="Failed to refresh Discord connection"
         )
 
+        
+@app.get("/discord/verify/{discord_id}")
+@limiter.limit(RateLimits.AUTH_LIMIT)
+async def verify_discord_user(request: Request, discord_id: str):
+    """Verify if a Discord user is connected to a Versz account"""
+    try:
+        # Find Discord connection with this discord_id
+        connection = await db.discord_connections.find_one({
+            "discord_id": discord_id
+        })
+        
+        if not connection:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"detail": "Discord account not connected to any Versz account"}
+            )
+        
+        # Check if user exists
+        user = await db.users.find_one({"id": connection["user_id"]})
+        if not user:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"detail": "User not found"}
+            )
+        
+        return {
+            "verified": True,
+            "user_id": connection["user_id"]
+        }
+    except Exception as e:
+        logger.error(f"Error verifying Discord user: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error verifying Discord connection"
+        )
+
+@app.post("/discord/update-activity")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def update_discord_activity(
+    request: Request,
+    activity_data: dict = Body(...)
+):
+    """Update Discord activity for a user"""
+    try:
+        user_id = activity_data.get("user_id")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing user_id"
+            )
+        
+        # Check if user exists
+        user = await db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Check if Discord connection exists
+        connection = await db.discord_connections.find_one({
+            "user_id": user_id
+        })
+        
+        if not connection:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Discord connection not found"
+            )
+        
+        # Update connection with new activity data
+        update_data = {
+            "current_status": activity_data.get("current_status", "offline"),
+            "current_activity": activity_data.get("current_activity"),
+            "last_status_update": datetime.utcnow()
+        }
+        
+        await db.discord_connections.update_one(
+            {"user_id": user_id},
+            {"$set": update_data}
+        )
+        
+        return {"message": "Activity updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating Discord activity: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error updating Discord activity"
+        )
+        
 async def refresh_discord_token(connection):
     """Refresh Discord OAuth2 token if expired"""
     try:
