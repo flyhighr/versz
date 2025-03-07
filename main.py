@@ -70,7 +70,7 @@ class Settings:
     MONGODB_MIN_POOL_SIZE: int = 10
     VIEW_COOLDOWN_MINUTES: int = 30
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
-    MAX_AVATAR_SIZE: int = 1024 * 1024  # 1MB
+    MAX_AVATAR_SIZE: int = 1024 * 1024 * 32  # 1MB
     PREVIEW_EXPIRATION_MINUTES: int = 30  # How long preview pages are valid
 
     DISCORD_CLIENT_ID: str = os.getenv("DISCORD_CLIENT_ID", "")
