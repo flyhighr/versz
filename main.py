@@ -377,6 +377,7 @@ class UserResponse(UserBase):
     avatar_url: Optional[str] = None
     avatar_decoration: Optional[str] = None  # URL to decoration image
     is_verified: bool
+    onboarding_completed: bool = False
     page_count: int
     joined_at: datetime
     tags: List[Tag] = []
@@ -1522,6 +1523,7 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             "access_token": access_token,
             "token_type": "bearer",
             "is_verified": user.get("is_verified", False),
+            "onboarding_completed": user.get("onboarding_completed", False),
             "id": user["id"],
             "user_number": user.get("user_number"),
             "email": user["email"],
@@ -1798,6 +1800,7 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
         "avatar_url": current_user.get("avatar_url"),
         "avatar_decoration": current_user.get("avatar_decoration"),
         "is_verified": current_user.get("is_verified", False),
+        "onboarding_completed": current_user.get("onboarding_completed", False),
         "page_count": page_count,
         "joined_at": current_user.get("joined_at", datetime.utcnow()),
         "tags": current_user.get("tags", []),
