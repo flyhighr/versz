@@ -87,6 +87,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`${API_URL}/check-url?url=${username}`);
                 const data = await response.json();
                 
+                // Get the current user from localStorage
+                const currentUser = JSON.parse(localStorage.getItem('user')) || {};
+                
+                // If the username is the same as the user's current username, it's available for them
+                if (currentUser.username === username) {
+                    usernameStatus.textContent = 'This is your current username';
+                    usernameStatus.className = 'input-status success';
+                    return;
+                }
+                
                 if (data.available) {
                     usernameStatus.textContent = 'Username is available!';
                     usernameStatus.className = 'input-status success';
@@ -397,24 +407,37 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading notification
             const saveId = notifications.info('Saving Profile', 'Setting up your profile. This may take a moment...');
             
-            // Check username availability one more time
-            try {
-                const checkResponse = await fetch(`${API_URL}/check-url?url=${username}`);
-                const checkData = await checkResponse.json();
-                
-                if (!checkData.available) {
+            // Get current user data
+            const currentUser = JSON.parse(localStorage.getItem('user')) || {};
+            
+            // If username is different from current username, check availability
+            if (username !== currentUser.username) {
+                try {
+                    const checkResponse = await fetch(`${API_URL}/check-url?url=${username}`);
+                    const checkData = await checkResponse.json();
+                    
+                    if (!checkData.available) {
+                        notifications.close(saveId);
+                        notifications.error('Username Taken', 'This username is already taken. Please choose a different one.');
+                        showMessage('Username is already taken. Please choose a different one.', 'error');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error checking username:', error);
                     notifications.close(saveId);
-                    notifications.error('Username Taken', 'This username is already taken. Please choose a different one.');
-                    showMessage('Username is already taken. Please choose a different one.', 'error');
+                    notifications.error('Connection Error', 'Unable to check username availability. Please try again.');
+                    showMessage('Connection error. Please try again.', 'error');
                     return;
                 }
-                
-                // Show loading message
-                showMessage('Setting up your profile...', 'info');
-                
-                // Submit data
-                const response = await fetch(`${API_URL}/update-profile`, {
-                    method: 'POST',
+            }
+            
+            // Show loading message
+            showMessage('Setting up your profile...', 'info');
+            
+            try {
+                // Use the onboarding endpoint instead of update-profile for proper onboarding process
+                const response = await fetch(`${API_URL}/onboarding`, {
+                    method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
@@ -435,6 +458,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || 'Failed to update profile');
                 }
+                
+                const responseData = await response.json();
                 
                 // Update local storage
                 const userData = JSON.parse(localStorage.getItem('user')) || {};
@@ -503,8 +528,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const userData = await response.json();
             
-            // If user already has a username, redirect to dashboard
-            if (userData.username) {
+            // Update the user in localStorage with fresh data
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            // If user already has completed onboarding, redirect to dashboard
+            if (userData.username && userData.onboarding_completed) {
                 notifications.close(loadingId);
                 notifications.info('Profile Complete', 'Your profile is already set up. Redirecting to dashboard...');
                 
@@ -514,9 +542,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Pre-fill email
+            // Pre-fill form fields with existing user data
             if (userData.email) {
-                // If there are any fields that should be pre-filled, do it here
+                // Pre-fill username field - this will now show the username from registration
+                if (userData.username) {
+                    document.getElementById('onboarding-username').value = userData.username;
+                    // Check availability after a short delay
+                    setTimeout(() => {
+                        usernameInput.dispatchEvent(new Event('blur'));
+                    }, 500);
+                }
                 
                 // If user has a name, pre-fill it
                 if (userData.name) {
@@ -570,7 +605,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 notifications.close(loadingId);
-                notifications.success('Welcome', 'Let\'s complete your profile setup!');
+                
+                // If the user has a username from registration, let them know they can change it
+                if (userData.username) {
+                    notifications.info(
+                        'Complete Your Profile', 
+                        `We've pre-filled your username from registration (${userData.username}). You can keep it or change it if you'd like.`
+                    );
+                } else {
+                    notifications.success('Welcome', 'Let\'s complete your profile setup!');
+                }
             } else {
                 notifications.close(loadingId);
             }
