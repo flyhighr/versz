@@ -339,13 +339,27 @@ class DiscordConnection(BaseModel):
 class DiscordConnectionResponse(BaseModel):
     discord_id: str
     username: str
-    discriminator: str
+    discriminator: Optional[str] = "0000"
     avatar: Optional[str] = None
     connected_at: datetime
     in_server: bool = False
     status: Optional[str] = None
     activity: Optional[str] = None
-
+    
+    class Config:
+        orm_mode = True
+        extra = "ignore"  # Ignore extra fields
+        
+    @validator('connected_at', pre=True)
+    def parse_datetime(cls, v):
+        if isinstance(v, datetime):
+            return v
+        try:
+            if isinstance(v, str):
+                return datetime.fromisoformat(v)
+            return datetime.utcnow()
+        except:
+            return datetime.utcnow()
 class UserBase(BaseModel):
     email: EmailStr
 
@@ -405,7 +419,7 @@ class UserResponse(UserBase):
     username: Optional[str] = None
     name: Optional[str] = None
     avatar_url: Optional[str] = None
-    avatar_decoration: Optional[str] = None  # URL to decoration image
+    avatar_decoration: Optional[str] = None
     is_verified: bool
     page_count: int
     joined_at: datetime
@@ -419,6 +433,9 @@ class UserResponse(UserBase):
     pronouns: Optional[str] = None
     bio: Optional[str] = None
     discord: Optional[DiscordConnectionResponse] = None
+    
+    class Config:
+        orm_mode = True
 
 class UserPasswordReset(BaseModel):
     email: EmailStr
@@ -1776,9 +1793,25 @@ async def reset_password(request: Request, reset_data: UserPasswordChange):
 @app.get("/me", response_model=UserResponse, response_class=ORJSONResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def read_users_me(request: Request, current_user: dict = Depends(get_current_user)):
-    page_count = await db.profile_pages.count_documents({"user_id": current_user["id"]})
+    # Always fetch fresh user data directly from the database
+    fresh_user = await db.users.find_one({"id": current_user["id"]})
+    if not fresh_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
     
-    display_prefs = current_user.get("display_preferences", {
+    # Use the fresh user data
+    user_data = fresh_user
+    
+    # Log if Discord data exists
+    logger.info(f"User has Discord data: {'discord' in user_data}")
+    if 'discord' in user_data:
+        logger.info(f"Discord data keys: {user_data['discord'].keys()}")
+    
+    page_count = await db.profile_pages.count_documents({"user_id": user_data["id"]})
+    
+    display_prefs = user_data.get("display_preferences", {
         "show_views": True,
         "show_uuid": True,
         "show_tags": True,
@@ -1788,7 +1821,7 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
         "show_gender": True,
         "show_pronouns": True,
         "show_timezone": True,
-        "show_discord": True,  # Added Discord preference
+        "show_discord": True,
         "default_layout": "standard",
         "default_background": {
             "type": "solid",
@@ -1814,48 +1847,71 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
     
     # Calculate age if date_of_birth is present
     age = None
-    if current_user.get("date_of_birth"):
-        age = calculate_age(current_user["date_of_birth"])
+    if user_data.get("date_of_birth"):
+        age = calculate_age(user_data["date_of_birth"])
     
-    # Prepare Discord data if available
-    discord_data = None
-    if current_user.get("discord"):
-        discord = current_user["discord"]
+    # Build the response manually without relying on Pydantic model validation yet
+    response = {
+        "id": user_data["id"],
+        "user_number": user_data.get("user_number"),
+        "email": user_data["email"],
+        "username": user_data.get("username"),
+        "name": user_data.get("name"),
+        "avatar_url": user_data.get("avatar_url"),
+        "avatar_decoration": user_data.get("avatar_decoration"),
+        "is_verified": user_data.get("is_verified", False),
+        "page_count": page_count,
+        "joined_at": user_data.get("joined_at", datetime.utcnow()),
+        "tags": user_data.get("tags", []),
+        "display_preferences": display_prefs,
+        "location": user_data.get("location"),
+        "date_of_birth": user_data.get("date_of_birth"),
+        "age": age,
+        "timezone": user_data.get("timezone"),
+        "gender": user_data.get("gender"),
+        "pronouns": user_data.get("pronouns"),
+        "bio": user_data.get("bio"),
+        "discord": None  # Default to None
+    }
+    
+    # Add Discord data if it exists
+    if 'discord' in user_data and user_data['discord']:
+        discord = user_data['discord']
+        
+        # Handle connected_at field
+        connected_at = discord.get("connected_at")
+        if connected_at and not isinstance(connected_at, datetime):
+            try:
+                if isinstance(connected_at, str):
+                    connected_at = datetime.fromisoformat(connected_at)
+                else:
+                    connected_at = datetime.utcnow()
+            except:
+                connected_at = datetime.utcnow()
+        
+        # Create Discord response data
         discord_data = {
             "discord_id": discord.get("discord_id"),
             "username": discord.get("username"),
             "discriminator": discord.get("discriminator", "0000"),
             "avatar": discord.get("avatar"),
-            "connected_at": discord.get("connected_at"),
+            "connected_at": connected_at or datetime.utcnow(),
             "in_server": discord.get("in_server", False),
             "status": discord.get("status"),
             "activity": discord.get("activity")
         }
+        
+        response["discord"] = discord_data
+        logger.info(f"Added Discord data to response: {discord_data}")
     
-    response = {
-        "id": current_user["id"],
-        "user_number": current_user.get("user_number"),
-        "email": current_user["email"],
-        "username": current_user.get("username"),
-        "name": current_user.get("name"),
-        "avatar_url": current_user.get("avatar_url"),
-        "avatar_decoration": current_user.get("avatar_decoration"),
-        "is_verified": current_user.get("is_verified", False),
-        "page_count": page_count,
-        "joined_at": current_user.get("joined_at", datetime.utcnow()),
-        "tags": current_user.get("tags", []),
-        "display_preferences": display_prefs,
-        "location": current_user.get("location"),
-        "date_of_birth": current_user.get("date_of_birth"),
-        "age": age,
-        "timezone": current_user.get("timezone"),
-        "gender": current_user.get("gender"),
-        "pronouns": current_user.get("pronouns"),
-        "bio": current_user.get("bio"),
-        "discord": discord_data
-    }
-    
-    return response
+    # Now convert to Pydantic model for validation
+    try:
+        validated_response = UserResponse(**response)
+        return validated_response.dict()
+    except Exception as e:
+        logger.error(f"Error validating response: {str(e)}", exc_info=True)
+        # If validation fails, return the raw response
+        return response
 
 @app.put("/onboarding", response_model=UserResponse, response_class=ORJSONResponse)
 @limiter.limit(RateLimits.MODIFY_LIMIT)
@@ -2354,10 +2410,12 @@ async def connect_discord(
         
         # Exchange code for tokens
         token_data = await get_discord_tokens(code)
+        logger.info(f"Received token data: {token_data.keys()}")
         
         # Get user info from Discord
         access_token = token_data.get("access_token")
         user_data = await get_discord_user(access_token)
+        logger.info(f"Discord user data: {user_data}")
         
         # Calculate token expiration
         expires_in = token_data.get("expires_in", 604800)  # Default to 7 days
@@ -2378,8 +2436,7 @@ async def connect_discord(
             "activity": None
         }
         
-        # Log the Discord connection data for debugging
-        logger.debug(f"Discord connection data: {discord_connection}")
+        logger.info(f"Prepared Discord connection data: {discord_connection}")
         
         # Check if this Discord account is already connected to another user
         existing_connection = await db.users.find_one(
@@ -2394,15 +2451,25 @@ async def connect_discord(
             )
         
         # Update user with Discord connection
-        await db.users.update_one(
+        result = await db.users.update_one(
             {"id": current_user["id"]},
             {"$set": {"discord": discord_connection}}
         )
+        
+        logger.info(f"Database update result: {result.modified_count} documents modified")
+        
+        # Verify the update worked by fetching the user again
+        updated_user = await db.users.find_one({"id": current_user["id"]})
+        logger.info(f"Updated user has discord data: {'discord' in updated_user}")
+        if 'discord' in updated_user:
+            logger.info(f"Discord data in DB: {updated_user['discord']}")
         
         # Clear cache - IMPORTANT: This ensures fresh data is fetched
         await user_cache.delete(f"user:{current_user['email']}")
         if current_user.get("username"):
             await user_cache.delete(f"username:{current_user['username']}")
+        
+        logger.info("User cache cleared")
         
         # Return success with Discord user info
         return {
@@ -2418,7 +2485,7 @@ async def connect_discord(
         }
         
     except Exception as e:
-        logger.error(f"Error connecting Discord account: {str(e)}")
+        logger.error(f"Error connecting Discord account: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to connect Discord account: {str(e)}"
