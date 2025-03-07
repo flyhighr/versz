@@ -2250,19 +2250,28 @@ async def get_discord_tokens(code: str) -> Dict[str, Any]:
         'scope': 'identify'
     }
     
-    async with httpx.AsyncClient() as client:
-        response = await client.post(f"{settings.DISCORD_API_ENDPOINT}/oauth2/token", 
-                                    data=data, 
-                                    headers={'Content-Type': 'application/x-www-form-urlencoded'})
-        
-        if response.status_code != 200:
-            logger.error(f"Discord token exchange failed: {response.text}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to connect Discord account"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{settings.DISCORD_API_ENDPOINT}/oauth2/token", 
+                data=data, 
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
             )
             
-        return response.json()
+            if response.status_code != 200:
+                logger.error(f"Discord token exchange failed: {response.text}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to connect Discord account: {response.text}"
+                )
+                
+            return response.json()
+    except httpx.RequestError as e:
+        logger.error(f"Discord token exchange request error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to connect to Discord servers"
+        )
 
 async def refresh_discord_token(refresh_token: str) -> Dict[str, Any]:
     """Refresh Discord access token"""
