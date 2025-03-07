@@ -361,6 +361,39 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             viewProfileLink.style.display = 'none';
         }
+        
+        // Add Discord data
+        loadDiscordData(userData);
+        
+        // Add show_discord preference to preferences section
+        const preferencesGrid = document.querySelector('.preferences-grid');
+        if (preferencesGrid) {
+            // Check if Discord preference already exists
+            const existingDiscordPref = document.getElementById('pref-show-discord');
+            if (!existingDiscordPref) {
+                // Create new preference item
+                const discordPrefItem = document.createElement('div');
+                discordPrefItem.className = 'preference-item';
+                discordPrefItem.innerHTML = `
+                    <div class="preference-label">Show Discord</div>
+                    <div class="preference-value" id="pref-show-discord">${displayPrefs.show_discord !== false ? 'Yes' : 'No'}</div>
+                    <div class="preference-edit" style="display: none;">
+                        <label class="switch">
+                            <input type="checkbox" id="edit-show-discord-pref" ${displayPrefs.show_discord !== false ? 'checked' : ''}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                `;
+                preferencesGrid.appendChild(discordPrefItem);
+            } else {
+                // Update existing preference
+                existingDiscordPref.textContent = displayPrefs.show_discord !== false ? 'Yes' : 'No';
+                const discordPrefToggle = document.getElementById('edit-show-discord-pref');
+                if (discordPrefToggle) {
+                    discordPrefToggle.checked = displayPrefs.show_discord !== false;
+                }
+            }
+        }
     };
     
     // Edit buttons
@@ -948,6 +981,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const showGender = document.getElementById('edit-show-gender').checked;
                 const showPronouns = document.getElementById('edit-show-pronouns').checked;
                 const showTimezone = document.getElementById('edit-show-timezone').checked;
+                const showDiscord = document.getElementById('edit-show-discord-pref')?.checked !== false;
                 
                 // Submit update
                 const response = await fetch(`${API_URL}/preferences`, {
@@ -965,6 +999,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         show_gender: showGender,
                         show_pronouns: showPronouns,
                         show_timezone: showTimezone,
+                        show_discord: showDiscord,
                         default_layout: "standard",
                         default_background: {
                             type: "solid",
@@ -1267,6 +1302,324 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Discord Integration Functions
+
+    // Load Discord data
+    function loadDiscordData(userData) {
+        if (!userData.discord) {
+            // Not connected
+            document.getElementById('discord-not-connected').style.display = 'flex';
+            document.getElementById('discord-connected').style.display = 'none';
+            document.getElementById('connect-discord-btn').style.display = 'inline-flex';
+            document.getElementById('disconnect-discord-btn').style.display = 'none';
+            return;
+        }
+        
+        // Connected - update UI
+        document.getElementById('discord-not-connected').style.display = 'none';
+        document.getElementById('discord-connected').style.display = 'block';
+        document.getElementById('connect-discord-btn').style.display = 'none';
+        document.getElementById('disconnect-discord-btn').style.display = 'inline-flex';
+        
+        const discord = userData.discord;
+        
+        // Check if token is expired
+        const now = new Date();
+        const expiresAt = new Date(discord.expires_at);
+        
+        if (expiresAt < now) {
+            document.getElementById('discord-token-expired').style.display = 'block';
+            return;
+        } else {
+            document.getElementById('discord-token-expired').style.display = 'none';
+        }
+        
+        // Set avatar
+        const discordAvatar = document.getElementById('discord-avatar');
+        if (discord.avatar) {
+            discordAvatar.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
+        } else {
+            // Default avatar based on discriminator
+            const discriminator = parseInt(discord.discriminator) % 5;
+            discordAvatar.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
+        }
+        
+        // Set username and tag
+        document.getElementById('discord-username').textContent = discord.username;
+        document.getElementById('discord-tag').textContent = `#${discord.discriminator}`;
+        
+        // Set status
+        const statusIndicator = document.getElementById('discord-status');
+        const statusText = document.getElementById('discord-status-text');
+        
+        if (discord.status) {
+            statusIndicator.className = `discord-status-indicator ${discord.status}`;
+            
+            // Format status text
+            let formattedStatus = 'Offline';
+            if (discord.status === 'online') formattedStatus = 'Online';
+            else if (discord.status === 'idle') formattedStatus = 'Idle';
+            else if (discord.status === 'dnd') formattedStatus = 'Do Not Disturb';
+            
+            statusText.textContent = formattedStatus;
+        } else {
+            statusIndicator.className = 'discord-status-indicator';
+            statusText.textContent = 'Offline';
+        }
+        
+        // Set activity
+        document.getElementById('discord-activity').textContent = discord.activity || 'None';
+        
+        // Set connected date
+        const connectedDate = new Date(discord.connected_at);
+        document.getElementById('discord-connected-at').textContent = connectedDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        // Set show on profile preference
+        const showDiscord = userData.display_preferences?.show_discord !== false;
+        document.getElementById('discord-show-on-profile').textContent = showDiscord ? 'Yes' : 'No';
+        document.getElementById('edit-show-discord').checked = showDiscord;
+    }
+
+    // Initialize Discord integration
+    function initDiscordIntegration() {
+        // Check if we're returning from Discord OAuth
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('discord') === 'connected') {
+            showNotification('Discord account connected successfully!', 'success');
+            // Remove the query parameter
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
+        // Connect Discord button
+        const connectDiscordBtn = document.getElementById('connect-discord-btn');
+        if (connectDiscordBtn) {
+            connectDiscordBtn.addEventListener('click', async () => {
+                try {
+                    // Show loading state
+                    connectDiscordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+                    connectDiscordBtn.disabled = true;
+                    
+                    // Get Discord auth URL
+                    const response = await fetch(`${API_URL}/discord/auth-url`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to get Discord authorization URL');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Redirect to Discord OAuth
+                    window.location.href = data.auth_url;
+                    
+                } catch (error) {
+                    console.error('Error connecting Discord:', error);
+                    showNotification(error.message || 'Failed to connect Discord account', 'error');
+                    
+                    // Reset button
+                    connectDiscordBtn.innerHTML = '<i class="fab fa-discord"></i> Connect Discord';
+                    connectDiscordBtn.disabled = false;
+                }
+            });
+        }
+        
+        // Disconnect Discord button
+        const disconnectDiscordBtn = document.getElementById('disconnect-discord-btn');
+        if (disconnectDiscordBtn) {
+            disconnectDiscordBtn.addEventListener('click', async () => {
+                if (!confirm('Are you sure you want to disconnect your Discord account?')) {
+                    return;
+                }
+                
+                try {
+                    // Show loading state
+                    disconnectDiscordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Disconnecting...';
+                    disconnectDiscordBtn.disabled = true;
+                    
+                    // Disconnect Discord
+                    const response = await fetch(`${API_URL}/discord/disconnect`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to disconnect Discord account');
+                    }
+                    
+                    // Show success message
+                    showNotification('Discord account disconnected successfully', 'success');
+                    
+                    // Reload user data
+                    await loadUserData();
+                    
+                } catch (error) {
+                    console.error('Error disconnecting Discord:', error);
+                    showNotification(error.message || 'Failed to disconnect Discord account', 'error');
+                    
+                    // Reset button
+                    disconnectDiscordBtn.innerHTML = '<i class="fas fa-unlink"></i> Disconnect';
+                    disconnectDiscordBtn.disabled = false;
+                }
+            });
+        }
+        
+        // Reconnect Discord button
+        const reconnectDiscordBtn = document.getElementById('reconnect-discord-btn');
+        if (reconnectDiscordBtn) {
+            reconnectDiscordBtn.addEventListener('click', async () => {
+                try {
+                    // Show loading state
+                    reconnectDiscordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reconnecting...';
+                    reconnectDiscordBtn.disabled = true;
+                    
+                    // Get Discord auth URL
+                    const response = await fetch(`${API_URL}/discord/auth-url`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to get Discord authorization URL');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Redirect to Discord OAuth
+                    window.location.href = data.auth_url;
+                    
+                } catch (error) {
+                    console.error('Error reconnecting Discord:', error);
+                    showNotification(error.message || 'Failed to reconnect Discord account', 'error');
+                    
+                    // Reset button
+                    reconnectDiscordBtn.innerHTML = '<i class="fab fa-discord"></i> Reconnect Discord';
+                    reconnectDiscordBtn.disabled = false;
+                }
+            });
+        }
+        
+        // Edit Discord preferences
+        const editDiscordBtn = document.getElementById('edit-discord-btn');
+        if (editDiscordBtn) {
+            editDiscordBtn.addEventListener('click', () => {
+                // Show edit fields, hide display values
+                const discordSection = editDiscordBtn.closest('.profile-section');
+                const fieldValues = discordSection.querySelectorAll('.field-value');
+                const fieldEdits = discordSection.querySelectorAll('.field-edit');
+                
+                fieldValues.forEach(field => field.style.display = 'none');
+                fieldEdits.forEach(field => {
+                    field.style.display = 'block';
+                    field.classList.add('fadeIn');
+                });
+                
+                document.getElementById('discord-edit-actions').style.display = 'flex';
+                
+                // Hide edit button
+                editDiscordBtn.style.display = 'none';
+            });
+        }
+        
+        // Cancel Discord edit
+        const cancelDiscordBtn = document.getElementById('cancel-discord-btn');
+        if (cancelDiscordBtn) {
+            cancelDiscordBtn.addEventListener('click', () => {
+                // Hide edit fields, show display values
+                const discordSection = cancelDiscordBtn.closest('.profile-section');
+                const fieldValues = discordSection.querySelectorAll('.field-value');
+                const fieldEdits = discordSection.querySelectorAll('.field-edit');
+                
+                fieldValues.forEach(field => field.style.display = 'block');
+                fieldEdits.forEach(field => field.style.display = 'none');
+                
+                document.getElementById('discord-edit-actions').style.display = 'none';
+                
+                // Show edit button
+                if (editDiscordBtn) {
+                    editDiscordBtn.style.display = 'inline-flex';
+                }
+                
+                // Reset form values
+                const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                const displayPrefs = userData.display_preferences || {};
+                
+                document.getElementById('edit-show-discord').checked = displayPrefs.show_discord !== false;
+            });
+        }
+        
+        // Save Discord preferences
+        const saveDiscordBtn = document.getElementById('save-discord-btn');
+        if (saveDiscordBtn) {
+            saveDiscordBtn.addEventListener('click', async () => {
+                try {
+                    // Show loading state
+                    saveDiscordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                    saveDiscordBtn.disabled = true;
+                    
+                    // Get current preferences
+                    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                    const displayPrefs = userData.display_preferences || {};
+                    
+                    // Update with new value
+                    displayPrefs.show_discord = document.getElementById('edit-show-discord').checked;
+                    
+                    // Submit update
+                    const response = await fetch(`${API_URL}/preferences`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(displayPrefs)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Failed to update preferences');
+                    }
+                    
+                    // Show success message
+                    showNotification('Discord preferences updated successfully', 'success');
+                    
+                    // Reload user data
+                    await loadUserData();
+                    
+                    // Hide edit fields, show display values
+                    const discordSection = saveDiscordBtn.closest('.profile-section');
+                    const fieldValues = discordSection.querySelectorAll('.field-value');
+                    const fieldEdits = discordSection.querySelectorAll('.field-edit');
+                    
+                    fieldValues.forEach(field => field.style.display = 'block');
+                    fieldEdits.forEach(field => field.style.display = 'none');
+                    
+                    document.getElementById('discord-edit-actions').style.display = 'none';
+                    
+                    // Show edit button
+                    if (editDiscordBtn) {
+                        editDiscordBtn.style.display = 'inline-flex';
+                    }
+                    
+                } catch (error) {
+                    console.error('Error updating Discord preferences:', error);
+                    showNotification(error.message || 'Failed to update Discord preferences', 'error');
+                } finally {
+                    saveDiscordBtn.innerHTML = 'Save Changes';
+                    saveDiscordBtn.disabled = false;
+                }
+            });
+        }
+    }
     
     // Improved notification system
     const showNotification = (message, type = 'info') => {
@@ -1334,6 +1687,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const initProfilePage = async () => {
         try {
             await loadUserData();
+            initDiscordIntegration();
         } catch (error) {
             console.error('Error initializing profile page:', error);
             showNotification('Failed to load profile data. Please refresh the page.', 'error');
