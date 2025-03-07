@@ -2498,8 +2498,16 @@ async def disconnect_discord(
     current_user: dict = Depends(get_current_verified_user)
 ):
     """Disconnect Discord account"""
+    # Fetch fresh user data directly from the database
+    fresh_user = await db.users.find_one({"id": current_user["id"]})
+    if not fresh_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
     # Check if user has a connected Discord account
-    if "discord" not in current_user:
+    if "discord" not in fresh_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No Discord account connected"
@@ -2507,14 +2515,14 @@ async def disconnect_discord(
     
     # Remove Discord connection
     await db.users.update_one(
-        {"id": current_user["id"]},
+        {"id": fresh_user["id"]},
         {"$unset": {"discord": ""}}
     )
     
     # Clear cache
-    await user_cache.delete(f"user:{current_user['email']}")
-    if current_user.get("username"):
-        await user_cache.delete(f"username:{current_user['username']}")
+    await user_cache.delete(f"user:{fresh_user['email']}")
+    if fresh_user.get("username"):
+        await user_cache.delete(f"username:{fresh_user['username']}")
     
     return {"message": "Discord account disconnected successfully"}
 
