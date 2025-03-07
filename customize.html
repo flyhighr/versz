@@ -190,6 +190,10 @@
                                         <div class="bg-icon"><i class="fas fa-image"></i></div>
                                         <span>Image</span>
                                     </div>
+                                    <div class="background-option" data-type="video">
+                                        <div class="bg-icon"><i class="fas fa-video"></i></div>
+                                        <span>Video</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="background-settings" id="edit-solid-settings">
@@ -215,6 +219,12 @@
                                 <div class="background-settings" id="edit-image-settings" style="display: none;">
                                     <label for="edit-bg-image-url">Background Image URL</label>
                                     <input type="url" id="edit-bg-image-url" name="bg_image_url" placeholder="https://example.com/image.jpg">
+                                </div>
+                                
+                                <div class="background-settings" id="edit-video-settings" style="display: none;">
+                                    <label for="edit-bg-video-url">Background Video URL</label>
+                                    <input type="url" id="edit-bg-video-url" name="bg_video_url" placeholder="https://example.com/video.mp4">
+                                    <p class="input-help">Use MP4 format for best compatibility. Videos may affect page load time.</p>
                                 </div>
                             </div>
                             
@@ -412,6 +422,7 @@
                                 <ul>
                                     <li>Upload your avatar decoration as a transparent PNG or GIF</li>
                                     <li>Make sure your background images are high quality</li>
+                                    <li>For video backgrounds, use MP4 format and keep file size small</li>
                                     <li>Test your page on both desktop and mobile devices</li>
                                 </ul>
                             </div>
