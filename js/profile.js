@@ -1313,6 +1313,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('discord-connected').style.display = 'none';
             document.getElementById('connect-discord-btn').style.display = 'inline-flex';
             document.getElementById('disconnect-discord-btn').style.display = 'none';
+            document.getElementById('edit-discord-btn').style.display = 'none';
             return;
         }
         
@@ -1321,6 +1322,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('discord-connected').style.display = 'block';
         document.getElementById('connect-discord-btn').style.display = 'none';
         document.getElementById('disconnect-discord-btn').style.display = 'inline-flex';
+        document.getElementById('edit-discord-btn').style.display = 'inline-flex';
         
         const discord = userData.discord;
         
