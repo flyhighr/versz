@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Redirect based on verification status
                     if (data.is_verified) {
                         // Check if onboarding is completed directly from API response
-                        if (!data.onboarding_completed) {
+                        if (data.onboarding_completed === false) {
                             // User needs to complete onboarding
                             window.location.href = 'onboarding.html';
                         } else {
