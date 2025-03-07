@@ -2970,13 +2970,13 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
                 detail="Page not found"
             )
     
-    # Get the user who owns this page
+    # Get the user who owns this page - fetch directly from DB to avoid cache issues
     user = await db.users.find_one(
         {"id": page["user_id"]},
         projection={
             "username": 1, "name": 1, "joined_at": 1, "tags": 1, 
             "display_preferences": 1, "location": 1, "date_of_birth": 1, 
-            "timezone": 1, "gender": 1, "pronouns": 1, "id": 1
+            "timezone": 1, "gender": 1, "pronouns": 1, "id": 1, "discord": 1
         }
     )
     if not user:
@@ -3059,21 +3059,38 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
     if display_prefs.get("show_timezone", True) and "timezone" in user:
         response_data["user"]["timezone"] = user["timezone"]
 
-    if display_prefs.get("show_discord", True) and "discord" in user:
+    # Add Discord data if available and the preference allows
+    if display_prefs.get("show_discord", True) and "discord" in user and user["discord"]:
         discord = user.get("discord", {})
+        
+        # Handle connected_at field
+        connected_at = discord.get("connected_at")
+        if connected_at and not isinstance(connected_at, datetime):
+            try:
+                if isinstance(connected_at, str):
+                    connected_at = datetime.fromisoformat(connected_at)
+                else:
+                    connected_at = datetime.utcnow()
+            except:
+                connected_at = datetime.utcnow()
+        
         # Only include non-sensitive Discord data
         response_data["user"]["discord"] = {
             "discord_id": discord.get("discord_id"),
             "username": discord.get("username"),
             "discriminator": discord.get("discriminator", "0000"),
             "avatar": discord.get("avatar"),
+            "connected_at": connected_at,
             "in_server": discord.get("in_server", False),
             "status": discord.get("status"),
             "activity": discord.get("activity")
         }
+        
+        logger.info(f"Added Discord data to public page response for user {user['id']}")
     
     return response_data
 
+    
 @app.get("/views/{url}")
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_views(request: Request, url: str):
