@@ -957,6 +957,111 @@
                 left: -15px;
             }
         }
+        /* Discord container styles */
+        .discord-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .discord-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .discord-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .discord-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .discord-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .discord-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .discord-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .discord-info {
+            flex: 1;
+        }
+
+        .discord-username {
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .discord-tag {
+            color: #666;
+            font-weight: normal;
+        }
+
+        .discord-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .discord-status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #747f8d; /* Default offline color */
+            flex-shrink: 0;
+        }
+
+        .discord-status-indicator.online {
+            background-color: #43b581;
+        }
+
+        .discord-status-indicator.idle {
+            background-color: #faa61a;
+        }
+
+        .discord-status-indicator.dnd {
+            background-color: #f04747;
+        }
+
+        .discord-activity {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .discord-connected {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #999;
+        }
     </style>
 </head>
 <body>
@@ -1040,6 +1145,30 @@
 
         <div class="social-links" id="socialLinks">
             <!-- Social links will be inserted here -->
+        </div>
+    </div>
+
+    <div id="discordContainer" class="discord-container profile-container" style="display: none;">
+        <div class="discord-header">
+            <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Discord" class="discord-icon">
+            <div class="discord-title">Discord</div>
+        </div>
+        <div class="discord-content">
+            <div class="discord-avatar">
+                <img id="discordAvatarImg" src="" alt="Discord Avatar">
+            </div>
+            <div class="discord-info">
+                <div class="discord-username">
+                    <span id="discordUsername">Username</span>
+                    <span id="discordTag" class="discord-tag">#0000</span>
+                </div>
+                <div class="discord-status">
+                    <div id="discordStatusIndicator" class="discord-status-indicator"></div>
+                    <span id="discordStatusText">Offline</span>
+                </div>
+                <div class="discord-activity" id="discordActivity">No activity</div>
+                <div class="discord-connected" id="discordConnected">Connected since Jan 1, 2023</div>
+            </div>
         </div>
     </div>
 
@@ -1954,6 +2083,14 @@
             document.getElementById('bio').style.display = 'none';
         }
         
+        // Render Discord data if available and display preference allows
+        const displayPrefs = user.display_preferences || {};
+        if (user.discord && displayPrefs.show_discord !== false) {
+            renderDiscordData(user.discord, page.layout);
+        } else {
+            document.getElementById('discordContainer').style.display = 'none';
+        }
+        
         // Set background
         setBackground(page.background);
         
@@ -2010,6 +2147,134 @@
             }, 300);
         }
     }
+
+    function renderDiscordData(discord, layout) {
+            const discordContainer = document.getElementById('discordContainer');
+            
+            if (!discord) {
+                discordContainer.style.display = 'none';
+                return;
+            }
+            
+            // Show the container
+            discordContainer.style.display = 'block';
+            
+            // Apply container style if layout is provided
+            if (layout && layout.container_style) {
+                // Apply the same container style as the profile container
+                if (layout.container_style.enabled) {
+                    // Apply container background color or gradient
+                    if (layout.container_style.background_color) {
+                        discordContainer.style.backgroundColor = layout.container_style.background_color;
+                    }
+                    
+                    if (layout.container_style.gradient) {
+                        discordContainer.style.background = layout.container_style.gradient;
+                    }
+                    
+                    // Apply opacity
+                    if (layout.container_style.opacity !== undefined) {
+                        discordContainer.style.opacity = layout.container_style.opacity;
+                    }
+                    
+                    // Apply border radius
+                    if (layout.container_style.border_radius !== undefined) {
+                        discordContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
+                    }
+                    
+                    // Apply border color
+                    if (layout.container_style.border_color) {
+                        discordContainer.style.borderColor = layout.container_style.border_color;
+                    }
+                    
+                    // Apply shadow
+                    if (layout.container_style.shadow) {
+                        discordContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+                    } else {
+                        discordContainer.style.boxShadow = 'none';
+                    }
+                    
+                    // Apply the same style to the discord-content
+                    const discordContent = discordContainer.querySelector('.discord-content');
+                    if (discordContent) {
+                        if (layout.container_style.background_color) {
+                            discordContent.style.backgroundColor = layout.container_style.background_color;
+                        }
+                        
+                        if (layout.container_style.border_radius !== undefined) {
+                            discordContent.style.borderRadius = `${layout.container_style.border_radius}px`;
+                        }
+                    }
+                } else {
+                    // If container is disabled, remove borders and background
+                    discordContainer.style.border = 'none';
+                    discordContainer.style.backgroundColor = 'transparent';
+                    discordContainer.style.boxShadow = 'none';
+                    
+                    // Also make the discord-content transparent
+                    const discordContent = discordContainer.querySelector('.discord-content');
+                    if (discordContent) {
+                        discordContent.style.backgroundColor = 'transparent';
+                        discordContent.style.boxShadow = 'none';
+                    }
+                }
+            }
+            
+            // Set Discord avatar
+            const discordAvatar = document.getElementById('discordAvatarImg');
+            if (discord.avatar) {
+                discordAvatar.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
+            } else {
+                // Default avatar based on discriminator
+                const discriminator = parseInt(discord.discriminator || '0') % 5;
+                discordAvatar.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
+            }
+            
+            // Set username and tag
+            document.getElementById('discordUsername').textContent = discord.username || 'Unknown';
+            document.getElementById('discordTag').textContent = discord.discriminator ? `#${discord.discriminator}` : '';
+            
+            // Set status
+            const statusIndicator = document.getElementById('discordStatusIndicator');
+            const statusText = document.getElementById('discordStatusText');
+            
+            if (discord.status) {
+                statusIndicator.className = `discord-status-indicator ${discord.status}`;
+                
+                // Format status text
+                let formattedStatus = 'Offline';
+                if (discord.status === 'online') formattedStatus = 'Online';
+                else if (discord.status === 'idle') formattedStatus = 'Idle';
+                else if (discord.status === 'dnd') formattedStatus = 'Do Not Disturb';
+                
+                statusText.textContent = formattedStatus;
+            } else {
+                statusIndicator.className = 'discord-status-indicator';
+                statusText.textContent = 'Offline';
+            }
+            
+            // Set activity
+            const activityElement = document.getElementById('discordActivity');
+            if (discord.activity) {
+                activityElement.textContent = discord.activity;
+                activityElement.style.display = 'block';
+            } else {
+                activityElement.textContent = 'No activity';
+                activityElement.style.display = 'block';
+            }
+            
+            // Set connected date
+            if (discord.connected_at) {
+                const connectedDate = new Date(discord.connected_at);
+                document.getElementById('discordConnected').textContent = `Connected since ${connectedDate.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                })}`;
+            } else {
+                document.getElementById('discordConnected').textContent = 'Connected';
+            }
+        }
 
     // Function to set background
     function setBackground(background) {
