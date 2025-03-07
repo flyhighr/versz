@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connecting Discord - Versz</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: var(--darker-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .callback-container {
+            max-width: 500px;
+            width: 100%;
+            background-color: var(--light-bg);
+            border-radius: var(--card-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+            text-align: center;
+        }
+        
+        .callback-header {
+            padding: 25px 20px;
+            background-color: #5865F2;
+            color: white;
+        }
+        
+        .callback-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .callback-body {
+            padding: 30px 20px;
+        }
+        
+        .discord-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: #5865F2;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px 0;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .status-message {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            display: none;
+        }
+        
+        .status-message.error {
+            background-color: rgba(239, 71, 111, 0.1);
+            color: var(--error-color);
+            border: 1px solid rgba(239, 71, 111, 0.3);
+            display: block;
+        }
+        
+        .status-message.success {
+            background-color: rgba(44, 182, 125, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(44, 182, 125, 0.3);
+            display: block;
+        }
+        
+        .callback-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--button-radius);
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        
+        .btn-discord {
+            background-color: #5865F2;
+            color: white;
+            border: none;
+        }
+        
+        .btn-discord:hover {
+            background-color: #4752c4;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="callback-container">
+        <div class="callback-header">
+            <h1>Connecting Discord Account</h1>
+        </div>
+        <div class="callback-body">
+            <img src="/img/discord-logo.svg" alt="Discord Logo" class="discord-logo" onerror="this.src='/img/discord-icon.png'">
+            
+            <p id="connecting-text">Connecting your Discord account to Versz...</p>
+            
+            <div id="loading-spinner" class="loading-spinner"></div>
+            
+            <div id="status-message" class="status-message"></div>
+        </div>
+        <div class="callback-footer">
+            <a href="/profile.html" class="btn btn-primary">
+                <i class="fas fa-user"></i> Back to Profile
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const API_URL = 'https://api.versz.fun';
+            const statusMessage = document.getElementById('status-message');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const connectingText = document.getElementById('connecting-text');
+            
+            // Get the authorization code from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            
+            // Check if there was an error
+            if (error) {
+                statusMessage.textContent = errorDescription || 'Discord authorization failed: ' + error;
+                statusMessage.className = 'status-message error';
+                loadingSpinner.style.display = 'none';
+                connectingText.textContent = 'There was a problem connecting your Discord account.';
+                return;
+            }
+            
+            // Check if code is present
+            if (!code) {
+                statusMessage.textContent = 'No authorization code received from Discord.';
+                statusMessage.className = 'status-message error';
+                loadingSpinner.style.display = 'none';
+                connectingText.textContent = 'There was a problem connecting your Discord account.';
+                return;
+            }
+            
+            // Get token from localStorage
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login.html?redirect=/profile.html';
+                return;
+            }
+            
+            // Connect Discord account
+            async function connectDiscord() {
+                try {
+                    const response = await fetch(`${API_URL}/discord/connect`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ code })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.detail || 'Failed to connect Discord account');
+                    }
+                    
+                    // Success
+                    statusMessage.textContent = 'Discord account successfully connected!';
+                    statusMessage.className = 'status-message success';
+                    loadingSpinner.style.display = 'none';
+                    connectingText.textContent = 'Your Discord account has been connected to Versz.';
+                    
+                    // Store success flag
+                    localStorage.setItem('discord_connected', 'true');
+                    
+                    // Redirect after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/profile.html?discord=connected';
+                    }, 3000);
+                    
+                } catch (error) {
+                    console.error('Error connecting Discord:', error);
+                    statusMessage.textContent = error.message || 'An error occurred while connecting your Discord account.';
+                    statusMessage.className = 'status-message error';
+                    loadingSpinner.style.display = 'none';
+                    connectingText.textContent = 'There was a problem connecting your Discord account.';
+                }
+            }
+            
+            // Start the connection process
+            connectDiscord();
+        });
+    </script>
+</body>
+</html>
