@@ -3360,8 +3360,11 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
     # Check if user exists and has a Discord connection
     if user and "id" in user:
         discord_connection = await db.discord_connections.find_one({"user_id": user["id"]})
+        logger.debug(f"Found Discord connection: {discord_connection is not None}")
         
         if discord_connection and display_prefs.get("show_discord", True) and discord_connection.get("show_discord", True):
+            logger.debug(f"Discord connection details: {json.dumps(json_serialize(discord_connection))}")
+            
             response_data["user"]["discord"] = {
                 "username": discord_connection["username"],
                 "discriminator": discord_connection.get("discriminator", "0")
@@ -3373,10 +3376,15 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
             
             # Add status and activity if user has chosen to display it
             if display_prefs.get("show_discord_activity", True) and discord_connection.get("show_activity", True):
+                # Log the actual status and activity values
+                logger.debug(f"Discord status: {discord_connection.get('current_status')}")
+                logger.debug(f"Discord activity: {discord_connection.get('current_activity')}")
+                
                 response_data["user"]["discord"]["status"] = discord_connection.get("current_status", "offline")
                 
                 if discord_connection.get("current_activity"):
                     response_data["user"]["discord"]["activity"] = discord_connection.get("current_activity")
+    
     
     return response_data
 
