@@ -377,7 +377,6 @@ class UserResponse(UserBase):
     avatar_url: Optional[str] = None
     avatar_decoration: Optional[str] = None  # URL to decoration image
     is_verified: bool
-    onboarding_completed: bool = False
     page_count: int
     joined_at: datetime
     tags: List[Tag] = []
@@ -836,17 +835,12 @@ async def register_user(
     background_tasks: BackgroundTasks,
     email: str = Body(...),
     password: str = Body(...),
-    username: str = Body(...),  
+    username: Optional[str] = Body(None),
     name: Optional[str] = Body(None)
 ) -> Dict[str, Any]:
     try:
-        # Validate username
-        if not username.isalnum() and not all(c.isalnum() or c == '_' for c in username):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username can only contain alphanumeric characters and underscores"
-            )
-            
+        # Don't automatically generate a username here
+        # Let the user provide it during onboarding
         user = UserCreate(email=email, password=password, username=username, name=name)
     except ValidationError as ve:
         raise HTTPException(
@@ -864,13 +858,14 @@ async def register_user(
             detail="Email already registered"
         )
     
-    # Check if username is already taken
-    existing_username = await db.users.find_one({"username": user.username}, projection={"_id": 1})
-    if existing_username:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
-        )
+    # Check if username is already taken (only if provided)
+    if user.username:
+        existing_username = await db.users.find_one({"username": user.username}, projection={"_id": 1})
+        if existing_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken"
+            )
     
     # Check pending registrations
     existing_pending = await db.pending_users.find_one({"email": user.email})
@@ -896,7 +891,7 @@ async def register_user(
         "id": user_id,
         "user_number": user_number,
         "email": user.email,
-        "username": user.username,
+        "username": user.username,  # This will be null if not provided
         "name": user.name,
         "hashed_password": get_password_hash(user.password),
         "created_at": datetime.utcnow(),
@@ -1523,7 +1518,6 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
             "access_token": access_token,
             "token_type": "bearer",
             "is_verified": user.get("is_verified", False),
-            "onboarding_completed": user.get("onboarding_completed", False),
             "id": user["id"],
             "user_number": user.get("user_number"),
             "email": user["email"],
@@ -1800,7 +1794,6 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
         "avatar_url": current_user.get("avatar_url"),
         "avatar_decoration": current_user.get("avatar_decoration"),
         "is_verified": current_user.get("is_verified", False),
-        "onboarding_completed": current_user.get("onboarding_completed", False),
         "page_count": page_count,
         "joined_at": current_user.get("joined_at", datetime.utcnow()),
         "tags": current_user.get("tags", []),
@@ -1863,14 +1856,12 @@ async def complete_onboarding(
         "date_of_birth": onboarding_data.date_of_birth,
         "timezone": onboarding_data.timezone,
         "gender": onboarding_data.gender,
-        "pronouns": onboarding_data.pronouns
+        "pronouns": onboarding_data.pronouns,
+        "onboarding_completed": True
     }
     
     # Remove None values
     update_data = {k: v for k, v in update_data.items() if v is not None}
-    
-    # Always set onboarding_completed to True, separate from the None filtering
-    update_data["onboarding_completed"] = True
     
     await db.users.update_one(
         {"id": current_user["id"]},
@@ -1960,7 +1951,6 @@ async def complete_onboarding(
         "avatar_url": updated_user.get("avatar_url"),
         "avatar_decoration": updated_user.get("avatar_decoration"),
         "is_verified": updated_user.get("is_verified", False),
-        "onboarding_completed": True,  # Explicitly set in the response
         "page_count": page_count,
         "joined_at": updated_user.get("joined_at", datetime.utcnow()),
         "tags": updated_user.get("tags", []),
