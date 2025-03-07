@@ -1305,8 +1305,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Discord Integration Functions
 
-    // Load Discord data
     function loadDiscordData(userData) {
+        console.log('Loading Discord data:', userData.discord);
+        
         if (!userData.discord) {
             // Not connected
             document.getElementById('discord-not-connected').style.display = 'flex';
@@ -1326,30 +1327,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const discord = userData.discord;
         
-        // Check if token is expired
-        const now = new Date();
-        const expiresAt = new Date(discord.expires_at);
-        
-        if (expiresAt < now) {
-            document.getElementById('discord-token-expired').style.display = 'block';
-            return;
-        } else {
-            document.getElementById('discord-token-expired').style.display = 'none';
-        }
-        
         // Set avatar
         const discordAvatar = document.getElementById('discord-avatar');
         if (discord.avatar) {
             discordAvatar.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
         } else {
             // Default avatar based on discriminator
-            const discriminator = parseInt(discord.discriminator) % 5;
+            const discriminator = parseInt(discord.discriminator || '0') % 5;
             discordAvatar.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
         }
         
         // Set username and tag
-        document.getElementById('discord-username').textContent = discord.username;
-        document.getElementById('discord-tag').textContent = `#${discord.discriminator}`;
+        document.getElementById('discord-username').textContent = discord.username || 'Unknown';
+        document.getElementById('discord-tag').textContent = discord.discriminator ? `#${discord.discriminator}` : '';
         
         // Set status
         const statusIndicator = document.getElementById('discord-status');
@@ -1374,12 +1364,16 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('discord-activity').textContent = discord.activity || 'None';
         
         // Set connected date
-        const connectedDate = new Date(discord.connected_at);
-        document.getElementById('discord-connected-at').textContent = connectedDate.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
+        if (discord.connected_at) {
+            const connectedDate = new Date(discord.connected_at);
+            document.getElementById('discord-connected-at').textContent = connectedDate.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        } else {
+            document.getElementById('discord-connected-at').textContent = 'Unknown';
+        }
         
         // Set show on profile preference
         const showDiscord = userData.display_preferences?.show_discord !== false;
@@ -1414,10 +1408,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     if (!response.ok) {
-                        throw new Error('Failed to get Discord authorization URL');
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Failed to get Discord authorization URL');
                     }
                     
                     const data = await response.json();
+                    console.log('Discord auth URL:', data);
+                    
+                    if (!data.auth_url) {
+                        throw new Error('Invalid authorization URL received');
+                    }
                     
                     // Redirect to Discord OAuth
                     window.location.href = data.auth_url;
