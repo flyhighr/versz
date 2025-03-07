@@ -333,6 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('solid-settings').style.display = bgType === 'solid' ? 'block' : 'none';
                 document.getElementById('gradient-settings').style.display = bgType === 'gradient' ? 'block' : 'none';
                 document.getElementById('image-settings').style.display = bgType === 'image' ? 'block' : 'none';
+                document.getElementById('video-settings').style.display = bgType === 'video' ? 'block' : 'none';
             });
         });
         
@@ -676,8 +677,10 @@ document.addEventListener('DOMContentLoaded', function() {
             backgroundValue = `linear-gradient(${direction}, ${startColor}, ${endColor})`;
         } else if (backgroundType === 'image') {
             backgroundValue = document.getElementById('bg-image-url').value || 'https://source.unsplash.com/random';
+        } else if (backgroundType === 'video') {
+            backgroundValue = document.getElementById('bg-video-url').value || '';
         }
-        
+                
         // Get container settings
         const containerEnabled = document.getElementById('container-enabled').checked;
         const containerBg = document.getElementById('container-bg').value;
