@@ -1,15 +1,42 @@
 /* Auth Pages Styling */
+:root {
+  --dark-bg: #121212;
+  --card-bg: #1e1e1e;
+  --input-bg: #262626;
+  --text-color: #ffffff;
+  --text-muted: #a0a0a0;
+  --border-color: #333333;
+  --primary-color: #4ecdc4;
+  --discord-color: #5865F2;
+  --success-color: #2cb67d;
+  --error-color: #ef476f;
+  --info-color: #3498db;
+  --card-radius: 20px;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --transition: all 0.2s ease;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body {
+  background-color: var(--dark-bg);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+}
+
 .auth-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(135deg, var(--darker-bg), var(--dark-bg));
+  background-color: var(--dark-bg);
 }
 
 .auth-card {
-  background-color: var(--light-bg);
+  background-color: var(--card-bg);
   border-radius: var(--card-radius);
   width: 100%;
   max-width: 450px;
@@ -17,6 +44,7 @@
   overflow: hidden;
   transition: var(--transition);
   animation: fadeIn 0.5s ease;
+  padding: 2rem;
 }
 
 @keyframes fadeIn {
@@ -25,46 +53,45 @@
 }
 
 .auth-header {
-  padding: 2rem 2rem 1rem;
   text-align: center;
+  margin-bottom: 2rem;
 }
 
 .auth-logo {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-color);
-  display: inline-block;
-  margin-bottom: 1.5rem;
-  text-decoration: none;
+  display: block;
+  margin: 0 auto 1.5rem;
+  width: 60px;
+  height: 60px;
+}
+
+.auth-logo img {
+  width: 100%;
+  height: auto;
 }
 
 .auth-header h1 {
-  margin-bottom: 0.5rem;
-}
-
-.auth-header p {
-  color: var(--text-muted);
-  margin-bottom: 0;
+  margin: 0 0 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-color);
 }
 
 .auth-form {
-  padding: 1rem 2rem 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .auth-footer {
-  padding: 1.5rem 2rem;
   text-align: center;
-  border-top: 1px solid var(--border-color);
-  background-color: rgba(0, 0, 0, 0.03);
+  margin-top: 1.5rem;
 }
 
 .auth-footer p {
-  margin-bottom: 0;
+  margin: 0;
   color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .auth-footer a {
-  font-weight: 600;
   color: var(--primary-color);
   text-decoration: none;
 }
@@ -154,7 +181,8 @@
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  font-weight: 500;
+  font-weight: 400;
+  color: var(--text-color);
 }
 
 .input-icon-wrapper {
@@ -172,11 +200,16 @@
 .input-icon-wrapper input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border: 2px solid var(--border-color);
+  border: none;
   border-radius: var(--border-radius);
-  background-color: var(--lighter-bg);
+  background-color: var(--input-bg);
   color: var(--text-color);
   font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.input-icon-wrapper input::placeholder {
+  color: var(--text-muted);
 }
 
 .password-toggle {
@@ -203,9 +236,19 @@
   gap: 0.5rem;
 }
 
+.remember-me input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+}
+
 .forgot-password {
   font-size: 0.875rem;
-  color: var(--primary-color);
+  color: var(--text-muted);
+  text-align: right;
+  display: block;
+  margin-top: 0.5rem;
 }
 
 .auth-message {
@@ -250,12 +293,21 @@
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
+  background-color: var(--input-bg);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #3db8af;
+  background-color: #333333;
+}
+
+.btn-discord {
+  background-color: var(--discord-color);
+  color: white;
+}
+
+.btn-discord:hover {
+  background-color: #4752c4;
 }
 
 .btn-outline {
@@ -274,11 +326,37 @@
   display: block;
   padding: 0.875rem 1.5rem;
   text-align: center;
+  margin-bottom: 1rem;
 }
 
 .btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.divider::before {
+  margin-right: 1rem;
+}
+
+.divider::after {
+  margin-left: 1rem;
 }
 
 /* Responsive */
@@ -287,11 +365,8 @@
     padding: 1rem;
   }
   
-  .auth-header,
-  .auth-form,
-  .auth-footer {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+  .auth-card {
+    padding: 1.5rem;
   }
   
   .error-actions {
