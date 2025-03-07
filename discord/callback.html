@@ -188,23 +188,31 @@
                 return;
             }
             
-            // Connect Discord account
             async function connectDiscord() {
                 try {
+                    // Show loading state
+                    loadingSpinner.style.display = 'block';
+                    connectingText.textContent = 'Connecting your Discord account...';
+                    
                     const response = await fetch(`${API_URL}/discord/connect`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ code })
+                        body: JSON.stringify({ code: code })  // Make sure 'code' is explicitly named
                     });
+                    
+                    // Check if response is OK before parsing JSON
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `Failed to connect Discord account (${response.status})`);
+                    }
                     
                     const data = await response.json();
                     
-                    if (!response.ok) {
-                        throw new Error(data.detail || 'Failed to connect Discord account');
-                    }
+                    // Log success data for debugging
+                    console.log('Discord connection successful:', data);
                     
                     // Success
                     statusMessage.textContent = 'Discord account successfully connected!';
@@ -212,13 +220,26 @@
                     loadingSpinner.style.display = 'none';
                     connectingText.textContent = 'Your Discord account has been connected to Versz.';
                     
-                    // Store success flag
-                    localStorage.setItem('discord_connected', 'true');
+                    // Refresh user data in localStorage
+                    try {
+                        const userResponse = await fetch(`${API_URL}/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        if (userResponse.ok) {
+                            const userData = await userResponse.json();
+                            localStorage.setItem('user', JSON.stringify(userData));
+                        }
+                    } catch (e) {
+                        console.error('Error refreshing user data:', e);
+                    }
                     
-                    // Redirect after 3 seconds
+                    // Redirect after 2 seconds
                     setTimeout(() => {
                         window.location.href = '/profile.html?discord=connected';
-                    }, 3000);
+                    }, 2000);
                     
                 } catch (error) {
                     console.error('Error connecting Discord:', error);
