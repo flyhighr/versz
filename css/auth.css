@@ -386,3 +386,21 @@ body {
     gap: 0.75rem;
   }
 }
+/* Logo Styling */
+.auth-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  text-decoration: none;
+}
+
+.logo-image {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+/* Remove the text-based logo styles that are no longer needed */
+.auth-logo span {
+  display: none;
+}
