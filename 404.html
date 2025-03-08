@@ -2742,6 +2742,11 @@ body {
         const secondaryElements = [
             document.getElementById('username'),
             document.getElementById('joinedDate'),
+            document.getElementById('ageText'),        // Added specific element
+            document.getElementById('genderText'),     // Added specific element
+            document.getElementById('pronounsText'),   // Added specific element
+            document.getElementById('locationText'),   // Added specific element
+            document.getElementById('timezoneText'),   // Make sure timezone is included too
             ...document.querySelectorAll('.user-detail'),
             ...document.querySelectorAll('.timezone-container'),
             ...document.querySelectorAll('.song-artist'),
@@ -3308,6 +3313,16 @@ body {
             
             ageText.textContent = ageString;
             ageContainer.style.display = 'flex';
+            
+            // Apply username style to age text (secondary text)
+            if (usernameStyle) {
+                if (usernameStyle.color) {
+                    ageText.style.color = usernameStyle.color;
+                }
+                if (usernameStyle.font && usernameStyle.font.value) {
+                    ageText.style.fontFamily = usernameStyle.font.value;
+                }
+            }
         } else {
             ageContainer.style.display = 'none';
         }
@@ -3319,6 +3334,16 @@ body {
         if (user.gender) {
             genderText.textContent = user.gender;
             genderContainer.style.display = 'flex';
+            
+            // Apply username style to gender text (secondary text)
+            if (usernameStyle) {
+                if (usernameStyle.color) {
+                    genderText.style.color = usernameStyle.color;
+                }
+                if (usernameStyle.font && usernameStyle.font.value) {
+                    genderText.style.fontFamily = usernameStyle.font.value;
+                }
+            }
         } else {
             genderContainer.style.display = 'none';
         }
@@ -3330,6 +3355,16 @@ body {
         if (user.pronouns) {
             pronounsText.textContent = user.pronouns;
             pronounsContainer.style.display = 'flex';
+            
+            // Apply username style to pronouns text (secondary text)
+            if (usernameStyle) {
+                if (usernameStyle.color) {
+                    pronounsText.style.color = usernameStyle.color;
+                }
+                if (usernameStyle.font && usernameStyle.font.value) {
+                    pronounsText.style.fontFamily = usernameStyle.font.value;
+                }
+            }
         } else {
             pronounsContainer.style.display = 'none';
         }
@@ -3341,6 +3376,16 @@ body {
         if (user.location) {
             locationText.textContent = user.location;
             locationContainer.style.display = 'flex';
+            
+            // Apply username style to location text (secondary text)
+            if (usernameStyle) {
+                if (usernameStyle.color) {
+                    locationText.style.color = usernameStyle.color;
+                }
+                if (usernameStyle.font && usernameStyle.font.value) {
+                    locationText.style.fontFamily = usernameStyle.font.value;
+                }
+            }
         } else {
             locationContainer.style.display = 'none';
         }
