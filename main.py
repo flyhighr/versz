@@ -877,7 +877,7 @@ async def increment_page_views(db_instance, url: str, device_hash: str, request:
         if page and page.get("analytics_config", {}).get("enabled", True):
             # Get country info
             ip_address = request.client.host
-            country_info = get_country_info(ip_address)
+            country_info = await get_country_info(ip_address)
             
             # Get user agent info
             user_agent = request.headers.get("user-agent", "")
