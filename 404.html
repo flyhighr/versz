@@ -327,7 +327,7 @@ body {
 }
 
 /* Profile content container - INVISIBLE */
-.profile-container {
+.profile-container, .discord-container, .message-container, .drawing-container {
     border: none;
     border-radius: 0;
     padding: 20px;
@@ -1565,6 +1565,51 @@ body {
     width: 30px;
     height: 30px;
 }
+
+/* New styles for media interaction overlay */
+.media-interaction-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.media-interaction-message {
+    color: white;
+    font-size: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+    animation: pulse 2s infinite;
+}
+
+.media-interaction-icon {
+    width: 80px;
+    height: 80px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container-enabled {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+        
     </style>
 </head>
 <body>
@@ -1827,6 +1872,17 @@ body {
 
     <audio id="audioPlayer" class="audio-player"></audio>
     
+    <div id="mediaInteractionOverlay" class="media-interaction-overlay" style="display: none;">
+        <div class="media-interaction-message">Click anywhere to continue..</div>
+        <div class="media-interaction-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+        </div>
+    </div>
+    
     <div class="versz-logo">
     <a href="/" title="Create Your Own Page">
         <img src="https://versz.fun/logo.svg" alt="Versz Logo">
@@ -1849,6 +1905,7 @@ body {
     let pendingLink = null; // Store link when confirmation popup is shown
     let nameStyle = null; // Store name style for applying to primary text
     let usernameStyle = null; // Store username style for applying to secondary text
+    let pageHasMedia = false;
 
     window.addEventListener('resize', () => {
         isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -3381,6 +3438,15 @@ body {
         } else {
             document.getElementById('viewsCounter').style.display = 'none';
         }
+
+        if (songs && songs.length > 0) {
+            songs.forEach(song => {
+                if ((song.youtube_url && isDirectMediaUrl(song.youtube_url)) || 
+                    (song.audio_url && isDirectMediaUrl(song.audio_url))) {
+                    pageHasMedia = true;
+                }
+            });
+        }
         
         // Set tags
         renderTags(user.tags || []);
@@ -3641,10 +3707,10 @@ body {
             const video = document.createElement('video');
             video.src = background.value;
             video.className = 'bg-video';
-            video.autoplay = true;
             video.loop = true;
-            video.muted = true;
             video.playsInline = true; // Important for iOS
+            
+            // Don't set autoplay or muted initially - we'll handle this after user interaction
             bgContainer.appendChild(video);
             
             if (background.opacity < 1) {
@@ -3653,51 +3719,86 @@ body {
                 overlay.style.opacity = 1 - background.opacity;
                 bgContainer.appendChild(overlay);
             }
+            
+            // Flag that we have media that needs user interaction
+            pageHasMedia = true;
         }
     }
 
-    // Function to set container style
     function setContainerStyle(layout) {
         if (!layout) return;
         
         const profileContainer = document.getElementById('profileContainer');
+        const containers = document.querySelectorAll('.profile-container, .discord-container, .message-container, .drawing-container');
         
         if (layout.container_style && layout.container_style.enabled) {
-            // Apply container background color or gradient
-            if (layout.container_style.background_color) {
-                profileContainer.style.backgroundColor = layout.container_style.background_color;
-            }
-            
-            if (layout.container_style.gradient) {
-                profileContainer.style.background = layout.container_style.gradient;
-            }
-            
-            // Apply opacity
-            if (layout.container_style.opacity !== undefined) {
-                profileContainer.style.opacity = layout.container_style.opacity;
-            }
-            
-            // Apply border radius
-            if (layout.container_style.border_radius !== undefined) {
-                profileContainer.style.borderRadius = `${layout.container_style.border_radius}px`;
-            }
-            
-            // Apply border color
-            if (layout.container_style.border_color) {
-                profileContainer.style.borderColor = layout.container_style.border_color;
-            }
-            
-            // Apply shadow
-            if (layout.container_style.shadow) {
-                profileContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
-            } else {
-                profileContainer.style.boxShadow = 'none';
-            }
+            // Apply to all containers
+            containers.forEach(container => {
+                // Add the container-enabled class to properly style containers
+                container.classList.add('container-enabled');
+                
+                // Apply container background color or gradient
+                if (layout.container_style.background_color) {
+                    container.style.backgroundColor = layout.container_style.background_color;
+                }
+                
+                if (layout.container_style.gradient) {
+                    container.style.background = layout.container_style.gradient;
+                }
+                
+                // Apply opacity
+                if (layout.container_style.opacity !== undefined) {
+                    container.style.opacity = layout.container_style.opacity;
+                }
+                
+                // Apply border radius
+                if (layout.container_style.border_radius !== undefined) {
+                    container.style.borderRadius = `${layout.container_style.border_radius}px`;
+                }
+                
+                // Apply border color
+                if (layout.container_style.border_color) {
+                    container.style.borderColor = layout.container_style.border_color;
+                }
+                
+                // Apply shadow
+                if (layout.container_style.shadow) {
+                    container.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+                } else {
+                    container.style.boxShadow = 'none';
+                }
+            });
         } else {
             // If container is disabled, remove borders and background
-            profileContainer.style.border = 'none';
-            profileContainer.style.backgroundColor = 'transparent';
-            profileContainer.style.boxShadow = 'none';
+            containers.forEach(container => {
+                container.classList.remove('container-enabled');
+                container.style.border = 'none';
+                container.style.backgroundColor = 'transparent';
+                container.style.boxShadow = 'none';
+            });
+        }
+    }
+
+    // Function to handle media interaction
+    function setupMediaInteraction() {
+        // Check if page has media that needs interaction
+        if (pageHasMedia) {
+            const overlay = document.getElementById('mediaInteractionOverlay');
+            overlay.style.display = 'flex';
+            
+            // When user clicks anywhere on the overlay
+            overlay.addEventListener('click', function() {
+                // Enable all videos and audio
+                const videos = document.querySelectorAll('video');
+                videos.forEach(video => {
+                    video.muted = false;
+                    video.play()
+                        .catch(error => console.log('Video play error:', error));
+                });
+                
+                // Hide the overlay
+                overlay.style.display = 'none';
+            });
         }
     }
 
@@ -3975,8 +4076,7 @@ body {
         document.getElementById('rateLimitMessage').style.display = code === 429 ? 'block' : 'none';
     }
 
-    // Initialize the page when loaded
-    document.addEventListener('DOMContentLoaded', function() {
+     document.addEventListener('DOMContentLoaded', function() {
         // Initialize audio player
         initAudioPlayer();
         
@@ -3987,8 +4087,12 @@ body {
         setupFormToggles();
         
         // Load content
-        loadContent();
+        loadContent().then(() => {
+            // After content is loaded, setup media interaction if needed
+            setupMediaInteraction();
+        });
     });
+
     
     // Direct fix for message and drawing toggles
     function setupFormToggles() {
