@@ -288,7 +288,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Update the populateFormFields function to handle new fields
     const populateFormFields = (pageData) => {
         // Basics tab
         document.getElementById('edit-title').value = pageData.title;
@@ -366,10 +365,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 case 'image':
                     document.getElementById('edit-bg-image-url').value = pageData.background.value || '';
                     break;
-                    
-                case 'video':
-                    document.getElementById('edit-bg-video-url').value = pageData.background.value || '';
-                    break;
             }
             
             // Set background opacity
@@ -415,6 +410,38 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('show-joined-date').checked = pageData.show_joined_date !== false;
         document.getElementById('show-views').checked = pageData.show_views !== false;
         document.getElementById('show-timezone').checked = pageData.show_timezone !== false;
+        
+        // Messages, Drawings, and Analytics settings
+        if (pageData.messages_config) {
+            document.getElementById('enable-messages').checked = pageData.messages_config.enabled || false;
+            document.getElementById('messages-settings').style.display = pageData.messages_config.enabled ? 'block' : 'none';
+            document.getElementById('messages-require-approval').checked = pageData.messages_config.require_approval !== false;
+            document.getElementById('messages-allow-anonymous').checked = pageData.messages_config.allow_anonymous !== false;
+            document.getElementById('messages-placeholder').value = pageData.messages_config.placeholder_text || 'Leave a message...';
+        } else {
+            document.getElementById('enable-messages').checked = false;
+            document.getElementById('messages-settings').style.display = 'none';
+        }
+    
+        if (pageData.drawings_config) {
+            document.getElementById('enable-drawings').checked = pageData.drawings_config.enabled || false;
+            document.getElementById('drawings-settings').style.display = pageData.drawings_config.enabled ? 'block' : 'none';
+            document.getElementById('drawings-require-approval').checked = pageData.drawings_config.require_approval !== false;
+            document.getElementById('drawings-allow-anonymous').checked = pageData.drawings_config.allow_anonymous !== false;
+        } else {
+            document.getElementById('enable-drawings').checked = false;
+            document.getElementById('drawings-settings').style.display = 'none';
+        }
+    
+        if (pageData.analytics_config) {
+            document.getElementById('enable-analytics').checked = pageData.analytics_config.enabled !== false;
+            document.getElementById('analytics-settings').style.display = pageData.analytics_config.enabled !== false ? 'block' : 'none';
+            document.getElementById('analytics-show-country').checked = pageData.analytics_config.show_country_data !== false;
+            document.getElementById('analytics-show-time').checked = pageData.analytics_config.show_time_data !== false;
+        } else {
+            document.getElementById('enable-analytics').checked = true;
+            document.getElementById('analytics-settings').style.display = 'block';
+        }
         
         // Load songs
         const songsContainer = document.getElementById('songs-container');
@@ -993,10 +1020,6 @@ const collectFormData = async (pageId) => {
         case 'image':
             backgroundValue = document.getElementById('edit-bg-image-url').value;
             break;
-            
-        case 'video':
-            backgroundValue = document.getElementById('edit-bg-video-url').value;
-            break;
     }
     
     const backgroundOpacity = parseFloat(document.getElementById('edit-bg-opacity').value);
@@ -1051,6 +1074,22 @@ const collectFormData = async (pageId) => {
     const showJoinedDate = document.getElementById('show-joined-date').checked;
     const showViews = document.getElementById('show-views').checked;
     const showTimezone = document.getElementById('show-timezone').checked;
+    
+    // Get messages settings
+    const messagesEnabled = document.getElementById('enable-messages').checked;
+    const messagesRequireApproval = document.getElementById('messages-require-approval').checked;
+    const messagesAllowAnonymous = document.getElementById('messages-allow-anonymous').checked;
+    const messagesPlaceholder = document.getElementById('messages-placeholder').value;
+
+    // Get drawings settings
+    const drawingsEnabled = document.getElementById('enable-drawings').checked;
+    const drawingsRequireApproval = document.getElementById('drawings-require-approval').checked;
+    const drawingsAllowAnonymous = document.getElementById('drawings-allow-anonymous').checked;
+
+    // Get analytics settings
+    const analyticsEnabled = document.getElementById('enable-analytics').checked;
+    const analyticsShowCountry = document.getElementById('analytics-show-country').checked;
+    const analyticsShowTime = document.getElementById('analytics-show-time').checked;
     
     // Get songs
     const songs = [];
@@ -1132,6 +1171,22 @@ const collectFormData = async (pageId) => {
                 border_radius: containerRadius,
                 shadow: containerShadow
             }
+        },
+        messages_config: {
+            enabled: messagesEnabled,
+            require_approval: messagesRequireApproval,
+            allow_anonymous: messagesAllowAnonymous,
+            placeholder_text: messagesPlaceholder || 'Leave a message...'
+        },
+        drawings_config: {
+            enabled: drawingsEnabled,
+            require_approval: drawingsRequireApproval,
+            allow_anonymous: drawingsAllowAnonymous
+        },
+        analytics_config: {
+            enabled: analyticsEnabled,
+            show_country_data: analyticsShowCountry,
+            show_time_data: analyticsShowTime
         },
         social_links: socialLinks,
         songs: songs,
@@ -1541,6 +1596,30 @@ const initCustomizePage = async () => {
             // No page selected, show the empty state
             noPageSelected.style.display = 'flex';
         }
+    }
+    
+    const enableMessages = document.getElementById('enable-messages');
+    const messagesSettings = document.getElementById('messages-settings');
+    if (enableMessages && messagesSettings) {
+        enableMessages.addEventListener('change', () => {
+            messagesSettings.style.display = enableMessages.checked ? 'block' : 'none';
+        });
+    }
+
+    const enableDrawings = document.getElementById('enable-drawings');
+    const drawingsSettings = document.getElementById('drawings-settings');
+    if (enableDrawings && drawingsSettings) {
+        enableDrawings.addEventListener('change', () => {
+            drawingsSettings.style.display = enableDrawings.checked ? 'block' : 'none';
+        });
+    }
+
+    const enableAnalytics = document.getElementById('enable-analytics');
+    const analyticsSettings = document.getElementById('analytics-settings');
+    if (enableAnalytics && analyticsSettings) {
+        enableAnalytics.addEventListener('change', () => {
+            analyticsSettings.style.display = enableAnalytics.checked ? 'block' : 'none';
+        });
     }
 };
 
