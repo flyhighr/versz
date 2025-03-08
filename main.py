@@ -38,6 +38,8 @@ from email.message import EmailMessage
 from cachetools import TTLCache
 import pytz
 from dateutil.relativedelta import relativedelta
+
+import base64
 try:
     import orjson
     USE_ORJSON = True
@@ -72,6 +74,13 @@ class Settings:
     DEVICE_IDENTIFIER_TTL_DAYS: int = 30
     MAX_AVATAR_SIZE: int = 1024 * 1024 * 32  # 1MB
     PREVIEW_EXPIRATION_MINUTES: int = 30  # How long preview pages are valid
+    
+    ANALYTICS_RETENTION_DAYS: int = 90  # How long to keep analytics data
+    MAX_MESSAGE_LENGTH: int = 1000  # Maximum length for anonymous messages
+    MAX_DRAWING_SIZE: int = 1024 * 1024 * 5  # 5MB max for drawings
+    MAX_MESSAGES_PER_PAGE: int = 100  # Maximum number of messages to store per page
+    MAX_DRAWINGS_PER_PAGE: int = 50  # Maximum number of drawings to store per page
+    MESSAGE_COOLDOWN_MINUTES: int = 5  # Cooldown between messages from same device
 
     DISCORD_CLIENT_ID: str = os.getenv("DISCORD_CLIENT_ID", "")
     DISCORD_CLIENT_SECRET: str = os.getenv("DISCORD_CLIENT_SECRET", "")
@@ -137,8 +146,12 @@ class RateLimits:
     READ_LIMIT = "30/minute" 
     MODIFY_LIMIT = "15/minute"  
     ADMIN_LIMIT = "60/minute"
+    # New rate limits for messages and drawings
+    MESSAGE_LIMIT = "10/minute"
+    DRAWING_LIMIT = "5/minute"
 
 # Logging configuration
+
 logging.basicConfig(
     level=logging.INFO if settings.ENVIRONMENT == "production" else logging.DEBUG,
     format="%(asctime)s - %(levelname)s - [%(name)s] - %(process)d - %(thread)d - %(message)s",
@@ -151,6 +164,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Security configurations
+
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
@@ -161,10 +175,12 @@ pwd_context = CryptContext(
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Global database client and database
+
 db_client = None
 db = None
 
 # Custom Async Cache Implementation with improved efficiency
+
 class AsyncTTLCache:
     def __init__(self, ttl_seconds: int = 300, maxsize: int = 1000):
         self.cache = TTLCache(maxsize=maxsize, ttl=ttl_seconds)
@@ -183,6 +199,7 @@ class AsyncTTLCache:
                 del self.cache[key]
 
 # Initialize caches with larger sizes
+
 user_cache = AsyncTTLCache(ttl_seconds=300, maxsize=5000)
 page_cache = TTLCache(maxsize=5000, ttl=300)
 views_cache = TTLCache(maxsize=10000, ttl=300)
@@ -190,8 +207,10 @@ template_cache = TTLCache(maxsize=1000, ttl=600)
 preview_cache = TTLCache(maxsize=1000, ttl=300)
 url_validation_cache = TTLCache(maxsize=500, ttl=300)  # 5 minutes
 view_tracking_cache = TTLCache(maxsize=10000, ttl=settings.VIEW_COOLDOWN_MINUTES * 60)
+message_cooldown_cache = TTLCache(maxsize=5000, ttl=settings.MESSAGE_COOLDOWN_MINUTES * 60)  # For message rate limiting
 
 # Pydantic models
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -243,6 +262,32 @@ class TextStyleConfig(BaseModel):
     color: Optional[str] = None
     font: Optional[FontConfig] = None
 
+# New models for messages and drawings
+
+class MessagesConfig(BaseModel):
+    enabled: bool = False
+    require_approval: bool = True
+    allow_anonymous: bool = True
+    placeholder_text: str = "Leave a message..."
+
+class DrawingsConfig(BaseModel):
+    enabled: bool = False
+    require_approval: bool = True
+    allow_anonymous: bool = True
+    
+class AnonymousMessage(BaseModel):
+    content: str = Field(..., max_length=settings.MAX_MESSAGE_LENGTH)
+    sender_name: Optional[str] = Field(None, max_length=50)
+
+class AnonymousDrawing(BaseModel):
+    data_url: str
+    sender_name: Optional[str] = Field(None, max_length=50)
+
+class PageAnalyticsConfig(BaseModel):
+    enabled: bool = True
+    show_country_data: bool = True
+    show_time_data: bool = True
+
 class ProfilePage(BaseModel):
     page_id: Optional[str] = None
     url: str
@@ -267,6 +312,10 @@ class ProfilePage(BaseModel):
     custom_js: Optional[str] = None
     name_style: Optional[TextStyleConfig] = None
     username_style: Optional[TextStyleConfig] = None
+    # New fields for messages, drawings, and analytics
+    messages_config: MessagesConfig = MessagesConfig()
+    drawings_config: DrawingsConfig = DrawingsConfig()
+    analytics_config: PageAnalyticsConfig = PageAnalyticsConfig()
 
 class PageUpdate(BaseModel):
     title: Optional[str] = None
@@ -290,6 +339,10 @@ class PageUpdate(BaseModel):
     custom_js: Optional[str] = None
     name_style: Optional[TextStyleConfig] = None
     username_style: Optional[TextStyleConfig] = None
+    # New fields for messages, drawings, and analytics
+    messages_config: Optional[MessagesConfig] = None
+    drawings_config: Optional[DrawingsConfig] = None
+    analytics_config: Optional[PageAnalyticsConfig] = None
 
 class PreviewRequest(BaseModel):
     page_data: ProfilePage
@@ -321,8 +374,13 @@ class DisplayPreferences(BaseModel):
     )
     default_name_style: TextStyleConfig = TextStyleConfig()
     default_username_style: TextStyleConfig = TextStyleConfig()
+    # New defaults for messages, drawings, and analytics
+    default_messages_config: MessagesConfig = MessagesConfig()
+    default_drawings_config: DrawingsConfig = DrawingsConfig()
+    default_analytics_config: PageAnalyticsConfig = PageAnalyticsConfig()
 
 # Add Discord connection model
+
 class DiscordConnection(BaseModel):
     discord_id: str
     username: str
@@ -360,6 +418,7 @@ class DiscordConnectionResponse(BaseModel):
             return datetime.utcnow()
         except:
             return datetime.utcnow()
+
 class UserBase(BaseModel):
     email: EmailStr
 
@@ -451,6 +510,8 @@ class ViewRecord(BaseModel):
     timestamp: datetime
     ip_address: str
     user_agent: str
+    country_code: Optional[str] = None
+    country_name: Optional[str] = None
 
 class Template(BaseModel):
     id: Optional[str] = None
@@ -482,7 +543,43 @@ class PreviewResponse(BaseModel):
     preview_id: str
     expires_at: datetime
 
+# New models for analytics
+class AnalyticsEntry(BaseModel):
+    page_id: str
+    url: str
+    timestamp: datetime
+    country_code: Optional[str] = None
+    country_name: Optional[str] = None
+    device_type: Optional[str] = None
+    browser: Optional[str] = None
+    referrer: Optional[str] = None
+    
+class AnalyticsResponse(BaseModel):
+    total_views: int
+    countries: Dict[str, int] = {}
+    daily_views: Dict[str, int] = {}
+    hourly_distribution: Dict[str, int] = {}
+    recent_views: List[AnalyticsEntry] = []
+
+# New models for messages and drawings
+class MessageStatus(BaseModel):
+    id: str
+    page_id: str
+    content: str
+    sender_name: Optional[str] = None
+    timestamp: datetime
+    approved: bool = False
+    
+class DrawingStatus(BaseModel):
+    id: str
+    page_id: str
+    data_url: str
+    sender_name: Optional[str] = None
+    timestamp: datetime
+    approved: bool = False
+
 # Optimized JSON serialization
+
 def json_serialize(obj):
     """Convert MongoDB document to serializable format"""
     if isinstance(obj, dict):
@@ -497,6 +594,7 @@ def json_serialize(obj):
         return obj
 
 # Custom JSON Response with faster serialization
+
 class ORJSONResponse(JSONResponse):
     media_type = "application/json"
 
@@ -514,11 +612,13 @@ class ORJSONResponse(JSONResponse):
             ).encode("utf-8")
 
 # FastAPI initialization
+
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Versz API", version="1.0.0")
 app.state.limiter = limiter
 
 # Add compression middleware
+
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 app.add_middleware(
@@ -530,6 +630,7 @@ app.add_middleware(
 )
 
 # Utility functions
+
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
@@ -592,7 +693,7 @@ async def get_user(email: str) -> Optional[Dict[str, Any]]:
             "is_verified": 1, "avatar_url": 1, "avatar_decoration": 1,
             "user_number": 1, "joined_at": 1, "tags": 1, "display_preferences": 1,
             "location": 1, "date_of_birth": 1, "timezone": 1, "gender": 1, "pronouns": 1,
-            "bio": 1
+            "bio": 1, "discord": 1
         }
     )
     if user:
@@ -613,7 +714,7 @@ async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
             "is_verified": 1, "avatar_url": 1, "avatar_decoration": 1,
             "user_number": 1, "joined_at": 1, "tags": 1, "display_preferences": 1,
             "location": 1, "date_of_birth": 1, "timezone": 1, "gender": 1, "pronouns": 1,
-            "bio": 1
+            "bio": 1, "discord": 1
         }
     )
     if user:
@@ -674,6 +775,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     user = await get_user(token_data.username)
     if user is None:
         raise credentials_exception
+    
     return user
 
 async def get_current_verified_user(current_user: dict = Depends(get_current_user)):
@@ -691,9 +793,69 @@ async def generate_device_identifier(request: Request) -> str:
     identifier = f"{ip}:{user_agent}:{accept_language}"
     return hashlib.sha256(identifier.encode()).hexdigest()
 
-# Optimized view tracking with cache
-async def increment_page_views(db_instance, url: str, device_hash: str) -> int:
-    """Increment the view count for a page if the view should be counted"""
+async def get_country_info(ip_address: str) -> Dict[str, str]:
+    """Get country information from IP address using MaxMind API"""
+    if ip_address in ["127.0.0.1", "localhost", "::1"]:
+        return {"country_code": "Unknown", "country_name": "Unknown"}
+    
+    try:
+        maxmind_api_key = os.getenv("MAXMIND_API_KEY")
+        maxmind_account_id = os.getenv("MAXMIND_ACCOUNT_ID")
+        
+        if not maxmind_api_key or not maxmind_account_id:
+            return {"country_code": "Unknown", "country_name": "Unknown"}
+            
+        url = f"https://geolite.info/geoip/v2.1/country/{ip_address}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url,
+                auth=(maxmind_account_id, maxmind_api_key)
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "country_code": data.get("country", {}).get("iso_code", "Unknown"),
+                    "country_name": data.get("country", {}).get("names", {}).get("en", "Unknown")
+                }
+            else:
+                return {"country_code": "Unknown", "country_name": "Unknown"}
+                
+    except Exception as e:
+        logger.error(f"Error getting country info: {str(e)}")
+        return {"country_code": "Error", "country_name": "Error"}
+
+def detect_device_type(user_agent: str) -> str:
+    """Detect device type from user agent string"""
+    user_agent = user_agent.lower()
+    if "mobile" in user_agent or "android" in user_agent or "iphone" in user_agent or "ipad" in user_agent:
+        return "mobile"
+    elif "tablet" in user_agent:
+        return "tablet"
+    else:
+        return "desktop"
+
+def detect_browser(user_agent: str) -> str:
+    """Detect browser from user agent string"""
+    user_agent = user_agent.lower()
+    if "chrome" in user_agent and "edge" not in user_agent and "chromium" not in user_agent:
+        return "Chrome"
+    elif "firefox" in user_agent:
+        return "Firefox"
+    elif "safari" in user_agent and "chrome" not in user_agent:
+        return "Safari"
+    elif "edge" in user_agent:
+        return "Edge"
+    elif "opera" in user_agent:
+        return "Opera"
+    else:
+        return "Other"
+
+# Optimized view tracking with cache and analytics
+
+async def increment_page_views(db_instance, url: str, device_hash: str, request: Request) -> int:
+    """Increment the view count for a page and record analytics data"""
     cache_key = f"{url}:{device_hash}"
     
     if cache_key not in view_tracking_cache:
@@ -708,14 +870,54 @@ async def increment_page_views(db_instance, url: str, device_hash: str) -> int:
             return_document=True
         )
         
-        # Record the view (simplified)
-        await db_instance.view_records.insert_one({
-            "url": url,
-            "device_hash": device_hash,
-            "timestamp": datetime.utcnow(),
-            "ip_address": "",
-            "user_agent": ""
-        })
+        # Get page_id for analytics
+        page = await db_instance.profile_pages.find_one({"url": url}, projection={"page_id": 1, "analytics_config": 1})
+        
+        # Only record analytics if the page exists and analytics are enabled
+        if page and page.get("analytics_config", {}).get("enabled", True):
+            # Get country info
+            ip_address = request.client.host
+            country_info = get_country_info(ip_address)
+            
+            # Get user agent info
+            user_agent = request.headers.get("user-agent", "")
+            device_type = detect_device_type(user_agent)
+            browser = detect_browser(user_agent)
+            
+            # Get referrer
+            referrer = request.headers.get("referer", "")
+            
+            # Record analytics data
+            await db_instance.analytics.insert_one({
+                "page_id": page["page_id"],
+                "url": url,
+                "timestamp": datetime.utcnow(),
+                "country_code": country_info["country_code"],
+                "country_name": country_info["country_name"],
+                "device_type": device_type,
+                "browser": browser,
+                "referrer": referrer if referrer else None
+            })
+            
+            # Record the view with additional data
+            await db_instance.view_records.insert_one({
+                "url": url,
+                "device_hash": device_hash,
+                "timestamp": datetime.utcnow(),
+                "ip_address": ip_address,
+                "user_agent": user_agent,
+                "country_code": country_info["country_code"],
+                "country_name": country_info["country_name"]
+            })
+        else:
+            # Record basic view without analytics
+            await db_instance.view_records.insert_one({
+                "url": url,
+                "device_hash": device_hash,
+                "timestamp": datetime.utcnow(),
+                "ip_address": "",
+                "user_agent": ""
+            })
         
         views = result["views"] if result else 1
         views_cache[f"views:{url}"] = views
@@ -820,6 +1022,22 @@ async def validate_font(font_link: str) -> bool:
         logger.error(f"Error validating font link: {str(e)}")
         return False
 
+async def validate_drawing_data(data_url: str) -> bool:
+    """Validate if the drawing data URL is valid and not too large"""
+    if not data_url.startswith("data:image/"):
+        return False
+    
+    try:
+        # Extract the base64 data
+        header, encoded = data_url.split(",", 1)
+        # Check the size of the decoded data
+        decoded_size = len(base64.b64decode(encoded))
+        
+        return decoded_size <= settings.MAX_DRAWING_SIZE
+    except Exception as e:
+        logger.error(f"Error validating drawing data: {str(e)}")
+        return False
+
 async def cleanup_old_view_records():
     cutoff_date = datetime.utcnow() - timedelta(days=settings.DEVICE_IDENTIFIER_TTL_DAYS)
     await db.view_records.delete_many({"timestamp": {"$lt": cutoff_date}})
@@ -846,7 +1064,18 @@ async def cleanup_expired_registrations():
         "expires_at": {"$lt": datetime.utcnow()}
     })
 
+# New cleanup function for analytics data
+async def cleanup_old_analytics():
+    """Cleanup function to remove old analytics data"""
+    cutoff_date = datetime.utcnow() - timedelta(days=settings.ANALYTICS_RETENTION_DAYS)
+    result = await db.analytics.delete_many({
+        "timestamp": {"$lt": cutoff_date}
+    })
+    if result.deleted_count > 0:
+        logger.info(f"Cleaned up {result.deleted_count} old analytics records")
+
 # Endpoints
+
 @app.get("/", response_class=HTMLResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def root(request: Request):
@@ -955,6 +1184,7 @@ async def register_user(
             "show_gender": True,
             "show_pronouns": True,
             "show_timezone": True,
+            "show_discord": True,
             "default_layout": "standard",
             "default_background": {
                 "type": "solid",
@@ -975,6 +1205,22 @@ async def register_user(
                     "value": "",
                     "link": ""
                 }
+            },
+            "default_messages_config": {
+                "enabled": False,
+                "require_approval": True,
+                "allow_anonymous": True,
+                "placeholder_text": "Leave a message..."
+            },
+            "default_drawings_config": {
+                "enabled": False,
+                "require_approval": True,
+                "allow_anonymous": True
+            },
+            "default_analytics_config": {
+                "enabled": True,
+                "show_country_data": True,
+                "show_time_data": True
             }
         }
     }
@@ -1123,7 +1369,8 @@ async def register_user(
         "age": None,
         "timezone": None,
         "gender": None,
-        "pronouns": None
+        "pronouns": None,
+        "bio": None
     }
 
 
@@ -1482,6 +1729,7 @@ async def verify_email(request: Request, token: str):
                 "show_gender": True,
                 "show_pronouns": True,
                 "show_timezone": True,
+                "show_discord": True,
                 "default_layout": "standard",
                 "default_background": {
                     "type": "solid",
@@ -1502,6 +1750,22 @@ async def verify_email(request: Request, token: str):
                         "value": "",
                         "link": ""
                     }
+                },
+                "default_messages_config": {
+                    "enabled": False,
+                    "require_approval": True,
+                    "allow_anonymous": True,
+                    "placeholder_text": "Leave a message..."
+                },
+                "default_drawings_config": {
+                    "enabled": False,
+                    "require_approval": True,
+                    "allow_anonymous": True
+                },
+                "default_analytics_config": {
+                    "enabled": True,
+                    "show_country_data": True,
+                    "show_time_data": True
                 }
             }),
             "location": pending_user.get("location"),
@@ -1586,6 +1850,7 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
                 "show_gender": True,
                 "show_pronouns": True,
                 "show_timezone": True,
+                "show_discord": True,
                 "default_layout": "standard",
                 "default_background": {
                     "type": "solid",
@@ -1606,6 +1871,22 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
                         "value": "",
                         "link": ""
                     }
+                },
+                "default_messages_config": {
+                    "enabled": False,
+                    "require_approval": True,
+                    "allow_anonymous": True,
+                    "placeholder_text": "Leave a message..."
+                },
+                "default_drawings_config": {
+                    "enabled": False,
+                    "require_approval": True,
+                    "allow_anonymous": True
+                },
+                "default_analytics_config": {
+                    "enabled": True,
+                    "show_country_data": True,
+                    "show_time_data": True
                 }
             }),
             "location": user.get("location"),
@@ -1842,6 +2123,22 @@ async def read_users_me(request: Request, current_user: dict = Depends(get_curre
                 "value": "",
                 "link": ""
             }
+        },
+        "default_messages_config": {
+            "enabled": False,
+            "require_approval": True,
+            "allow_anonymous": True,
+            "placeholder_text": "Leave a message..."
+        },
+        "default_drawings_config": {
+            "enabled": False,
+            "require_approval": True,
+            "allow_anonymous": True
+        },
+        "default_analytics_config": {
+            "enabled": True,
+            "show_country_data": True,
+            "show_time_data": True
         }
     })
     
@@ -2021,7 +2318,23 @@ async def complete_onboarding(
                     "link": ""
                 }
             },
-            "timezone": onboarding_data.timezone
+            "timezone": onboarding_data.timezone,
+            "messages_config": {
+                "enabled": False,
+                "require_approval": True,
+                "allow_anonymous": True,
+                "placeholder_text": "Leave a message..."
+            },
+            "drawings_config": {
+                "enabled": False,
+                "require_approval": True,
+                "allow_anonymous": True
+            },
+            "analytics_config": {
+                "enabled": True,
+                "show_country_data": True,
+                "show_time_data": True
+            }
         }
         
         await db.profile_pages.insert_one(default_page)
@@ -2064,7 +2377,8 @@ async def complete_onboarding(
         "age": age,
         "timezone": updated_user.get("timezone"),
         "gender": updated_user.get("gender"),
-        "pronouns": updated_user.get("pronouns")
+        "pronouns": updated_user.get("pronouns"),
+        "bio": updated_user.get("bio")
     }
 
 @app.get("/check-url")
@@ -2075,7 +2389,8 @@ async def check_url_availability(request: Request, url: str):
         "dashboard", "profile", "settings", "terms", "privacy", "about",
         "contact", "help", "support", "templates", "explore", "discover",
         "trending", "popular", "new", "featured", "me", "user", "users",
-        "account", "accounts", "auth", "billing", "upgrade", "premium"
+        "account", "accounts", "auth", "billing", "upgrade", "premium",
+        "analytics", "messages", "drawings"  # Added new reserved words
     ]
     
     # Check for reserved words
@@ -2276,6 +2591,24 @@ async def update_profile_page(
             {"url": existing_page["url"]},
             {"$set": {"url": update_data["url"]}}
         )
+        
+        # Update analytics to point to the new URL
+        await db.analytics.update_many(
+            {"url": existing_page["url"]},
+            {"$set": {"url": update_data["url"]}}
+        )
+        
+        # Update messages to point to the new URL
+        await db.messages.update_many(
+            {"url": existing_page["url"]},
+            {"$set": {"url": update_data["url"]}}
+        )
+        
+        # Update drawings to point to the new URL
+        await db.drawings.update_many(
+            {"url": existing_page["url"]},
+            {"$set": {"url": update_data["url"]}}
+        )
     
     # Update the page
     await db.profile_pages.update_one(
@@ -2292,9 +2625,612 @@ async def update_profile_page(
     
     return updated_page
 
+@app.get("/analytics/{page_id}", response_class=ORJSONResponse)
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_page_analytics(
+    request: Request,
+    page_id: str,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Get analytics data for a specific page"""
+    # Check if the page exists and belongs to the user
+    page = await db.profile_pages.find_one({
+        "page_id": page_id,
+        "user_id": current_user["id"]
+    }, projection={"url": 1, "analytics_config": 1})
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found or you don't have permission to view its analytics"
+        )
+    
+    # Check if analytics are enabled for this page
+    if not page.get("analytics_config", {}).get("enabled", True):
+        return {
+            "total_views": 0,
+            "message": "Analytics are disabled for this page"
+        }
+    
+    # Get the URL for this page
+    url = page["url"]
+    
+    # Get total views
+    views_doc = await db.views.find_one({"url": url})
+    total_views = views_doc["views"] if views_doc else 0
+    
+    # Prepare analytics response
+    analytics_response = {
+        "total_views": total_views,
+        "countries": {},
+        "daily_views": {},
+        "hourly_distribution": {},
+        "recent_views": []
+    }
+    
+    # Get analytics data if available
+    if total_views > 0:
+        # Get country data if enabled
+        if page.get("analytics_config", {}).get("show_country_data", True):
+            # Aggregate views by country
+            country_pipeline = [
+                {"$match": {"page_id": page_id}},
+                {"$group": {
+                    "_id": {"country_code": "$country_code", "country_name": "$country_name"},
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"count": -1}},
+                {"$limit": 10}  # Top 10 countries
+            ]
+            
+            country_cursor = db.analytics.aggregate(country_pipeline)
+            async for country in country_cursor:
+                country_code = country["_id"]["country_code"]
+                country_name = country["_id"]["country_name"]
+                if country_code and country_name:
+                    analytics_response["countries"][f"{country_code}:{country_name}"] = country["count"]
+        
+        # Get time data if enabled
+        if page.get("analytics_config", {}).get("show_time_data", True):
+            # Calculate date range (last 30 days)
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=30)
+            
+            # Aggregate views by day
+            daily_pipeline = [
+                {"$match": {
+                    "page_id": page_id,
+                    "timestamp": {"$gte": start_date, "$lte": end_date}
+                }},
+                {"$group": {
+                    "_id": {
+                        "year": {"$year": "$timestamp"},
+                        "month": {"$month": "$timestamp"},
+                        "day": {"$dayOfMonth": "$timestamp"}
+                    },
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"_id.year": 1, "_id.month": 1, "_id.day": 1}}
+            ]
+            
+            daily_cursor = db.analytics.aggregate(daily_pipeline)
+            async for day in daily_cursor:
+                date_str = f"{day['_id']['year']}-{day['_id']['month']:02d}-{day['_id']['day']:02d}"
+                analytics_response["daily_views"][date_str] = day["count"]
+            
+            # Aggregate views by hour
+            hourly_pipeline = [
+                {"$match": {"page_id": page_id}},
+                {"$group": {
+                    "_id": {"hour": {"$hour": "$timestamp"}},
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"_id.hour": 1}}
+            ]
+            
+            hourly_cursor = db.analytics.aggregate(hourly_pipeline)
+            async for hour in hourly_cursor:
+                hour_str = f"{hour['_id']['hour']:02d}:00"
+                analytics_response["hourly_distribution"][hour_str] = hour["count"]
+        
+        # Get recent views (limited to 10)
+        recent_views_cursor = db.analytics.find(
+            {"page_id": page_id}
+        ).sort("timestamp", -1).limit(10)
+        
+        async for view in recent_views_cursor:
+            analytics_response["recent_views"].append({
+                "timestamp": view["timestamp"],
+                "country_code": view.get("country_code"),
+                "country_name": view.get("country_name"),
+                "device_type": view.get("device_type"),
+                "browser": view.get("browser"),
+                "referrer": view.get("referrer")
+            })
+    
+    return analytics_response
 
+# New endpoints for anonymous messages
+
+@app.post("/pages/{page_id}/messages")
+@limiter.limit(RateLimits.MESSAGE_LIMIT)
+async def create_anonymous_message(
+    request: Request,
+    page_id: str,
+    message: AnonymousMessage
+):
+    """Create an anonymous message for a page"""
+    # Check if the page exists
+    page = await db.profile_pages.find_one(
+        {"page_id": page_id},
+        projection={"messages_config": 1, "url": 1, "user_id": 1}
+    )
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    # Check if messages are enabled for this page
+    if not page.get("messages_config", {}).get("enabled", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Messages are disabled for this page"
+        )
+    
+    # Check if anonymous messages are allowed when sender_name is not provided
+    if not message.sender_name and not page.get("messages_config", {}).get("allow_anonymous", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Anonymous messages are not allowed for this page"
+        )
+    
+    # Generate device hash to prevent spam
+    device_hash = await generate_device_identifier(request)
+    
+    # Check cooldown
+    cooldown_key = f"message:{device_hash}:{page_id}"
+    if cooldown_key in message_cooldown_cache:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Please wait before sending another message"
+        )
+    
+    # Check maximum number of messages
+    message_count = await db.messages.count_documents({"page_id": page_id})
+    if message_count >= settings.MAX_MESSAGES_PER_PAGE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This page has reached its maximum message limit"
+        )
+    
+    # Prepare message data
+    message_id = str(ObjectId())
+    message_data = {
+        "id": message_id,
+        "page_id": page_id,
+        "url": page["url"],
+        "user_id": page["user_id"],
+        "content": message.content,
+        "sender_name": message.sender_name,
+        "timestamp": datetime.utcnow(),
+        "approved": not page.get("messages_config", {}).get("require_approval", True),
+        "device_hash": device_hash  # Store hash to prevent spam
+    }
+    
+    # Insert message
+    await db.messages.insert_one(message_data)
+    
+    # Add to cooldown cache
+    message_cooldown_cache[cooldown_key] = True
+    
+    return {
+        "id": message_id,
+        "timestamp": message_data["timestamp"],
+        "approved": message_data["approved"],
+        "message": "Your message has been " + ("posted" if message_data["approved"] else "submitted for approval")
+    }
+
+@app.get("/pages/{page_id}/messages")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_page_messages(
+    request: Request,
+    page_id: str,
+    approved_only: bool = Query(True, description="Only show approved messages"),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """Get messages for a page"""
+    # Check if the page exists
+    page = await db.profile_pages.find_one(
+        {"page_id": page_id},
+        projection={"messages_config": 1}
+    )
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    # Check if messages are enabled for this page
+    if not page.get("messages_config", {}).get("enabled", False):
+        return {"messages": []}
+    
+    # Prepare query
+    query = {"page_id": page_id}
+    if approved_only:
+        query["approved"] = True
+    
+    # Get messages
+    messages = []
+    cursor = db.messages.find(query).sort("timestamp", -1).limit(limit)
+    
+    async for msg in cursor:
+        messages.append({
+            "id": msg["id"],
+            "content": msg["content"],
+            "sender_name": msg.get("sender_name"),
+            "timestamp": msg["timestamp"],
+            "approved": msg["approved"]
+        })
+    
+    return {"messages": messages}
+
+@app.get("/user/messages")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_user_messages(
+    request: Request,
+    current_user: dict = Depends(get_current_verified_user),
+    pending_only: bool = Query(False, description="Only show pending messages"),
+    limit: int = Query(50, ge=1, le=100)
+):
+    """Get all messages for the user's pages"""
+    # Prepare query
+    query = {"user_id": current_user["id"]}
+    if pending_only:
+        query["approved"] = False
+    
+    # Get messages
+    messages = []
+    cursor = db.messages.find(query).sort("timestamp", -1).limit(limit)
+    
+    async for msg in cursor:
+        # Get page title
+        page = await db.profile_pages.find_one(
+            {"page_id": msg["page_id"]},
+            projection={"title": 1, "url": 1}
+        )
+        
+        messages.append({
+            "id": msg["id"],
+            "page_id": msg["page_id"],
+            "page_title": page["title"] if page else "Unknown Page",
+            "page_url": page["url"] if page else "",
+            "content": msg["content"],
+            "sender_name": msg.get("sender_name"),
+            "timestamp": msg["timestamp"],
+            "approved": msg["approved"]
+        })
+    
+    return {"messages": messages}
+
+@app.post("/messages/{message_id}/approve")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def approve_message(
+    request: Request,
+    message_id: str,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Approve a pending message"""
+    # Find the message
+    message = await db.messages.find_one({"id": message_id})
+    
+    if not message:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found"
+        )
+    
+    # Check if the user owns the page
+    page = await db.profile_pages.find_one({
+        "page_id": message["page_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to approve this message"
+        )
+    
+    # Update the message
+    await db.messages.update_one(
+        {"id": message_id},
+        {"$set": {"approved": True}}
+    )
+    
+    return {"message": "Message approved successfully"}
+
+@app.delete("/messages/{message_id}")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def delete_message(
+    request: Request,
+    message_id: str,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Delete a message"""
+    # Find the message
+    message = await db.messages.find_one({"id": message_id})
+    
+    if not message:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found"
+        )
+    
+    # Check if the user owns the page
+    page = await db.profile_pages.find_one({
+        "page_id": message["page_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this message"
+        )
+    
+    # Delete the message
+    await db.messages.delete_one({"id": message_id})
+    
+    return {"message": "Message deleted successfully"}
+
+# New endpoints for anonymous drawings
+
+@app.post("/pages/{page_id}/drawings")
+@limiter.limit(RateLimits.DRAWING_LIMIT)
+async def create_anonymous_drawing(
+    request: Request,
+    page_id: str,
+    drawing: AnonymousDrawing
+):
+    """Create an anonymous drawing for a page"""
+    # Check if the page exists
+    page = await db.profile_pages.find_one(
+        {"page_id": page_id},
+        projection={"drawings_config": 1, "url": 1, "user_id": 1}
+    )
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    # Check if drawings are enabled for this page
+    if not page.get("drawings_config", {}).get("enabled", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Drawings are disabled for this page"
+        )
+    
+    # Check if anonymous drawings are allowed when sender_name is not provided
+    if not drawing.sender_name and not page.get("drawings_config", {}).get("allow_anonymous", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Anonymous drawings are not allowed for this page"
+        )
+    
+    # Validate drawing data
+    if not await validate_drawing_data(drawing.data_url):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid drawing data or drawing too large"
+        )
+    
+    # Generate device hash to prevent spam
+    device_hash = await generate_device_identifier(request)
+    
+    # Check cooldown
+    cooldown_key = f"drawing:{device_hash}:{page_id}"
+    if cooldown_key in message_cooldown_cache:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Please wait before sending another drawing"
+        )
+    
+    # Check maximum number of drawings
+    drawing_count = await db.drawings.count_documents({"page_id": page_id})
+    if drawing_count >= settings.MAX_DRAWINGS_PER_PAGE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This page has reached its maximum drawing limit"
+        )
+    
+    # Prepare drawing data
+    drawing_id = str(ObjectId())
+    drawing_data = {
+        "id": drawing_id,
+        "page_id": page_id,
+        "url": page["url"],
+        "user_id": page["user_id"],
+        "data_url": drawing.data_url,
+        "sender_name": drawing.sender_name,
+        "timestamp": datetime.utcnow(),
+        "approved": not page.get("drawings_config", {}).get("require_approval", True),
+        "device_hash": device_hash  # Store hash to prevent spam
+    }
+    
+    # Insert drawing
+    await db.drawings.insert_one(drawing_data)
+    
+    # Add to cooldown cache
+    message_cooldown_cache[cooldown_key] = True
+    
+    return {
+        "id": drawing_id,
+        "timestamp": drawing_data["timestamp"],
+        "approved": drawing_data["approved"],
+        "message": "Your drawing has been " + ("posted" if drawing_data["approved"] else "submitted for approval")
+    }
+
+@app.get("/pages/{page_id}/drawings")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_page_drawings(
+    request: Request,
+    page_id: str,
+    approved_only: bool = Query(True, description="Only show approved drawings"),
+    limit: int = Query(20, ge=1, le=50)
+):
+    """Get drawings for a page"""
+    # Check if the page exists
+    page = await db.profile_pages.find_one(
+        {"page_id": page_id},
+        projection={"drawings_config": 1}
+    )
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    # Check if drawings are enabled for this page
+    if not page.get("drawings_config", {}).get("enabled", False):
+        return {"drawings": []}
+    
+    # Prepare query
+    query = {"page_id": page_id}
+    if approved_only:
+        query["approved"] = True
+    
+    # Get drawings
+    drawings = []
+    cursor = db.drawings.find(query).sort("timestamp", -1).limit(limit)
+    
+    async for draw in cursor:
+        drawings.append({
+            "id": draw["id"],
+            "data_url": draw["data_url"],
+            "sender_name": draw.get("sender_name"),
+            "timestamp": draw["timestamp"],
+            "approved": draw["approved"]
+        })
+    
+    return {"drawings": drawings}
+
+@app.get("/user/drawings")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_user_drawings(
+    request: Request,
+    current_user: dict = Depends(get_current_verified_user),
+    pending_only: bool = Query(False, description="Only show pending drawings"),
+    limit: int = Query(30, ge=1, le=50)
+):
+    """Get all drawings for the user's pages"""
+    # Prepare query
+    query = {"user_id": current_user["id"]}
+    if pending_only:
+        query["approved"] = False
+    
+    # Get drawings
+    drawings = []
+    cursor = db.drawings.find(query).sort("timestamp", -1).limit(limit)
+    
+    async for draw in cursor:
+        # Get page title
+        page = await db.profile_pages.find_one(
+            {"page_id": draw["page_id"]},
+            projection={"title": 1, "url": 1}
+        )
+        
+        drawings.append({
+            "id": draw["id"],
+            "page_id": draw["page_id"],
+            "page_title": page["title"] if page else "Unknown Page",
+            "page_url": page["url"] if page else "",
+            "data_url": draw["data_url"],
+            "sender_name": draw.get("sender_name"),
+            "timestamp": draw["timestamp"],
+            "approved": draw["approved"]
+        })
+    
+    return {"drawings": drawings}
+
+@app.post("/drawings/{drawing_id}/approve")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def approve_drawing(
+    request: Request,
+    drawing_id: str,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Approve a pending drawing"""
+    # Find the drawing
+    drawing = await db.drawings.find_one({"id": drawing_id})
+    
+    if not drawing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Drawing not found"
+        )
+    
+    # Check if the user owns the page
+    page = await db.profile_pages.find_one({
+        "page_id": drawing["page_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to approve this drawing"
+        )
+    
+    # Update the drawing
+    await db.drawings.update_one(
+        {"id": drawing_id},
+        {"$set": {"approved": True}}
+    )
+    
+    return {"message": "Drawing approved successfully"}
+
+@app.delete("/drawings/{drawing_id}")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def delete_drawing(
+    request: Request,
+    drawing_id: str,
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Delete a drawing"""
+    # Find the drawing
+    drawing = await db.drawings.find_one({"id": drawing_id})
+    
+    if not drawing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Drawing not found"
+        )
+    
+    # Check if the user owns the page
+    page = await db.profile_pages.find_one({
+        "page_id": drawing["page_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this drawing"
+        )
+    
+    # Delete the drawing
+    await db.drawings.delete_one({"id": drawing_id})
+    
+    return {"message": "Drawing deleted successfully"}
 
 # Helper functions for Discord integration
+
 async def get_discord_tokens(code: str) -> Dict[str, Any]:
     """Exchange authorization code for access token"""
     data = {
@@ -2365,6 +3301,7 @@ async def get_discord_user(access_token: str) -> Dict[str, Any]:
         return response.json()
 
 # Discord integration endpoints
+
 @app.get("/discord/auth-url")
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_discord_auth_url(request: Request):
@@ -2816,7 +3753,23 @@ async def update_user_profile(
                     "link": ""
                 }
             },
-            "timezone": timezone
+            "timezone": timezone,
+            "messages_config": {
+                "enabled": False,
+                "require_approval": True,
+                "allow_anonymous": True,
+                "placeholder_text": "Leave a message..."
+            },
+            "drawings_config": {
+                "enabled": False,
+                "require_approval": True,
+                "allow_anonymous": True
+            },
+            "analytics_config": {
+                "enabled": True,
+                "show_country_data": True,
+                "show_time_data": True
+            }
         }
         
         await db.profile_pages.insert_one(default_page)
@@ -2898,6 +3851,15 @@ async def delete_profile_page(
     
     # Delete associated views
     await db.views.delete_one({"url": page["url"]})
+    
+    # Delete associated analytics
+    await db.analytics.delete_many({"page_id": page_id})
+    
+    # Delete associated messages
+    await db.messages.delete_many({"page_id": page_id})
+    
+    # Delete associated drawings
+    await db.drawings.delete_many({"page_id": page_id})
     
     # Clear cache
     if f"views:{page['url']}" in views_cache:
@@ -3010,7 +3972,8 @@ async def get_public_page(request: Request, url: str, template_id: Optional[str]
             }
     
     if page.get("show_views", True):
-        views = await increment_page_views(db, url, device_hash)
+        # Pass the request to include analytics data
+        views = await increment_page_views(db, url, device_hash, request)
     
     # Prepare response data
     # Convert ObjectId to string
@@ -3671,6 +4634,7 @@ async def upload_image(
         )
 
 # Health check ping with optimized timeout
+
 async def ping_self():
     async with httpx.AsyncClient(timeout=5.0) as client:
         try:
@@ -3692,9 +4656,9 @@ async def start_cleanup_scheduler():
     while True:
         await cleanup_old_view_records()
         await cleanup_expired_previews()
+        await cleanup_old_analytics()  # Added cleanup for analytics
         await asyncio.sleep(12 * 60 * 60)  # Run twice daily instead of daily
 
-# Add to your existing periodic cleanup tasks
 async def periodic_registration_cleanup():
     while True:
         try:
@@ -3821,6 +4785,27 @@ async def startup_event():
     await db.page_previews.create_index("expires_at")
     await db.users.create_index("discord.discord_id")
     
+    # New indexes for analytics, messages, and drawings
+    await db.analytics.create_index("page_id")
+    await db.analytics.create_index("url")
+    await db.analytics.create_index("timestamp")
+    await db.analytics.create_index([("page_id", 1), ("timestamp", -1)])
+    await db.analytics.create_index([("country_code", 1), ("page_id", 1)])
+    
+    await db.messages.create_index("page_id")
+    await db.messages.create_index("url")
+    await db.messages.create_index("user_id")
+    await db.messages.create_index([("page_id", 1), ("approved", 1)])
+    await db.messages.create_index([("user_id", 1), ("approved", 1)])
+    await db.messages.create_index("timestamp")
+    
+    await db.drawings.create_index("page_id")
+    await db.drawings.create_index("url")
+    await db.drawings.create_index("user_id")
+    await db.drawings.create_index([("page_id", 1), ("approved", 1)])
+    await db.drawings.create_index([("user_id", 1), ("approved", 1)])
+    await db.drawings.create_index("timestamp")
+    
     # Start cleanup tasks
     asyncio.create_task(start_cleanup_scheduler())
     asyncio.create_task(periodic_registration_cleanup())
@@ -3839,6 +4824,8 @@ async def shutdown_event():
     if db_client:
         logger.info("Closing database connection...")
         db_client.close()
+    
+
 
 if __name__ == "__main__":
     import uvicorn
