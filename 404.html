@@ -2751,12 +2751,18 @@ body {
         const secondaryElements = [
             document.getElementById('username'),
             document.getElementById('joinedDate'),
+            document.getElementById('ageText'),       // Added
+            document.getElementById('genderText'),    // Added
+            document.getElementById('pronounsText'),  // Added
+            document.getElementById('locationText'),  // Added
             ...document.querySelectorAll('.user-detail'),
             ...document.querySelectorAll('.timezone-container'),
             ...document.querySelectorAll('.song-artist'),
             ...document.querySelectorAll('.message-date'),
             ...document.querySelectorAll('.drawing-timestamp'),
             document.getElementById('viewsCounter'),
+            document.getElementById('viewsCount'),    // Added
+            document.getElementById('viewCountBadge'), // Added
             ...document.querySelectorAll('.discord-tag'),
             ...document.querySelectorAll('.discord-status'),
             ...document.querySelectorAll('.discord-activity'),
@@ -2782,8 +2788,17 @@ body {
                 }
             }
         });
+        
+        // Apply style to detail icons
+        const detailIcons = document.querySelectorAll('.detail-icon');
+        if (style.color) {
+            detailIcons.forEach(icon => {
+                // Apply color filter to icons to match text color
+                const color = style.color.replace('#', '');
+                icon.style.filter = `invert(1) sepia(1) saturate(5) hue-rotate(${getHueRotate(color)}deg)`;
+            });
+        }
     }
-    
     // Apply styles to primary text elements
     function applyPrimaryTextStyle(style) {
         if (!style) return;
