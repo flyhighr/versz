@@ -111,29 +111,34 @@ class Settings:
             "link": ""
         },
         {
-            "name": "Roboto",
-            "value": "'Roboto', sans-serif",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap' rel='stylesheet'>"
+            "name": "VT323",
+            "value": "'VT323', monospace",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=VT323&display=swap' rel='stylesheet'>"
         },
         {
-            "name": "Open Sans",
-            "value": "'Open Sans', sans-serif",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap' rel='stylesheet'>"
+            "name": "Metal Mania",
+            "value": "'Metal Mania', system-ui",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Metal+Mania&display=swap' rel='stylesheet'>"
         },
         {
-            "name": "Montserrat",
-            "value": "'Montserrat', sans-serif",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap' rel='stylesheet'>"
+            "name": "Creepster",
+            "value": "'Creepster', system-ui",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Creepster&display=swap' rel='stylesheet'>"
         },
         {
-            "name": "Lato",
-            "value": "'Lato', sans-serif",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap' rel='stylesheet'>"
+            "name": "Annie Use Your Telescope",
+            "value": "'Annie Use Your Telescope', cursive",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Annie+Use+Your+Telescope&display=swap' rel='stylesheet'>"
         },
         {
-            "name": "Playfair Display",
-            "value": "'Playfair Display', serif",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap' rel='stylesheet'>"
+            "name": "The Girl Next Door",
+            "value": "'The Girl Next Door', cursive",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=The+Girl+Next+Door&display=swap' rel='stylesheet'>"
+        },
+        {
+            "name": "Hi Melody",
+            "value": "'Hi Melody', sans-serif",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Hi+Melody&display=swap' rel='stylesheet'>"
         }
     ]
     TIMEZONES = list(pytz.all_timezones)
