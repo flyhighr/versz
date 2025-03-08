@@ -803,11 +803,21 @@ async def get_country_info(ip_address: str) -> Dict[str, str]:
         maxmind_account_id = os.getenv("MAXMIND_ACCOUNT_ID")
         
         if not maxmind_api_key or not maxmind_account_id:
-            return {"country_code": "Unknown", "country_name": "Unknown"}
+            # Use a free IP geolocation API as fallback
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(f"https://ipapi.co/{ip_address}/json/")
+                if response.status_code == 200:
+                    data = response.json()
+                    return {
+                        "country_code": data.get("country_code", "Unknown"),
+                        "country_name": data.get("country_name", "Unknown")
+                    }
+                else:
+                    return {"country_code": "Unknown", "country_name": "Unknown"}
             
         url = f"https://geolite.info/geoip/v2.1/country/{ip_address}"
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(
                 url,
                 auth=(maxmind_account_id, maxmind_api_key)
@@ -820,7 +830,17 @@ async def get_country_info(ip_address: str) -> Dict[str, str]:
                     "country_name": data.get("country", {}).get("names", {}).get("en", "Unknown")
                 }
             else:
-                return {"country_code": "Unknown", "country_name": "Unknown"}
+                # Try the fallback API if MaxMind fails
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    response = await client.get(f"https://ipapi.co/{ip_address}/json/")
+                    if response.status_code == 200:
+                        data = response.json()
+                        return {
+                            "country_code": data.get("country_code", "Unknown"),
+                            "country_name": data.get("country_name", "Unknown")
+                        }
+                    else:
+                        return {"country_code": "Unknown", "country_name": "Unknown"}
                 
     except Exception as e:
         logger.error(f"Error getting country info: {str(e)}")
