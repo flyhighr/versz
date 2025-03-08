@@ -365,6 +365,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 case 'image':
                     document.getElementById('edit-bg-image-url').value = pageData.background.value || '';
                     break;
+                case 'video':
+                    document.getElementById('edit-bg-video-url').value = pageData.background.value || '';
+                    break;
+                
             }
             
             // Set background opacity
@@ -1019,6 +1023,10 @@ const collectFormData = async (pageId) => {
             
         case 'image':
             backgroundValue = document.getElementById('edit-bg-image-url').value;
+            break;
+            
+        case 'video':
+            backgroundValue = document.getElementById('edit-bg-video-url').value;
             break;
     }
     
