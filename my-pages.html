@@ -25,20 +25,25 @@
 
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
-                <button class="sidebar-toggle" id="sidebar-toggle">
+                <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Close menu">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="sidebar-user">
                 <div class="user-avatar">
                     <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                    <div class="avatar-loading"></div>
                 </div>
                 <div class="user-info">
-                    <h3 id="sidebar-username">Username</h3>
-                    <p id="sidebar-email">user@example.com</p>
+                    <h3 id="sidebar-username">
+                        <div class="text-loading"></div>
+                    </h3>
+                    <p id="sidebar-email">
+                        <div class="text-loading"></div>
+                    </p>
                 </div>
             </div>
             <nav class="sidebar-nav">
@@ -46,9 +51,13 @@
                     <i class="fas fa-home"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="my-pages.html" class="nav-item">
+                <a href="my-pages.html" class="nav-item active">
                     <i class="fas fa-file-alt"></i>
                     <span>My Pages</span>
+                </a>
+                <a href="customize.html" class="nav-item">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Customize</span>
                 </a>
                 <a href="customize.html" class="nav-item active">
                     <i class="fas fa-paint-brush"></i>
@@ -57,10 +66,6 @@
                 <a href="analytics.html" class="nav-item">
                     <i class="fas fa-chart-line"></i>
                     <span>Analytics</span>
-                </a>
-                <a href="messages.html" class="nav-item">
-                    <i class="fas fa-comment-alt"></i>
-                    <span>Messages</span>
                 </a>
                 <a href="templates.html" class="nav-item">
                     <i class="fas fa-layer-group"></i>
