@@ -1902,47 +1902,51 @@ body {
         const drawingCanvasContainer = document.getElementById('drawingCanvasContainer');
         
         // Message toggle functionality
-        messageToggle.addEventListener('click', function() {
-            this.classList.toggle('active');
-            if (messageFormContainer.classList.contains('active')) {
-                messageFormContainer.classList.remove('active');
-                messageFormContainer.classList.add('slide-up');
-                setTimeout(() => {
-                    messageFormContainer.classList.remove('slide-up');
-                }, 300);
-            } else {
-                messageFormContainer.classList.add('active');
-                messageFormContainer.classList.add('slide-down');
-                setTimeout(() => {
-                    messageFormContainer.classList.remove('slide-down');
-                }, 300);
-            }
-        });
+        if (messageToggle && messageFormContainer) {
+            messageToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                if (messageFormContainer.classList.contains('active')) {
+                    messageFormContainer.classList.remove('active');
+                    messageFormContainer.classList.add('slide-up');
+                    setTimeout(() => {
+                        messageFormContainer.classList.remove('slide-up');
+                    }, 300);
+                } else {
+                    messageFormContainer.classList.add('active');
+                    messageFormContainer.classList.add('slide-down');
+                    setTimeout(() => {
+                        messageFormContainer.classList.remove('slide-down');
+                    }, 300);
+                }
+            });
+        }
         
         // Drawing toggle functionality
-        drawingToggle.addEventListener('click', function() {
-            this.classList.toggle('active');
-            if (drawingCanvasContainer.classList.contains('active')) {
-                drawingCanvasContainer.classList.remove('active');
-                drawingCanvasContainer.classList.add('slide-up');
-                setTimeout(() => {
-                    drawingCanvasContainer.classList.remove('slide-up');
-                }, 300);
-            } else {
-                drawingCanvasContainer.classList.add('active');
-                drawingCanvasContainer.classList.add('slide-down');
-                setTimeout(() => {
-                    drawingCanvasContainer.classList.remove('slide-down');
-                    // Resize canvas once visible
-                    const canvas = document.getElementById('drawingCanvas');
-                    if (canvas) {
-                        const ctx = canvas.getContext('2d');
-                        const container = canvas.parentElement;
-                        canvas.width = container.clientWidth - 30;
-                    }
-                }, 300);
-            }
-        });
+        if (drawingToggle && drawingCanvasContainer) {
+            drawingToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                if (drawingCanvasContainer.classList.contains('active')) {
+                    drawingCanvasContainer.classList.remove('active');
+                    drawingCanvasContainer.classList.add('slide-up');
+                    setTimeout(() => {
+                        drawingCanvasContainer.classList.remove('slide-up');
+                    }, 300);
+                } else {
+                    drawingCanvasContainer.classList.add('active');
+                    drawingCanvasContainer.classList.add('slide-down');
+                    setTimeout(() => {
+                        drawingCanvasContainer.classList.remove('slide-down');
+                        // Resize canvas once visible
+                        const canvas = document.getElementById('drawingCanvas');
+                        if (canvas) {
+                            const ctx = canvas.getContext('2d');
+                            const container = canvas.parentElement;
+                            canvas.width = container.clientWidth - 30;
+                        }
+                    }, 300);
+                }
+            });
+        }
     }
     
     // Initialize link popup
