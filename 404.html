@@ -2102,23 +2102,17 @@ body {
         const statsBadge = document.getElementById('statsBadge');
         const viewsCounter = document.getElementById('viewsCounterBadge');
         const viewCount = document.getElementById('viewCountBadge');
-        const mainViewCount = document.getElementById('viewsCount');
         const joinedDate = document.getElementById('joinedDateBadge');
         const joinedDateText = document.getElementById('joinedDateTextBadge');
-    
+
         if (data.views !== undefined) {
-            // Update both view counters
             viewCount.textContent = data.views;
-            mainViewCount.textContent = data.views;
-            
             viewsCounter.style.display = 'flex';
-            document.getElementById('viewsCounter').style.display = 'flex';
             statsBadge.style.display = 'flex';
         } else {
             viewsCounter.style.display = 'none';
-            document.getElementById('viewsCounter').style.display = 'none';
         }
-    
+
         if (data.user && data.user.joined_at) {
             const joinedTime = new Date(data.user.joined_at);
             const now = new Date();
@@ -2139,13 +2133,10 @@ body {
             joinedDateText.textContent = joinedString;
             joinedDate.style.display = 'flex';
             statsBadge.style.display = 'flex';
-            
-            // Also update the main joined date
-            document.getElementById('joinedDate').textContent = `Joined ${joinedString}`;
         } else {
             joinedDate.style.display = 'none';
         }
-    
+
         // Hide stats badge if nothing to show
         if (viewsCounter.style.display === 'none' && joinedDate.style.display === 'none') {
             statsBadge.style.display = 'none';
@@ -2751,18 +2742,12 @@ body {
         const secondaryElements = [
             document.getElementById('username'),
             document.getElementById('joinedDate'),
-            document.getElementById('ageText'),       // Added
-            document.getElementById('genderText'),    // Added
-            document.getElementById('pronounsText'),  // Added
-            document.getElementById('locationText'),  // Added
             ...document.querySelectorAll('.user-detail'),
             ...document.querySelectorAll('.timezone-container'),
             ...document.querySelectorAll('.song-artist'),
             ...document.querySelectorAll('.message-date'),
             ...document.querySelectorAll('.drawing-timestamp'),
             document.getElementById('viewsCounter'),
-            document.getElementById('viewsCount'),    // Added
-            document.getElementById('viewCountBadge'), // Added
             ...document.querySelectorAll('.discord-tag'),
             ...document.querySelectorAll('.discord-status'),
             ...document.querySelectorAll('.discord-activity'),
@@ -2788,17 +2773,8 @@ body {
                 }
             }
         });
-        
-        // Apply style to detail icons
-        const detailIcons = document.querySelectorAll('.detail-icon');
-        if (style.color) {
-            detailIcons.forEach(icon => {
-                // Apply color filter to icons to match text color
-                const color = style.color.replace('#', '');
-                icon.style.filter = `invert(1) sepia(1) saturate(5) hue-rotate(${getHueRotate(color)}deg)`;
-            });
-        }
     }
+    
     // Apply styles to primary text elements
     function applyPrimaryTextStyle(style) {
         if (!style) return;
@@ -3191,71 +3167,6 @@ body {
         }
     }
 
-    // Update the user details when the data changes
-    function updateUserDetails(user) {
-        if (!user) return;
-        
-        // Set age/birthday
-        const ageContainer = document.getElementById('ageContainer');
-        const ageText = document.getElementById('ageText');
-        
-        if (user.age || user.date_of_birth) {
-            let ageString = '';
-            if (user.age) {
-                ageString = `${user.age} years old`;
-            }
-            if (user.date_of_birth) {
-                const birthDate = new Date(user.date_of_birth);
-                const formattedDate = birthDate.toLocaleDateString('en-US', {
-                    month: 'long', 
-                    day: 'numeric'
-                });
-                
-                ageString = user.age ? 
-                    `${user.age} years old (${formattedDate})` : 
-                    `Birthday: ${formattedDate}`;
-            }
-            
-            ageText.textContent = ageString;
-            ageContainer.style.display = 'flex';
-        } else {
-            ageContainer.style.display = 'none';
-        }
-        
-        // Set gender
-        const genderContainer = document.getElementById('genderContainer');
-        const genderText = document.getElementById('genderText');
-        
-        if (user.gender) {
-            genderText.textContent = user.gender;
-            genderContainer.style.display = 'flex';
-        } else {
-            genderContainer.style.display = 'none';
-        }
-        
-        // Set pronouns
-        const pronounsContainer = document.getElementById('pronounsContainer');
-        const pronounsText = document.getElementById('pronounsText');
-        
-        if (user.pronouns) {
-            pronounsText.textContent = user.pronouns;
-            pronounsContainer.style.display = 'flex';
-        } else {
-            pronounsContainer.style.display = 'none';
-        }
-        
-        // Set location
-        const locationContainer = document.getElementById('locationContainer');
-        const locationText = document.getElementById('locationText');
-        
-        if (user.location) {
-            locationText.textContent = user.location;
-            locationContainer.style.display = 'flex';
-        } else {
-            locationContainer.style.display = 'none';
-        }
-    }
-
     async function renderContent(data) {
         const loading = document.getElementById('loading');
         if (!data || (!data.page && !data.is_preview)) {
@@ -3370,8 +3281,69 @@ body {
             document.getElementById('joinedDate').style.display = 'none';
         }
         
-        // Update user details
-        updateUserDetails(user);
+        // Set user details
+        const userDetails = document.getElementById('userDetails');
+        userDetails.innerHTML = '';
+        
+        // Set age/birthday
+        const ageContainer = document.getElementById('ageContainer');
+        const ageText = document.getElementById('ageText');
+        
+        if (user.age || user.date_of_birth) {
+            let ageString = '';
+            if (user.age) {
+                ageString = `${user.age} years old`;
+            }
+            if (user.date_of_birth) {
+                const birthDate = new Date(user.date_of_birth);
+                const formattedDate = birthDate.toLocaleDateString('en-US', {
+                    month: 'long', 
+                    day: 'numeric'
+                });
+                
+                ageString = user.age ? 
+                    `${user.age} years old (${formattedDate})` : 
+                    `Birthday: ${formattedDate}`;
+            }
+            
+            ageText.textContent = ageString;
+            ageContainer.style.display = 'flex';
+        } else {
+            ageContainer.style.display = 'none';
+        }
+        
+        // Set gender
+        const genderContainer = document.getElementById('genderContainer');
+        const genderText = document.getElementById('genderText');
+        
+        if (user.gender) {
+            genderText.textContent = user.gender;
+            genderContainer.style.display = 'flex';
+        } else {
+            genderContainer.style.display = 'none';
+        }
+        
+        // Set pronouns
+        const pronounsContainer = document.getElementById('pronounsContainer');
+        const pronounsText = document.getElementById('pronounsText');
+        
+        if (user.pronouns) {
+            pronounsText.textContent = user.pronouns;
+            pronounsContainer.style.display = 'flex';
+        } else {
+            pronounsContainer.style.display = 'none';
+        }
+        
+        // Set location
+        const locationContainer = document.getElementById('locationContainer');
+        const locationText = document.getElementById('locationText');
+        
+        if (user.location) {
+            locationText.textContent = user.location;
+            locationContainer.style.display = 'flex';
+        } else {
+            locationContainer.style.display = 'none';
+        }
         
         // Set timezone
         if (page.timezone || user.timezone) {
@@ -3461,19 +3433,12 @@ body {
         
         // Set views counter
         if (data.views !== undefined && page.show_views !== false) {
-            const viewsCount = document.getElementById('viewsCount');
-            const viewCountBadge = document.getElementById('viewCountBadge');
-            
-            // Update both the main views counter and the badge
-            viewsCount.textContent = data.views;
-            viewCountBadge.textContent = data.views;
-            
+            document.getElementById('viewsCount').textContent = data.views;
             document.getElementById('viewsCounter').style.display = 'flex';
-            document.getElementById('viewsCounterBadge').style.display = 'flex';
         } else {
             document.getElementById('viewsCounter').style.display = 'none';
-            document.getElementById('viewsCounterBadge').style.display = 'none';
         }
+
         
         // Set tags
         renderTags(user.tags || []);
@@ -3502,6 +3467,9 @@ body {
                 console.error('Error executing custom JS:', error);
             }
         }
+        
+        // Initialize form toggles - now handled by direct handlers below
+        // initFormToggles();
         
         // Hide loading screen
         if (loading) {
