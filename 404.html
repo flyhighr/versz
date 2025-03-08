@@ -934,13 +934,56 @@ body {
     font-weight: 600;
 }
 
-.message-form-container {
+/* NEW: Toggle buttons for forms */
+.form-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.form-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+.form-toggle-icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+}
+
+.form-toggle.active .form-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.form-toggle-text {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.message-form-container, .drawing-canvas-container {
     margin-bottom: 20px;
     border-radius: 0;
     background-color: transparent;
     padding: 0;
     border: none;
     box-shadow: none;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: all 0.5s ease;
+}
+
+.message-form-container.active, .drawing-canvas-container.active {
+    max-height: 600px;
+    opacity: 1;
+    margin-bottom: 20px;
 }
 
 #messageForm {
@@ -957,13 +1000,15 @@ body {
     font-family: inherit;
     resize: vertical;
     background-color: rgba(255, 255, 255, 0.8);
-    transition: background-color 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 #messageText:focus {
     background-color: rgba(255, 255, 255, 0.9);
     outline: none;
     border-color: rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .message-form-footer {
@@ -984,13 +1029,15 @@ body {
     border-radius: 8px;
     font-family: inherit;
     background-color: rgba(255, 255, 255, 0.8);
-    transition: background-color 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 #senderName:focus, #drawingSenderName:focus {
     background-color: rgba(255, 255, 255, 0.9);
     outline: none;
     border-color: rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .message-submit-btn, .drawing-submit-btn {
@@ -1001,12 +1048,13 @@ body {
     padding: 8px 16px;
     cursor: pointer;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .message-submit-btn:hover, .drawing-submit-btn:hover {
     background-color: #000;
     transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .messages-loading, .drawings-loading {
@@ -1049,6 +1097,7 @@ body {
     border: none;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     box-shadow: none;
+    animation: fadeIn 0.5s ease;
 }
 
 .message-sender {
@@ -1077,15 +1126,6 @@ body {
 }
 
 /* Drawing canvas styles - INVISIBLE */
-.drawing-canvas-container {
-    margin-bottom: 20px;
-    border-radius: 0;
-    background-color: transparent;
-    padding: 0;
-    border: none;
-    box-shadow: none;
-}
-
 .drawing-controls {
     display: flex;
     flex-wrap: wrap;
@@ -1120,6 +1160,7 @@ body {
 .drawing-tool:hover {
     background-color: rgba(240, 240, 240, 0.9);
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .drawing-colors {
@@ -1188,6 +1229,11 @@ body {
     background-color: #fff;
     margin-bottom: 15px;
     cursor: crosshair;
+    transition: border-color 0.3s ease;
+}
+
+#drawingCanvas:hover {
+    border-color: rgba(0, 0, 0, 0.3);
 }
 
 .drawings-list {
@@ -1204,10 +1250,12 @@ body {
     transition: all 0.3s ease;
     border: none;
     box-shadow: none;
+    animation: fadeIn 0.5s ease;
 }
 
 .drawing-item:hover {
     transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .drawing-img {
@@ -1217,6 +1265,11 @@ body {
     background-color: #fff;
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.drawing-img:hover {
+    border-color: rgba(0, 0, 0, 0.2);
 }
 
 .drawing-info {
@@ -1235,6 +1288,79 @@ body {
 .drawing-timestamp {
     font-size: 12px;
     color: #999;
+}
+
+/* New animation for form toggle */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+.slide-down {
+    animation: slideDown 0.3s ease forwards;
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease forwards;
+}
+
+/* New styles for form toggles */
+.toggle-container {
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.toggle-container:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.toggle-button {
+    width: 100%;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.toggle-button:hover {
+    background-color: rgba(0, 0, 0, 0.01);
+}
+
+.toggle-icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+}
+
+.toggle-button.active .toggle-icon {
+    transform: rotate(180deg);
 }
 
 /* Responsive adjustments */
@@ -1520,13 +1646,22 @@ body {
             </div>
         </div>
     </div>
-    <!-- Message Container - Added after Discord Container -->
+    
+    <!-- Message Container - Updated with toggle button -->
     <div id="messageContainer" class="profile-container" style="display: none;">
         <div class="message-header">
             <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png" alt="Messages" class="section-icon">
             <div class="message-title">Messages</div>
         </div>
-        <div class="message-form-container">
+        
+        <div class="toggle-container">
+            <button id="messageToggle" class="toggle-button">
+                <img src="https://cdn-icons-png.flaticon.com/512/3838/3838683.png" alt="Toggle" class="toggle-icon">
+                <span>Leave a message</span>
+            </button>
+        </div>
+        
+        <div class="message-form-container" id="messageFormContainer">
             <form id="messageForm">
                 <textarea id="messageText" placeholder="Leave a message..." rows="3"></textarea>
                 <div class="message-form-footer">
@@ -1537,6 +1672,7 @@ body {
                 </div>
             </form>
         </div>
+        
         <div id="messagesContent" class="messages-content">
             <div id="messagesLoading" class="messages-loading">
                 <div class="spinner"></div>
@@ -1549,23 +1685,31 @@ body {
         </div>
     </div>
     
-    <!-- Drawing Container - Added after Message Container -->
+    <!-- Drawing Container - Updated with toggle button -->
     <div id="drawingContainer" class="profile-container" style="display: none;">
         <div class="drawing-header">
             <img src="https://cdn-icons-png.flaticon.com/512/1792/1792307.png" alt="Drawings" class="section-icon">
             <div class="drawing-title">Drawings</div>
         </div>
-        <div class="drawing-canvas-container">
+        
+        <div class="toggle-container">
+            <button id="drawingToggle" class="toggle-button">
+                <img src="https://cdn-icons-png.flaticon.com/512/3838/3838683.png" alt="Toggle" class="toggle-icon">
+                <span>Create a drawing</span>
+            </button>
+        </div>
+        
+        <div class="drawing-canvas-container" id="drawingCanvasContainer">
             <div class="drawing-controls">
                 <div class="drawing-tools">
                     <button id="penTool" class="drawing-tool active" title="Pen">
-                        <i class="fas fa-pen"></i>
+                        <img src="https://cdn-icons-png.flaticon.com/512/1250/1250615.png" alt="Pen" width="20">
                     </button>
                     <button id="eraserTool" class="drawing-tool" title="Eraser">
-                        <i class="fas fa-eraser"></i>
+                        <img src="https://cdn-icons-png.flaticon.com/512/3096/3096673.png" alt="Eraser" width="20">
                     </button>
                     <button id="clearCanvas" class="drawing-tool" title="Clear">
-                        <i class="fas fa-trash"></i>
+                        <img src="https://cdn-icons-png.flaticon.com/512/3096/3096687.png" alt="Clear" width="20">
                     </button>
                 </div>
                 <div class="drawing-colors">
@@ -1587,6 +1731,7 @@ body {
                 <button id="submitDrawingBtn" class="drawing-submit-btn">Submit Drawing</button>
             </div>
         </div>
+        
         <div id="drawingsContent" class="drawings-content">
             <div id="drawingsLoading" class="drawings-loading">
                 <div class="spinner"></div>
@@ -1668,6 +1813,8 @@ body {
     let fullTitle = '';
     let timezoneInterval = null;
     let pendingLink = null; // Store link when confirmation popup is shown
+    let nameStyle = null; // Store name style for applying to primary text
+    let usernameStyle = null; // Store username style for applying to secondary text
 
     window.addEventListener('resize', () => {
         isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -1743,6 +1890,57 @@ body {
             } else {
                 npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/3318/3318638.png";
                 isPlaying = false;
+            }
+        });
+    }
+    
+    // Initialize form toggles
+    function initFormToggles() {
+        const messageToggle = document.getElementById('messageToggle');
+        const messageFormContainer = document.getElementById('messageFormContainer');
+        const drawingToggle = document.getElementById('drawingToggle');
+        const drawingCanvasContainer = document.getElementById('drawingCanvasContainer');
+        
+        // Message toggle functionality
+        messageToggle.addEventListener('click', function() {
+            this.classList.toggle('active');
+            if (messageFormContainer.classList.contains('active')) {
+                messageFormContainer.classList.remove('active');
+                messageFormContainer.classList.add('slide-up');
+                setTimeout(() => {
+                    messageFormContainer.classList.remove('slide-up');
+                }, 300);
+            } else {
+                messageFormContainer.classList.add('active');
+                messageFormContainer.classList.add('slide-down');
+                setTimeout(() => {
+                    messageFormContainer.classList.remove('slide-down');
+                }, 300);
+            }
+        });
+        
+        // Drawing toggle functionality
+        drawingToggle.addEventListener('click', function() {
+            this.classList.toggle('active');
+            if (drawingCanvasContainer.classList.contains('active')) {
+                drawingCanvasContainer.classList.remove('active');
+                drawingCanvasContainer.classList.add('slide-up');
+                setTimeout(() => {
+                    drawingCanvasContainer.classList.remove('slide-up');
+                }, 300);
+            } else {
+                drawingCanvasContainer.classList.add('active');
+                drawingCanvasContainer.classList.add('slide-down');
+                setTimeout(() => {
+                    drawingCanvasContainer.classList.remove('slide-down');
+                    // Resize canvas once visible
+                    const canvas = document.getElementById('drawingCanvas');
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        const container = canvas.parentElement;
+                        canvas.width = container.clientWidth - 30;
+                    }
+                }, 300);
             }
         });
     }
@@ -1920,6 +2118,26 @@ body {
         npTitle.textContent = song.title;
         npArtist.textContent = song.artist;
         
+        // Apply the name style to song title (primary text)
+        if (nameStyle) {
+            if (nameStyle.color) {
+                npTitle.style.color = nameStyle.color;
+            }
+            if (nameStyle.font && nameStyle.font.value) {
+                npTitle.style.fontFamily = nameStyle.font.value;
+            }
+        }
+        
+        // Apply the username style to artist (secondary text)
+        if (usernameStyle) {
+            if (usernameStyle.color) {
+                npArtist.style.color = usernameStyle.color;
+            }
+            if (usernameStyle.font && usernameStyle.font.value) {
+                npArtist.style.fontFamily = usernameStyle.font.value;
+            }
+        }
+        
         // Setup audio player
         const audio = document.getElementById('audioPlayer');
         
@@ -2039,6 +2257,10 @@ body {
                     loadMessages(pageId);
                 }
                 
+                // Close the message form after successful submission
+                document.getElementById('messageToggle').classList.remove('active');
+                document.getElementById('messageFormContainer').classList.remove('active');
+                
             } catch (error) {
                 console.error('Error sending message:', error);
                 alert('Failed to send message. Please try again later.');
@@ -2074,7 +2296,7 @@ body {
             }
             
             const data = await response.json();
-            const messages = data.messages || [];
+            let messages = data.messages || [];
             
             // Hide loading state
             messagesLoading.style.display = 'none';
@@ -2083,6 +2305,9 @@ body {
                 noMessages.style.display = 'block';
                 return;
             }
+            
+            // Sort messages to show newest first
+            messages = messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
             // Render messages
             messages.forEach(message => {
@@ -2105,6 +2330,28 @@ body {
                     <div class="message-date">${formattedDate}</div>
                     <div class="message-content">${message.content}</div>
                 `;
+                
+                // Apply name style to sender name (primary text)
+                if (nameStyle) {
+                    const senderElement = messageItem.querySelector('.message-sender');
+                    if (nameStyle.color) {
+                        senderElement.style.color = nameStyle.color;
+                    }
+                    if (nameStyle.font && nameStyle.font.value) {
+                        senderElement.style.fontFamily = nameStyle.font.value;
+                    }
+                }
+                
+                // Apply username style to date (secondary text)
+                if (usernameStyle) {
+                    const dateElement = messageItem.querySelector('.message-date');
+                    if (usernameStyle.color) {
+                        dateElement.style.color = usernameStyle.color;
+                    }
+                    if (usernameStyle.font && usernameStyle.font.value) {
+                        dateElement.style.fontFamily = usernameStyle.font.value;
+                    }
+                }
                 
                 messagesList.appendChild(messageItem);
             });
@@ -2293,6 +2540,10 @@ body {
                     loadDrawings(pageId);
                 }
                 
+                // Close the drawing form after successful submission
+                document.getElementById('drawingToggle').classList.remove('active');
+                document.getElementById('drawingCanvasContainer').classList.remove('active');
+                
             } catch (error) {
                 console.error('Error submitting drawing:', error);
                 alert('Failed to submit drawing. Please try again later.');
@@ -2324,7 +2575,7 @@ body {
             }
             
             const data = await response.json();
-            const drawings = data.drawings || [];
+            let drawings = data.drawings || [];
             
             // Hide loading state
             drawingsLoading.style.display = 'none';
@@ -2333,6 +2584,9 @@ body {
                 noDrawings.style.display = 'block';
                 return;
             }
+            
+            // Sort drawings to show newest first
+            drawings = drawings.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
             // Render drawings
             drawings.forEach(drawing => {
@@ -2355,6 +2609,28 @@ body {
                     </div>
                 `;
                 
+                // Apply name style to creator name (primary text)
+                if (nameStyle) {
+                    const creatorElement = drawingItem.querySelector('.drawing-creator');
+                    if (nameStyle.color) {
+                        creatorElement.style.color = nameStyle.color;
+                    }
+                    if (nameStyle.font && nameStyle.font.value) {
+                        creatorElement.style.fontFamily = nameStyle.font.value;
+                    }
+                }
+                
+                // Apply username style to timestamp (secondary text)
+                if (usernameStyle) {
+                    const timestampElement = drawingItem.querySelector('.drawing-timestamp');
+                    if (usernameStyle.color) {
+                        timestampElement.style.color = usernameStyle.color;
+                    }
+                    if (usernameStyle.font && usernameStyle.font.value) {
+                        timestampElement.style.fontFamily = usernameStyle.font.value;
+                    }
+                }
+                
                 // Add click event to view drawing in full size
                 drawingItem.addEventListener('click', () => {
                     const img = new Image();
@@ -2372,16 +2648,28 @@ body {
                     popup.style.justifyContent = 'center';
                     popup.style.zIndex = '1000';
                     popup.style.padding = '20px';
+                    popup.style.animation = 'fadeIn 0.3s ease';
                     
                     img.style.maxWidth = '90%';
                     img.style.maxHeight = '90%';
                     img.style.objectFit = 'contain';
+                    img.style.transition = 'transform 0.3s ease';
+                    img.style.transform = 'scale(0.95)';
+                    
+                    // Add animation when image loads
+                    img.onload = () => {
+                        img.style.transform = 'scale(1)';
+                    };
                     
                     popup.appendChild(img);
                     document.body.appendChild(popup);
                     
                     popup.addEventListener('click', () => {
-                        document.body.removeChild(popup);
+                        img.style.transform = 'scale(0.95)';
+                        popup.style.opacity = '0';
+                        setTimeout(() => {
+                            document.body.removeChild(popup);
+                        }, 300);
                     });
                 });
                 
@@ -2394,6 +2682,91 @@ body {
             noDrawings.style.display = 'block';
             noDrawings.innerHTML = '<p>Failed to load drawings. Please try again later.</p>';
         }
+    }
+
+    // Apply styles to secondary text elements 
+    function applySecondaryTextStyle(style) {
+        if (!style) return;
+        
+        // Store the style globally
+        usernameStyle = style;
+        
+        // Get all secondary text elements
+        const secondaryElements = [
+            document.getElementById('username'),
+            document.getElementById('joinedDate'),
+            ...document.querySelectorAll('.user-detail'),
+            ...document.querySelectorAll('.timezone-container'),
+            ...document.querySelectorAll('.song-artist'),
+            ...document.querySelectorAll('.message-date'),
+            ...document.querySelectorAll('.drawing-timestamp'),
+            document.getElementById('viewsCounter'),
+            ...document.querySelectorAll('.discord-tag'),
+            ...document.querySelectorAll('.discord-status'),
+            ...document.querySelectorAll('.discord-activity'),
+            ...document.querySelectorAll('.discord-connected')
+        ];
+        
+        // Apply styles to each element
+        secondaryElements.forEach(element => {
+            if (element) {
+                if (style.color) {
+                    element.style.color = style.color;
+                }
+                if (style.font && style.font.value) {
+                    element.style.fontFamily = style.font.value;
+                    
+                    // Add font link if provided
+                    if (style.font.link) {
+                        const existingLink = document.querySelector(`link[href="${style.font.link}"]`);
+                        if (!existingLink) {
+                            document.head.insertAdjacentHTML('beforeend', style.font.link);
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Apply styles to primary text elements
+    function applyPrimaryTextStyle(style) {
+        if (!style) return;
+        
+        // Store the style globally
+        nameStyle = style;
+        
+        // Get all primary text elements
+        const primaryElements = [
+            document.getElementById('profileName'),
+            document.getElementById('bio'),
+            ...document.querySelectorAll('.section-title'),
+            ...document.querySelectorAll('.song-title'),
+            ...document.querySelectorAll('.message-sender'),
+            ...document.querySelectorAll('.message-content'),
+            ...document.querySelectorAll('.drawing-creator'),
+            ...document.querySelectorAll('.discord-username'),
+            document.getElementById('discordUsername')
+        ];
+        
+        // Apply styles to each element
+        primaryElements.forEach(element => {
+            if (element) {
+                if (style.color) {
+                    element.style.color = style.color;
+                }
+                if (style.font && style.font.value) {
+                    element.style.fontFamily = style.font.value;
+                    
+                    // Add font link if provided
+                    if (style.font.link) {
+                        const existingLink = document.querySelector(`link[href="${style.font.link}"]`);
+                        if (!existingLink) {
+                            document.head.insertAdjacentHTML('beforeend', style.font.link);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     function startTitleAnimation(title) {
@@ -2473,6 +2846,18 @@ body {
         // Update immediately and then every minute
         updateTime();
         timezoneInterval = setInterval(updateTime, 60000);
+        
+        // Apply username style to timezone text (secondary text)
+        if (usernameStyle) {
+            if (usernameStyle.color) {
+                timezoneText.style.color = usernameStyle.color;
+                timezoneTime.style.color = usernameStyle.color;
+            }
+            if (usernameStyle.font && usernameStyle.font.value) {
+                timezoneText.style.fontFamily = usernameStyle.font.value;
+                timezoneTime.style.fontFamily = usernameStyle.font.value;
+            }
+        }
     }
 
     // Function to process @mentions in bio text
@@ -2781,6 +3166,7 @@ body {
         
         // Apply name style if specified
         if (page.name_style) {
+            nameStyle = page.name_style;
             const nameElement = document.getElementById('profileName');
             if (page.name_style.color) {
                 nameElement.style.color = page.name_style.color;
@@ -2796,10 +3182,14 @@ body {
                     }
                 }
             }
+            
+            // Apply name style to all primary text elements
+            applyPrimaryTextStyle(page.name_style);
         }
         
         // Apply username style if specified
         if (page.username_style) {
+            usernameStyle = page.username_style;
             const usernameElement = document.getElementById('username');
             if (page.username_style.color) {
                 usernameElement.style.color = page.username_style.color;
@@ -2815,6 +3205,9 @@ body {
                     }
                 }
             }
+            
+            // Apply username style to all secondary text elements
+            applySecondaryTextStyle(page.username_style);
         }
         
         // Set joined date
@@ -3027,6 +3420,9 @@ body {
             }
         }
         
+        // Initialize form toggles
+        initFormToggles();
+        
         // Hide loading screen
         if (loading) {
             loading.style.opacity = '0';
@@ -3162,6 +3558,28 @@ body {
             // Set username and tag
             document.getElementById('discordUsername').textContent = discord.username || 'Unknown';
             document.getElementById('discordTag').textContent = discord.discriminator ? `#${discord.discriminator}` : '';
+            
+            // Apply name style to username (primary text)
+            if (nameStyle) {
+                const usernameElement = document.getElementById('discordUsername');
+                if (nameStyle.color) {
+                    usernameElement.style.color = nameStyle.color;
+                }
+                if (nameStyle.font && nameStyle.font.value) {
+                    usernameElement.style.fontFamily = nameStyle.font.value;
+                }
+            }
+            
+            // Apply username style to tag (secondary text)
+            if (usernameStyle) {
+                const tagElement = document.getElementById('discordTag');
+                if (usernameStyle.color) {
+                    tagElement.style.color = usernameStyle.color;
+                }
+                if (usernameStyle.font && usernameStyle.font.value) {
+                    tagElement.style.fontFamily = usernameStyle.font.value;
+                }
+            }
             
             // Set status
             const statusIndicator = document.getElementById('discordStatusIndicator');
@@ -3389,6 +3807,16 @@ body {
         titleElement.appendChild(document.createTextNode('Music'));
         songsList.appendChild(titleElement);
         
+        // Apply name style to section title (primary text)
+        if (nameStyle) {
+            if (nameStyle.color) {
+                titleElement.style.color = nameStyle.color;
+            }
+            if (nameStyle.font && nameStyle.font.value) {
+                titleElement.style.fontFamily = nameStyle.font.value;
+            }
+        }
+        
         const audioPlayer = document.getElementById('audioPlayer');
         songsData = songs; // Store songs for global reference
         
@@ -3443,9 +3871,29 @@ body {
             songTitle.className = 'song-title';
             songTitle.textContent = song.title;
             
+            // Apply name style to song title (primary text)
+            if (nameStyle) {
+                if (nameStyle.color) {
+                    songTitle.style.color = nameStyle.color;
+                }
+                if (nameStyle.font && nameStyle.font.value) {
+                    songTitle.style.fontFamily = nameStyle.font.value;
+                }
+            }
+            
             const songArtist = document.createElement('div');
             songArtist.className = 'song-artist';
             songArtist.textContent = song.artist;
+            
+            // Apply username style to song artist (secondary text)
+            if (usernameStyle) {
+                if (usernameStyle.color) {
+                    songArtist.style.color = usernameStyle.color;
+                }
+                if (usernameStyle.font && usernameStyle.font.value) {
+                    songArtist.style.fontFamily = usernameStyle.font.value;
+                }
+            }
             
             songInfo.appendChild(songTitle);
             songInfo.appendChild(songArtist);
@@ -3544,6 +3992,9 @@ body {
         
         // Initialize link popup
         initLinkPopup();
+        
+        // Initialize form toggles
+        initFormToggles();
         
         // Load content
         loadContent();
