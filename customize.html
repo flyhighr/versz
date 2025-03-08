@@ -49,6 +49,14 @@
                     <i class="fas fa-paint-brush"></i>
                     <span>Customize</span>
                 </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="messages.html" class="nav-item">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>Messages</span>
+                </a>
                 <a href="templates.html" class="nav-item">
                     <i class="fas fa-layer-group"></i>
                     <span>Templates</span>
@@ -190,10 +198,6 @@
                                         <div class="bg-icon"><i class="fas fa-image"></i></div>
                                         <span>Image</span>
                                     </div>
-                                    <div class="background-option" data-type="video">
-                                        <div class="bg-icon"><i class="fas fa-video"></i></div>
-                                        <span>Video</span>
-                                    </div>
                                 </div>
                                 
                                 <div class="background-settings" id="edit-solid-settings">
@@ -219,12 +223,6 @@
                                 <div class="background-settings" id="edit-image-settings" style="display: none;">
                                     <label for="edit-bg-image-url">Background Image URL</label>
                                     <input type="url" id="edit-bg-image-url" name="bg_image_url" placeholder="https://example.com/image.jpg">
-                                </div>
-                                
-                                <div class="background-settings" id="edit-video-settings" style="display: none;">
-                                    <label for="edit-bg-video-url">Background Video URL</label>
-                                    <input type="url" id="edit-bg-video-url" name="bg_video_url" placeholder="https://example.com/video.mp4">
-                                    <p class="input-help">Use MP4 format for best compatibility. Videos may affect page load time.</p>
                                 </div>
                             </div>
                             
@@ -351,6 +349,111 @@
                                 </div>
                             </div>
                             
+                            <div class="form-group section-divider">
+                                <h3>Interactive Features</h3>
+                                
+                                <!-- Messages Settings -->
+                                <div class="feature-section">
+                                    <div class="feature-header">
+                                        <h4>Anonymous Messages</h4>
+                                        <div class="switch-group">
+                                            <label for="enable-messages">Enable Messages</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="enable-messages">
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="messages-settings" style="display: none;">
+                                        <div class="switch-group">
+                                            <label for="messages-require-approval">Require Approval</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="messages-require-approval" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="switch-group">
+                                            <label for="messages-allow-anonymous">Allow Anonymous</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="messages-allow-anonymous" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="messages-placeholder">Message Placeholder</label>
+                                            <input type="text" id="messages-placeholder" placeholder="Leave a message...">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Drawings Settings -->
+                                <div class="feature-section">
+                                    <div class="feature-header">
+                                        <h4>Anonymous Drawings</h4>
+                                        <div class="switch-group">
+                                            <label for="enable-drawings">Enable Drawings</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="enable-drawings">
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="drawings-settings" style="display: none;">
+                                        <div class="switch-group">
+                                            <label for="drawings-require-approval">Require Approval</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="drawings-require-approval" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="switch-group">
+                                            <label for="drawings-allow-anonymous">Allow Anonymous</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="drawings-allow-anonymous" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Analytics Settings -->
+                                <div class="feature-section">
+                                    <div class="feature-header">
+                                        <h4>Page Analytics</h4>
+                                        <div class="switch-group">
+                                            <label for="enable-analytics">Enable Analytics</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="enable-analytics" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="analytics-settings" style="display: none;">
+                                        <div class="switch-group">
+                                            <label for="analytics-show-country">Show Country Data</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="analytics-show-country" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="switch-group">
+                                            <label for="analytics-show-time">Show Time Data</label>
+                                            <label class="switch">
+                                                <input type="checkbox" id="analytics-show-time" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="form-group">
                                 <label>Music Player</label>
                                 <button type="button" id="add-song-btn" class="btn btn-outline btn-sm">
@@ -422,8 +525,9 @@
                                 <ul>
                                     <li>Upload your avatar decoration as a transparent PNG or GIF</li>
                                     <li>Make sure your background images are high quality</li>
-                                    <li>For video backgrounds, use MP4 format and keep file size small</li>
                                     <li>Test your page on both desktop and mobile devices</li>
+                                    <li>Enable Messages & Drawings for interactive features</li>
+                                    <li>Check your Analytics to see who's visiting your page</li>
                                 </ul>
                             </div>
                         </div>
@@ -515,8 +619,6 @@
         </div>
     </div>
 
-    <div class="notification-container"></div>
-    <!-- Add this right before the closing body tag -->
     <div class="notification-container"></div>
 
     <script src="js/customize.js"></script>

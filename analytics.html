@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Versz</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/analytics.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Mobile header -->
+    <header class="mobile-header">
+        <a href="dashboard.html" class="logo">Versz<span class="accent-text">.fun</span></a>
+        <button class="menu-toggle" id="mobile-menu-toggle" aria-label="Open menu">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
+
+    <!-- Page overlay for mobile menu -->
+    <div class="overlay" id="overlay"></div>
+
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
+                <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Close menu">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                    <div class="avatar-loading"></div>
+                </div>
+                <div class="user-info">
+                    <h3 id="sidebar-username">
+                        <div class="text-loading"></div>
+                    </h3>
+                    <p id="sidebar-email">
+                        <div class="text-loading"></div>
+                    </p>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="my-pages.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>My Pages</span>
+                </a>
+                <a href="customize.html" class="nav-item">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Customize</span>
+                </a>
+                <a href="analytics.html" class="nav-item active">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="messages.html" class="nav-item">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="templates.html" class="nav-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Templates</span>
+                </a>
+                <a href="profile.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>My Profile</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" id="logout-btn" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Analytics</h1>
+                <div class="header-actions">
+                    <div class="page-selector">
+                        <select id="page-select">
+                            <option value="" disabled selected>Select a page</option>
+                            <!-- Pages will be loaded dynamically -->
+                        </select>
+                    </div>
+                    <div class="date-range">
+                        <select id="date-range">
+                            <option value="7">Last 7 days</option>
+                            <option value="30" selected>Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                        </select>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Analytics Dashboard -->
+            <div class="analytics-dashboard">
+                <!-- No page selected state -->
+                <div id="no-page-selected" class="empty-state">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Select a page to view analytics</h3>
+                    <p>Choose one of your pages from the dropdown above to view its performance metrics</p>
+                </div>
+
+                <!-- Analytics content -->
+                <div id="analytics-content" style="display: none;">
+                    <!-- Stats overview cards -->
+                    <div class="stats-overview">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="total-views">0</h3>
+                                <p>Total Views</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-globe-americas"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="total-countries">0</h3>
+                                <p>Countries</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-desktop"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="desktop-percentage">0%</h3>
+                                <p>Desktop</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="mobile-percentage">0%</h3>
+                                <p>Mobile</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts section -->
+                    <div class="charts-section">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3>Views Over Time</h3>
+                            </div>
+                            <div class="chart-body">
+                                <canvas id="views-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3>Visitors by Country</h3>
+                            </div>
+                            <div class="chart-body">
+                                <canvas id="countries-chart"></canvas>
+                                <div id="no-country-data" class="no-data-message" style="display: none;">
+                                    <i class="fas fa-globe"></i>
+                                    <p>No country data available yet</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hourly distribution chart -->
+                    <div class="chart-container full-width">
+                        <div class="chart-header">
+                            <h3>Hourly Distribution</h3>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="hourly-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent visits table -->
+                    <div class="recent-visits">
+                        <div class="section-header">
+                            <h3>Recent Visits</h3>
+                        </div>
+                        <div class="table-container">
+                            <table id="visits-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Country</th>
+                                        <th>Device</th>
+                                        <th>Browser</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="visits-table-body">
+                                    <!-- Visits will be loaded dynamically -->
+                                </tbody>
+                            </table>
+                            <div id="no-visits" class="no-data-message" style="display: none;">
+                                <i class="fas fa-user-clock"></i>
+                                <p>No recent visits data available yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading state -->
+                <div id="analytics-loading" class="loading-state" style="display: none;">
+                    <div class="spinner">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                    </div>
+                    <p>Loading analytics data...</p>
+                </div>
+
+                <!-- Error state -->
+                <div id="analytics-error" class="error-state" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error Loading Analytics</h3>
+                    <p>There was a problem loading analytics data. Please try again later.</p>
+                    <button id="retry-load-btn" class="btn btn-primary">Retry</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification container -->
+    <div class="notification-container">
+        <!-- Notifications will be dynamically added here -->
+    </div>
+
+    <script src="js/analytics.js"></script>
+</body>
+</html>

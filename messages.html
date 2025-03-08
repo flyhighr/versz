@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Versz</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/messages.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Mobile header -->
+    <header class="mobile-header">
+        <a href="dashboard.html" class="logo">Versz<span class="accent-text">.fun</span></a>
+        <button class="menu-toggle" id="mobile-menu-toggle" aria-label="Open menu">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
+
+    <!-- Page overlay for mobile menu -->
+    <div class="overlay" id="overlay"></div>
+
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">Versz<span class="accent-text">.fun</span></a>
+                <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Close menu">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
+                    <div class="avatar-loading"></div>
+                </div>
+                <div class="user-info">
+                    <h3 id="sidebar-username">
+                        <div class="text-loading"></div>
+                    </h3>
+                    <p id="sidebar-email">
+                        <div class="text-loading"></div>
+                    </p>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="my-pages.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>My Pages</span>
+                </a>
+                <a href="customize.html" class="nav-item">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Customize</span>
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="messages.html" class="nav-item active">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="templates.html" class="nav-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Templates</span>
+                </a>
+                <a href="profile.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>My Profile</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" id="logout-btn" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Messages & Drawings</h1>
+                <div class="header-actions">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="messages">
+                            <i class="fas fa-comment-alt"></i> Messages
+                        </button>
+                        <button class="tab-btn" data-tab="drawings">
+                            <i class="fas fa-paint-brush"></i> Drawings
+                        </button>
+                    </div>
+                    <div class="filter-dropdown">
+                        <select id="message-filter">
+                            <option value="all">All Messages</option>
+                            <option value="pending">Pending Approval</option>
+                            <option value="approved">Approved</option>
+                        </select>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Messages content -->
+            <div id="messages-tab" class="tab-content active">
+                <div class="approval-banner" id="pending-messages-banner" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="pending-messages-count">0</span> messages pending approval
+                </div>
+                
+                <div class="page-filter">
+                    <label for="page-select-messages">Filter by page:</label>
+                    <select id="page-select-messages">
+                        <option value="all">All Pages</option>
+                        <!-- Pages will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div id="messages-container" class="messages-container">
+                    <!-- Messages will be loaded dynamically -->
+                </div>
+                
+                <!-- Loading state -->
+                <div id="messages-loading" class="loading-state">
+                    <div class="spinner">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                    </div>
+                    <p>Loading messages...</p>
+                </div>
+                
+                <!-- Empty state -->
+                <div id="no-messages" class="empty-state" style="display: none;">
+                    <i class="fas fa-comment-slash"></i>
+                    <h3>No Messages Yet</h3>
+                    <p>When visitors leave messages on your pages, they will appear here.</p>
+                </div>
+                
+                <!-- Error state -->
+                <div id="messages-error" class="error-state" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error Loading Messages</h3>
+                    <p>There was a problem loading your messages. Please try again later.</p>
+                    <button id="retry-messages-btn" class="btn btn-primary">Retry</button>
+                </div>
+            </div>
+            
+            <!-- Drawings content -->
+            <div id="drawings-tab" class="tab-content">
+                <div class="approval-banner" id="pending-drawings-banner" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="pending-drawings-count">0</span> drawings pending approval
+                </div>
+                
+                <div class="page-filter">
+                    <label for="page-select-drawings">Filter by page:</label>
+                    <select id="page-select-drawings">
+                        <option value="all">All Pages</option>
+                        <!-- Pages will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div id="drawings-container" class="drawings-container">
+                    <!-- Drawings grid will be inserted here dynamically -->
+                </div>
+                
+                <!-- Loading state -->
+                <div id="drawings-loading" class="loading-state">
+                    <div class="spinner">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                    </div>
+                    <p>Loading drawings...</p>
+                </div>
+                
+                <!-- Empty state -->
+                <div id="no-drawings" class="empty-state" style="display: none;">
+                    <i class="fas fa-paint-brush"></i>
+                    <h3>No Drawings Yet</h3>
+                    <p>When visitors create drawings on your pages, they will appear here.</p>
+                </div>
+                
+                <!-- Error state -->
+                <div id="drawings-error" class="error-state" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error Loading Drawings</h3>
+                    <p>There was a problem loading your drawings. Please try again later.</p>
+                    <button id="retry-drawings-btn" class="btn btn-primary">Retry</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Message Action Modal -->
+    <div class="modal" id="message-action-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Message Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="message-detail">
+                    <div class="message-info">
+                        <div class="message-sender">
+                            <strong>From:</strong> <span id="modal-sender">Anonymous</span>
+                        </div>
+                        <div class="message-date">
+                            <strong>Date:</strong> <span id="modal-date">January 1, 2023</span>
+                        </div>
+                        <div class="message-page">
+                            <strong>Page:</strong> <span id="modal-page">My Page</span>
+                        </div>
+                    </div>
+                    <div class="message-content" id="modal-content">
+                        Message content goes here...
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <div id="approval-actions" style="display: none;">
+                        <button id="approve-message-btn" class="btn btn-success">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button id="reject-message-btn" class="btn btn-danger">
+                            <i class="fas fa-times"></i> Delete
+                        </button>
+                    </div>
+                    <div id="approved-actions" style="display: none;">
+                        <button id="delete-message-btn" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawing Preview Modal -->
+    <div class="modal" id="drawing-preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Drawing Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="drawing-detail">
+                    <div class="drawing-info">
+                        <div class="drawing-creator">
+                            <strong>From:</strong> <span id="modal-drawing-creator">Anonymous</span>
+                        </div>
+                        <div class="drawing-date">
+                            <strong>Date:</strong> <span id="modal-drawing-date">January 1, 2023</span>
+                        </div>
+                        <div class="drawing-page">
+                            <strong>Page:</strong> <span id="modal-drawing-page">My Page</span>
+                        </div>
+                    </div>
+                    <div class="drawing-preview">
+                        <img id="modal-drawing-image" src="" alt="Drawing Preview">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <div id="drawing-approval-actions" style="display: none;">
+                        <button id="approve-drawing-btn" class="btn btn-success">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button id="reject-drawing-btn" class="btn btn-danger">
+                            <i class="fas fa-times"></i> Delete
+                        </button>
+                    </div>
+                    <div id="drawing-approved-actions" style="display: none;">
+                        <button id="download-drawing-btn" class="btn btn-primary">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <button id="delete-drawing-btn" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal" id="confirm-modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 id="confirm-title">Confirm Action</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirm-message" id="confirm-message">
+                    Are you sure you want to proceed with this action?
+                </div>
+                <div class="modal-actions">
+                    <button id="cancel-btn" class="btn btn-outline">Cancel</button>
+                    <button id="confirm-btn" class="btn btn-danger">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification container -->
+    <div class="notification-container">
+        <!-- Notifications will be dynamically added here -->
+    </div>
+
+    <script src="js/messages.js"></script>
+</body>
+</html>

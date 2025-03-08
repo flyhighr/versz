@@ -29,7 +29,6 @@
             </div>
             <div class="sidebar-user">
                 <div class="user-avatar">
-                    <div class="avatar-loading"></div>
                     <img id="sidebar-avatar" src="img/default-avatar.png" alt="User Avatar">
                 </div>
                 <div class="user-info">
@@ -46,15 +45,23 @@
                     <i class="fas fa-file-alt"></i>
                     <span>My Pages</span>
                 </a>
-                <a href="customize.html" class="nav-item">
+                <a href="customize.html" class="nav-item active">
                     <i class="fas fa-paint-brush"></i>
                     <span>Customize</span>
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="messages.html" class="nav-item">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>Messages</span>
                 </a>
                 <a href="templates.html" class="nav-item">
                     <i class="fas fa-layer-group"></i>
                     <span>Templates</span>
                 </a>
-                <a href="profile.html" class="nav-item active">
+                <a href="profile.html" class="nav-item">
                     <i class="fas fa-user"></i>
                     <span>My Profile</span>
                 </a>
@@ -320,7 +327,21 @@
                         </div>
                     </div>
 
-                    <!-- Discord Integration Section -->
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h2>Account</h2>
+                        </div>
+                        <div class="profile-info-card">
+                            <div class="account-actions">
+                                <button type="button" id="change-password-btn" class="btn btn-outline">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                                <button type="button" id="resend-verification-btn" class="btn btn-outline" style="display: none;">
+                                    <i class="fas fa-envelope"></i> Resend Verification Email
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="profile-section">
                         <div class="section-header">
                             <h2>Discord Integration</h2>
@@ -330,9 +351,6 @@
                                 </button>
                                 <button type="button" id="disconnect-discord-btn" class="btn btn-outline" style="display: none;">
                                     <i class="fas fa-unlink"></i> Disconnect
-                                </button>
-                                <button type="button" id="edit-discord-btn" class="btn btn-sm" style="display: none;">
-                                    <i class="fas fa-edit"></i> Edit
                                 </button>
                             </div>
                         </div>
@@ -398,22 +416,6 @@
                         <div class="edit-actions" id="discord-edit-actions" style="display: none;">
                             <button type="button" id="cancel-discord-btn" class="btn btn-outline">Cancel</button>
                             <button type="button" id="save-discord-btn" class="btn btn-primary">Save Changes</button>
-                        </div>
-                    </div>
-
-                    <div class="profile-section">
-                        <div class="section-header">
-                            <h2>Account</h2>
-                        </div>
-                        <div class="profile-info-card">
-                            <div class="account-actions">
-                                <button type="button" id="change-password-btn" class="btn btn-outline">
-                                    <i class="fas fa-key"></i> Change Password
-                                </button>
-                                <button type="button" id="resend-verification-btn" class="btn btn-outline" style="display: none;">
-                                    <i class="fas fa-envelope"></i> Resend Verification Email
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
