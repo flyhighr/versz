@@ -1062,6 +1062,280 @@
             font-size: 12px;
             color: #999;
         }
+        /* Message container styles */
+        .message-header, .drawing-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .message-title, .drawing-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .message-form-container {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #f9f9f9;
+            padding: 15px;
+        }
+        
+        #messageForm {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        #messageText {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            resize: vertical;
+            background-color: white;
+        }
+        
+        .message-form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sender-input {
+            flex: 1;
+        }
+        
+        #senderName, #drawingSenderName {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            background-color: white;
+        }
+        
+        .message-submit-btn, .drawing-submit-btn {
+            background-color: #000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .message-submit-btn:hover, .drawing-submit-btn:hover {
+            background-color: #333;
+            transform: translateY(-2px);
+        }
+        
+        .messages-loading, .drawings-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .messages-loading .spinner, .drawings-loading .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        
+        .no-messages, .no-drawings {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .messages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message-item {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+        }
+        
+        .message-sender {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .message-anonymous {
+            color: #666;
+            font-weight: normal;
+            font-style: italic;
+        }
+        
+        .message-date {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+        
+        .message-content {
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        
+        /* Drawing canvas styles */
+        .drawing-canvas-container {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #f9f9f9;
+            padding: 15px;
+        }
+        
+        .drawing-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .drawing-tools {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .drawing-tool {
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .drawing-tool.active {
+            background-color: #eee;
+            border-color: #999;
+        }
+        
+        .drawing-tool:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .drawing-colors {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .color-btn.active {
+            border-color: #333;
+            transform: scale(1.1);
+        }
+        
+        .drawing-size {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        #drawingCanvas {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+            margin-bottom: 15px;
+            cursor: crosshair;
+        }
+        
+        .drawings-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .drawing-item {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        
+        .drawing-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .drawing-img {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: contain;
+            background-color: white;
+        }
+        
+        .drawing-info {
+            padding: 10px;
+        }
+        
+        .drawing-creator {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .drawing-timestamp {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .drawing-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            #drawingCanvas {
+                height: 250px;
+            }
+            
+            .drawings-list {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
     </style>
 </head>
 <body>
@@ -1169,6 +1443,84 @@
                 <div class="discord-activity" id="discordActivity">No activity</div>
                 <div class="discord-connected" id="discordConnected">Connected since Jan 1, 2023</div>
             </div>
+        </div>
+    </div>
+    <!-- Message Container - Added after Discord Container -->
+    <div id="messageContainer" class="profile-container" style="display: none;">
+        <div class="message-header">
+            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png" alt="Messages" class="section-icon">
+            <div class="message-title">Messages</div>
+        </div>
+        <div class="message-form-container">
+            <form id="messageForm">
+                <textarea id="messageText" placeholder="Leave a message..." rows="3"></textarea>
+                <div class="message-form-footer">
+                    <div class="sender-input">
+                        <input type="text" id="senderName" placeholder="Your name (optional)">
+                    </div>
+                    <button type="submit" id="submitMessageBtn" class="message-submit-btn">Send</button>
+                </div>
+            </form>
+        </div>
+        <div id="messagesContent" class="messages-content">
+            <div id="messagesLoading" class="messages-loading">
+                <div class="spinner"></div>
+                <p>Loading messages...</p>
+            </div>
+            <div id="noMessages" class="no-messages" style="display: none;">
+                <p>No messages yet. Be the first to leave one!</p>
+            </div>
+            <div id="messagesList" class="messages-list"></div>
+        </div>
+    </div>
+    
+    <!-- Drawing Container - Added after Message Container -->
+    <div id="drawingContainer" class="profile-container" style="display: none;">
+        <div class="drawing-header">
+            <img src="https://cdn-icons-png.flaticon.com/512/1792/1792307.png" alt="Drawings" class="section-icon">
+            <div class="drawing-title">Drawings</div>
+        </div>
+        <div class="drawing-canvas-container">
+            <div class="drawing-controls">
+                <div class="drawing-tools">
+                    <button id="penTool" class="drawing-tool active" title="Pen">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button id="eraserTool" class="drawing-tool" title="Eraser">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                    <button id="clearCanvas" class="drawing-tool" title="Clear">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="drawing-colors">
+                    <button class="color-btn active" data-color="#000000" style="background-color: #000000;"></button>
+                    <button class="color-btn" data-color="#FF0000" style="background-color: #FF0000;"></button>
+                    <button class="color-btn" data-color="#00FF00" style="background-color: #00FF00;"></button>
+                    <button class="color-btn" data-color="#0000FF" style="background-color: #0000FF;"></button>
+                    <button class="color-btn" data-color="#FFFF00" style="background-color: #FFFF00;"></button>
+                </div>
+                <div class="drawing-size">
+                    <input type="range" id="brushSize" min="1" max="20" value="5">
+                </div>
+            </div>
+            <canvas id="drawingCanvas" width="500" height="300"></canvas>
+            <div class="drawing-form-footer">
+                <div class="sender-input">
+                    <input type="text" id="drawingSenderName" placeholder="Your name (optional)">
+                </div>
+                <button id="submitDrawingBtn" class="drawing-submit-btn">Submit Drawing</button>
+            </div>
+        </div>
+        <div id="drawingsContent" class="drawings-content">
+            <div id="drawingsLoading" class="drawings-loading">
+                <div class="spinner"></div>
+                <p>Loading drawings...</p>
+            </div>
+            <div id="noDrawings" class="no-drawings" style="display: none;">
+                <p>No drawings yet. Be the first to create one!</p>
+            </div>
+            <div id="drawingsList" class="drawings-list"></div>
         </div>
     </div>
 
@@ -1547,6 +1899,425 @@
             
             // Show a message to the user that direct playback is not available
             alert('This song does not have a direct audio URL for playback.');
+        }
+    }
+
+    // Initialize messages and drawings functionality
+    function initMessages() {
+        const messageForm = document.getElementById('messageForm');
+        const messageText = document.getElementById('messageText');
+        const senderName = document.getElementById('senderName');
+        const submitBtn = document.getElementById('submitMessageBtn');
+        
+        if (!messageForm) return;
+        
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const message = messageText.value.trim();
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            // Disable submit button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            
+            try {
+                const path = window.location.pathname.substring(1);
+                if (!path) return;
+                
+                // Find page ID from loaded data
+                const data = cache.get(path);
+                const pageId = data?.page?.page_id;
+                
+                if (!pageId) {
+                    throw new Error('Page ID not found');
+                }
+                
+                const response = await fetch(`${API_URL}/pages/${pageId}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content: message,
+                        sender_name: senderName.value.trim() || null
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to send message');
+                }
+                
+                const result = await response.json();
+                
+                // Reset form
+                messageText.value = '';
+                
+                // Show success notification
+                alert('Message sent successfully! ' + (result.approved ? 'It is now visible.' : 'It will be visible after approval.'));
+                
+                // If message was approved immediately, reload messages
+                if (result.approved) {
+                    loadMessages(pageId);
+                }
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message. Please try again later.');
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send';
+            }
+        });
+    }
+    
+    // Load messages for the page
+    async function loadMessages(pageId) {
+        if (!pageId) return;
+        
+        const messagesContent = document.getElementById('messagesContent');
+        const messagesLoading = document.getElementById('messagesLoading');
+        const noMessages = document.getElementById('noMessages');
+        const messagesList = document.getElementById('messagesList');
+        
+        if (!messagesContent || !messagesLoading || !noMessages || !messagesList) return;
+        
+        // Show loading state
+        messagesLoading.style.display = 'flex';
+        noMessages.style.display = 'none';
+        messagesList.innerHTML = '';
+        
+        try {
+            const response = await fetch(`${API_URL}/pages/${pageId}/messages`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to load messages');
+            }
+            
+            const data = await response.json();
+            const messages = data.messages || [];
+            
+            // Hide loading state
+            messagesLoading.style.display = 'none';
+            
+            if (messages.length === 0) {
+                noMessages.style.display = 'block';
+                return;
+            }
+            
+            // Render messages
+            messages.forEach(message => {
+                const messageItem = document.createElement('div');
+                messageItem.className = 'message-item';
+                
+                const messageDate = new Date(message.timestamp);
+                const formattedDate = messageDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                messageItem.innerHTML = `
+                    <div class="message-sender">
+                        ${message.sender_name ? message.sender_name : '<span class="message-anonymous">Anonymous</span>'}
+                    </div>
+                    <div class="message-date">${formattedDate}</div>
+                    <div class="message-content">${message.content}</div>
+                `;
+                
+                messagesList.appendChild(messageItem);
+            });
+            
+        } catch (error) {
+            console.error('Error loading messages:', error);
+            messagesLoading.style.display = 'none';
+            noMessages.style.display = 'block';
+            noMessages.innerHTML = '<p>Failed to load messages. Please try again later.</p>';
+        }
+    }
+    
+    // Initialize drawing canvas
+    function initDrawingCanvas() {
+        const canvas = document.getElementById('drawingCanvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentColor = '#000000';
+        let currentSize = 5;
+        let currentTool = 'pen';
+        
+        // Set canvas dimensions based on container size
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth - 30; // Adjust for padding
+            canvas.height = 300;
+        }
+        
+        // Initial resize
+        resizeCanvas();
+        
+        // Resize on window resize
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCoordinates(e);
+            
+            // For mobile: prevent scrolling while drawing
+            if (e.type === 'touchstart') {
+                e.preventDefault();
+            }
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const [x, y] = getCoordinates(e);
+            
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = currentSize;
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            
+            if (currentTool === 'pen') {
+                ctx.strokeStyle = currentColor;
+            } else if (currentTool === 'eraser') {
+                ctx.strokeStyle = '#ffffff';
+            }
+            
+            ctx.stroke();
+            
+            [lastX, lastY] = [x, y];
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            let x, y;
+            
+            if (e.type.includes('touch')) {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+            
+            return [x, y];
+        }
+        
+        // Event listeners for canvas
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+        
+        // Tool selection
+        document.getElementById('penTool').addEventListener('click', () => {
+            currentTool = 'pen';
+            document.querySelectorAll('.drawing-tool').forEach(tool => tool.classList.remove('active'));
+            document.getElementById('penTool').classList.add('active');
+        });
+        
+        document.getElementById('eraserTool').addEventListener('click', () => {
+            currentTool = 'eraser';
+            document.querySelectorAll('.drawing-tool').forEach(tool => tool.classList.remove('active'));
+            document.getElementById('eraserTool').classList.add('active');
+        });
+        
+        document.getElementById('clearCanvas').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+        
+        // Color selection
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentColor = btn.dataset.color;
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTool = 'pen';
+                document.querySelectorAll('.drawing-tool').forEach(tool => tool.classList.remove('active'));
+                document.getElementById('penTool').classList.add('active');
+            });
+        });
+        
+        // Brush size
+        document.getElementById('brushSize').addEventListener('input', (e) => {
+            currentSize = e.target.value;
+        });
+        
+        // Submit drawing
+        document.getElementById('submitDrawingBtn').addEventListener('click', async () => {
+            try {
+                const path = window.location.pathname.substring(1);
+                if (!path) return;
+                
+                // Find page ID from loaded data
+                const data = cache.get(path);
+                const pageId = data?.page?.page_id;
+                
+                if (!pageId) {
+                    throw new Error('Page ID not found');
+                }
+                
+                // Get drawing data URL
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                // Get sender name
+                const senderName = document.getElementById('drawingSenderName').value.trim();
+                
+                // Submit drawing
+                const response = await fetch(`${API_URL}/pages/${pageId}/drawings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        data_url: dataUrl,
+                        sender_name: senderName || null
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to submit drawing');
+                }
+                
+                const result = await response.json();
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                document.getElementById('drawingSenderName').value = '';
+                
+                // Show success notification
+                alert('Drawing submitted successfully! ' + (result.approved ? 'It is now visible.' : 'It will be visible after approval.'));
+                
+                // If drawing was approved immediately, reload drawings
+                if (result.approved) {
+                    loadDrawings(pageId);
+                }
+                
+            } catch (error) {
+                console.error('Error submitting drawing:', error);
+                alert('Failed to submit drawing. Please try again later.');
+            }
+        });
+    }
+    
+    // Load drawings for the page
+    async function loadDrawings(pageId) {
+        if (!pageId) return;
+        
+        const drawingsContent = document.getElementById('drawingsContent');
+        const drawingsLoading = document.getElementById('drawingsLoading');
+        const noDrawings = document.getElementById('noDrawings');
+        const drawingsList = document.getElementById('drawingsList');
+        
+        if (!drawingsContent || !drawingsLoading || !noDrawings || !drawingsList) return;
+        
+        // Show loading state
+        drawingsLoading.style.display = 'flex';
+        noDrawings.style.display = 'none';
+        drawingsList.innerHTML = '';
+        
+        try {
+            const response = await fetch(`${API_URL}/pages/${pageId}/drawings`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to load drawings');
+            }
+            
+            const data = await response.json();
+            const drawings = data.drawings || [];
+            
+            // Hide loading state
+            drawingsLoading.style.display = 'none';
+            
+            if (drawings.length === 0) {
+                noDrawings.style.display = 'block';
+                return;
+            }
+            
+            // Render drawings
+            drawings.forEach(drawing => {
+                const drawingItem = document.createElement('div');
+                drawingItem.className = 'drawing-item';
+                
+                const drawingDate = new Date(drawing.timestamp);
+                const formattedDate = drawingDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                drawingItem.innerHTML = `
+                    <img src="${drawing.data_url}" alt="Drawing" class="drawing-img">
+                    <div class="drawing-info">
+                        <div class="drawing-creator">
+                            ${drawing.sender_name ? drawing.sender_name : 'Anonymous'}
+                        </div>
+                        <div class="drawing-timestamp">${formattedDate}</div>
+                    </div>
+                `;
+                
+                // Add click event to view drawing in full size
+                drawingItem.addEventListener('click', () => {
+                    const img = new Image();
+                    img.src = drawing.data_url;
+                    
+                    const popup = document.createElement('div');
+                    popup.style.position = 'fixed';
+                    popup.style.top = '0';
+                    popup.style.left = '0';
+                    popup.style.width = '100%';
+                    popup.style.height = '100%';
+                    popup.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                    popup.style.display = 'flex';
+                    popup.style.alignItems = 'center';
+                    popup.style.justifyContent = 'center';
+                    popup.style.zIndex = '1000';
+                    popup.style.padding = '20px';
+                    
+                    img.style.maxWidth = '90%';
+                    img.style.maxHeight = '90%';
+                    img.style.objectFit = 'contain';
+                    
+                    popup.appendChild(img);
+                    document.body.appendChild(popup);
+                    
+                    popup.addEventListener('click', () => {
+                        document.body.removeChild(popup);
+                    });
+                });
+                
+                drawingsList.appendChild(drawingItem);
+            });
+            
+        } catch (error) {
+            console.error('Error loading drawings:', error);
+            drawingsLoading.style.display = 'none';
+            noDrawings.style.display = 'block';
+            noDrawings.innerHTML = '<p>Failed to load drawings. Please try again later.</p>';
         }
     }
 
@@ -2091,6 +2862,48 @@
             document.getElementById('discordContainer').style.display = 'none';
         }
         
+        // Check for messages and drawings config
+        if (page.messages_config && page.messages_config.enabled) {
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.style.display = 'block';
+            
+            // Set placeholder text if specified
+            if (page.messages_config.placeholder_text) {
+                document.getElementById('messageText').placeholder = page.messages_config.placeholder_text;
+            }
+            
+            // Apply container style if layout is provided
+            if (page.layout && page.layout.container_style) {
+                applyContainerStyle(messageContainer, page.layout.container_style);
+            }
+            
+            // Initialize messages
+            initMessages();
+            
+            // Load existing messages
+            loadMessages(page.page_id);
+        } else {
+            document.getElementById('messageContainer').style.display = 'none';
+        }
+    
+        if (page.drawings_config && page.drawings_config.enabled) {
+            const drawingContainer = document.getElementById('drawingContainer');
+            drawingContainer.style.display = 'block';
+            
+            // Apply container style if layout is provided
+            if (page.layout && page.layout.container_style) {
+                applyContainerStyle(drawingContainer, page.layout.container_style);
+            }
+            
+            // Initialize drawing canvas
+            initDrawingCanvas();
+            
+            // Load existing drawings
+            loadDrawings(page.page_id);
+        } else {
+            document.getElementById('drawingContainer').style.display = 'none';
+        }
+        
         // Set background
         setBackground(page.background);
         
@@ -2145,6 +2958,47 @@
             setTimeout(() => {
                 loading.style.display = 'none';
             }, 300);
+        }
+        
+        // Helper function to apply container style
+        function applyContainerStyle(container, style) {
+            if (!style || !style.enabled) {
+                container.style.border = 'none';
+                container.style.backgroundColor = 'transparent';
+                container.style.boxShadow = 'none';
+                return;
+            }
+            
+            // Apply container background color or gradient
+            if (style.background_color) {
+                container.style.backgroundColor = style.background_color;
+            }
+            
+            if (style.gradient) {
+                container.style.background = style.gradient;
+            }
+            
+            // Apply opacity
+            if (style.opacity !== undefined) {
+                container.style.opacity = style.opacity;
+            }
+            
+            // Apply border radius
+            if (style.border_radius !== undefined) {
+                container.style.borderRadius = `${style.border_radius}px`;
+            }
+            
+            // Apply border color
+            if (style.border_color) {
+                container.style.borderColor = style.border_color;
+            }
+            
+            // Apply shadow
+            if (style.shadow) {
+                container.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+            } else {
+                container.style.boxShadow = 'none';
+            }
         }
     }
 
