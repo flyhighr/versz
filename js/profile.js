@@ -1308,77 +1308,126 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadDiscordData(userData) {
         console.log('Loading Discord data:', userData.discord);
         
+        const discordNotConnected = document.getElementById('discord-not-connected');
+        const discordConnected = document.getElementById('discord-connected');
+        const connectDiscordBtn = document.getElementById('connect-discord-btn');
+        const disconnectDiscordBtn = document.getElementById('disconnect-discord-btn');
+        
+        // Check if elements exist before proceeding
+        if (!discordNotConnected || !discordConnected || !connectDiscordBtn) {
+            console.error('Error loading Discord data: Required DOM elements not found');
+            return;
+        }
+        
         if (!userData.discord) {
             // Not connected
-            document.getElementById('discord-not-connected').style.display = 'flex';
-            document.getElementById('discord-connected').style.display = 'none';
-            document.getElementById('connect-discord-btn').style.display = 'inline-flex';
-            document.getElementById('disconnect-discord-btn').style.display = 'none';
-            document.getElementById('edit-discord-btn').style.display = 'none';
+            discordNotConnected.style.display = 'flex';
+            discordConnected.style.display = 'none';
+            connectDiscordBtn.style.display = 'inline-flex';
+            if (disconnectDiscordBtn) {
+                disconnectDiscordBtn.style.display = 'none';
+            }
+            const editDiscordBtn = document.getElementById('edit-discord-btn');
+            if (editDiscordBtn) {
+                editDiscordBtn.style.display = 'none';
+            }
             return;
         }
         
         // Connected - update UI
-        document.getElementById('discord-not-connected').style.display = 'none';
-        document.getElementById('discord-connected').style.display = 'block';
-        document.getElementById('connect-discord-btn').style.display = 'none';
-        document.getElementById('disconnect-discord-btn').style.display = 'inline-flex';
-        document.getElementById('edit-discord-btn').style.display = 'inline-flex';
+        discordNotConnected.style.display = 'none';
+        discordConnected.style.display = 'block';
+        connectDiscordBtn.style.display = 'none';
+        if (disconnectDiscordBtn) {
+            disconnectDiscordBtn.style.display = 'inline-flex';
+        }
+        
+        const editDiscordBtn = document.getElementById('edit-discord-btn');
+        if (editDiscordBtn) {
+            editDiscordBtn.style.display = 'inline-flex';
+        }
         
         const discord = userData.discord;
         
         // Set avatar
         const discordAvatar = document.getElementById('discord-avatar');
-        if (discord.avatar) {
-            discordAvatar.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
-        } else {
-            // Default avatar based on discriminator
-            const discriminator = parseInt(discord.discriminator || '0') % 5;
-            discordAvatar.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
+        if (discordAvatar) {
+            if (discord.avatar) {
+                discordAvatar.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
+            } else {
+                // Default avatar based on discriminator
+                const discriminator = parseInt(discord.discriminator || '0') % 5;
+                discordAvatar.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
+            }
         }
         
         // Set username and tag
-        document.getElementById('discord-username').textContent = discord.username || 'Unknown';
-        document.getElementById('discord-tag').textContent = discord.discriminator ? `#${discord.discriminator}` : '';
+        const discordUsername = document.getElementById('discord-username');
+        const discordTag = document.getElementById('discord-tag');
+        
+        if (discordUsername) {
+            discordUsername.textContent = discord.username || 'Unknown';
+        }
+        
+        if (discordTag) {
+            discordTag.textContent = discord.discriminator ? `#${discord.discriminator}` : '';
+        }
         
         // Set status
         const statusIndicator = document.getElementById('discord-status');
         const statusText = document.getElementById('discord-status-text');
         
-        if (discord.status) {
-            statusIndicator.className = `discord-status-indicator ${discord.status}`;
-            
-            // Format status text
-            let formattedStatus = 'Offline';
-            if (discord.status === 'online') formattedStatus = 'Online';
-            else if (discord.status === 'idle') formattedStatus = 'Idle';
-            else if (discord.status === 'dnd') formattedStatus = 'Do Not Disturb';
-            
-            statusText.textContent = formattedStatus;
-        } else {
-            statusIndicator.className = 'discord-status-indicator';
-            statusText.textContent = 'Offline';
+        if (statusIndicator && statusText) {
+            if (discord.status) {
+                statusIndicator.className = `discord-status-indicator ${discord.status}`;
+                
+                // Format status text
+                let formattedStatus = 'Offline';
+                if (discord.status === 'online') formattedStatus = 'Online';
+                else if (discord.status === 'idle') formattedStatus = 'Idle';
+                else if (discord.status === 'dnd') formattedStatus = 'Do Not Disturb';
+                
+                statusText.textContent = formattedStatus;
+            } else {
+                statusIndicator.className = 'discord-status-indicator';
+                statusText.textContent = 'Offline';
+            }
         }
         
         // Set activity
-        document.getElementById('discord-activity').textContent = discord.activity || 'None';
+        const discordActivity = document.getElementById('discord-activity');
+        if (discordActivity) {
+            discordActivity.textContent = discord.activity || 'None';
+        }
         
         // Set connected date
-        if (discord.connected_at) {
-            const connectedDate = new Date(discord.connected_at);
-            document.getElementById('discord-connected-at').textContent = connectedDate.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-        } else {
-            document.getElementById('discord-connected-at').textContent = 'Unknown';
+        const discordConnectedAt = document.getElementById('discord-connected-at');
+        if (discordConnectedAt) {
+            if (discord.connected_at) {
+                const connectedDate = new Date(discord.connected_at);
+                discordConnectedAt.textContent = connectedDate.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            } else {
+                discordConnectedAt.textContent = 'Unknown';
+            }
         }
         
         // Set show on profile preference
-        const showDiscord = userData.display_preferences?.show_discord !== false;
-        document.getElementById('discord-show-on-profile').textContent = showDiscord ? 'Yes' : 'No';
-        document.getElementById('edit-show-discord').checked = showDiscord;
+        const discordShowOnProfile = document.getElementById('discord-show-on-profile');
+        const editShowDiscord = document.getElementById('edit-show-discord');
+        
+        if (discordShowOnProfile) {
+            const showDiscord = userData.display_preferences?.show_discord !== false;
+            discordShowOnProfile.textContent = showDiscord ? 'Yes' : 'No';
+        }
+        
+        if (editShowDiscord) {
+            const showDiscord = userData.display_preferences?.show_discord !== false;
+            editShowDiscord.checked = showDiscord;
+        }
     }
 
     // Initialize Discord integration
