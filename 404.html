@@ -3439,14 +3439,6 @@ body {
             document.getElementById('viewsCounter').style.display = 'none';
         }
 
-        if (songs && songs.length > 0) {
-            songs.forEach(song => {
-                if ((song.youtube_url && isDirectMediaUrl(song.youtube_url)) || 
-                    (song.audio_url && isDirectMediaUrl(song.audio_url))) {
-                    pageHasMedia = true;
-                }
-            });
-        }
         
         // Set tags
         renderTags(user.tags || []);
@@ -3882,7 +3874,14 @@ body {
             songsContainer.style.display = 'none';
             return;
         }
-        
+        if (songs && songs.length > 0) {
+            songs.forEach(song => {
+                if ((song.youtube_url && isDirectMediaUrl(song.youtube_url)) || 
+                    (song.audio_url && isDirectMediaUrl(song.audio_url))) {
+                    pageHasMedia = true;
+                }
+            });
+        }
         songsContainer.style.display = 'block';
         
         // Add section title
