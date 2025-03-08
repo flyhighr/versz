@@ -229,6 +229,10 @@
                                         <div class="bg-icon"><i class="fas fa-image"></i></div>
                                         <span>Image</span>
                                     </div>
+                                    <div class="background-option" data-type="video">
+                                        <div class="bg-icon"><i class="fas fa-video"></i></div>
+                                        <span>Video</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="background-settings" id="solid-settings">
@@ -260,6 +264,15 @@
                                         <input type="url" id="bg-image-url" name="bg_image_url" placeholder="https://example.com/image.jpg">
                                     </div>
                                     <small>The URL of the background image</small>
+                                </div>
+                                <div class="background-settings" id="video-settings" style="display: none;">
+                                    <label for="bg-video-url">Background Video URL</label>
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-link"></i>
+                                        <input type="url" id="bg-video-url" name="bg_video_url" placeholder="https://example.com/video.mp4">
+                                    </div>
+                                    <small>The URL of the background video (MP4 format recommended)</small>
+                                    <p class="warning-text">Note: Video backgrounds may affect page load time and mobile data usage.</p>
                                 </div>
                             </div>
                             
