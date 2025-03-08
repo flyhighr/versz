@@ -2367,7 +2367,186 @@ body {
             noMessages.innerHTML = '<p>Failed to load messages. Please try again later.</p>';
         }
     }
+    document.addEventListener('DOMContentLoaded', function() {
+        const drawingToggle = document.getElementById('drawingToggle');
+        const drawingCanvasContainer = document.getElementById('drawingCanvasContainer');
+        
+        if (drawingToggle && drawingCanvasContainer) {
+            console.log("Drawing toggle and container found!");
+            
+            // Force-initialize the canvas
+            const canvas = document.getElementById('drawingCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth - 30;
+                console.log("Canvas initialized with width:", canvas.width);
+            }
+            
+            // Direct click handler
+            drawingToggle.addEventListener('click', function() {
+                console.log("Drawing toggle clicked!");
+                this.classList.toggle('active');
+                
+                // Direct toggle of visibility
+                if (drawingCanvasContainer.style.display === 'none' || !drawingCanvasContainer.classList.contains('active')) {
+                    drawingCanvasContainer.style.display = 'block';
+                    drawingCanvasContainer.classList.add('active');
+                    console.log("Drawing container shown");
+                    
+                    // Resize canvas when shown
+                    setTimeout(() => {
+                        if (canvas) {
+                            canvas.width = canvas.parentElement.clientWidth - 30;
+                            console.log("Canvas resized to:", canvas.width);
+                        }
+                    }, 10);
+                } else {
+                    drawingCanvasContainer.style.display = 'none';
+                    drawingCanvasContainer.classList.remove('active');
+                    console.log("Drawing container hidden");
+                }
+            });
+            
+            // Initialize drawing tools
+            initDrawingTools();
+        } else {
+            console.error("Drawing toggle or container not found!");
+            console.log("Toggle:", drawingToggle);
+            console.log("Container:", drawingCanvasContainer);
+        }
+    });
     
+    function initDrawingTools() {
+        const canvas = document.getElementById('drawingCanvas');
+        if (!canvas) {
+            console.error("Canvas element not found!");
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentColor = '#000000';
+        let currentSize = 5;
+        let currentTool = 'pen';
+        
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCoordinates(e);
+            
+            // For mobile: prevent scrolling while drawing
+            if (e.type === 'touchstart') {
+                e.preventDefault();
+            }
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const [x, y] = getCoordinates(e);
+            
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = currentSize;
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            
+            if (currentTool === 'pen') {
+                ctx.strokeStyle = currentColor;
+            } else if (currentTool === 'eraser') {
+                ctx.strokeStyle = '#ffffff';
+            }
+            
+            ctx.stroke();
+            
+            [lastX, lastY] = [x, y];
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            let x, y;
+            
+            if (e.type.includes('touch')) {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+            
+            return [x, y];
+        }
+        
+        // Event listeners for canvas
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+        
+        // Tool selection
+        const penTool = document.getElementById('penTool');
+        const eraserTool = document.getElementById('eraserTool');
+        const clearCanvas = document.getElementById('clearCanvas');
+        
+        if (penTool) {
+            penTool.addEventListener('click', () => {
+                currentTool = 'pen';
+                document.querySelectorAll('.drawing-tool').forEach(tool => tool.classList.remove('active'));
+                penTool.classList.add('active');
+            });
+        }
+        
+        if (eraserTool) {
+            eraserTool.addEventListener('click', () => {
+                currentTool = 'eraser';
+                document.querySelectorAll('.drawing-tool').forEach(tool => tool.classList.remove('active'));
+                eraserTool.classList.add('active');
+            });
+        }
+        
+        if (clearCanvas) {
+            clearCanvas.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+        }
+        
+        // Color selection
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentColor = btn.dataset.color;
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTool = 'pen';
+                document.querySelectorAll('.drawing-tool').forEach(tool => tool.classList.remove('active'));
+                if (penTool) penTool.classList.add('active');
+            });
+        });
+        
+        // Brush size
+        const brushSize = document.getElementById('brushSize');
+        if (brushSize) {
+            brushSize.addEventListener('input', (e) => {
+                currentSize = e.target.value;
+            });
+        }
+        
+        console.log("Drawing tools initialized!");
+    }
     // Initialize drawing canvas
     function initDrawingCanvas() {
         const canvas = document.getElementById('drawingCanvas');
