@@ -1694,7 +1694,7 @@ async def resend_verification_email(
     )
     
     return {"message": "Verification email sent"}
-
+    
 @app.get("/verify")
 @limiter.limit(RateLimits.AUTH_LIMIT)
 async def verify_email(request: Request, token: str):
@@ -1740,15 +1740,11 @@ async def verify_email(request: Request, token: str):
                     content={"detail": "Registration expired or not found"}
                 )
         
-        # Prepare user data for insertion
+        # Prepare user data for insertion - start with required fields
         user_data = {
             "id": pending_user["id"],
             "user_number": pending_user["user_number"],
             "email": verification["email"],
-            "username": pending_user.get("username"),
-            "name": pending_user.get("name"),
-            "avatar_url": pending_user.get("avatar_url"),
-            "avatar_decoration": pending_user.get("avatar_decoration"),
             "hashed_password": pending_user["hashed_password"],
             "is_active": True,
             "is_verified": True,
@@ -1802,13 +1798,14 @@ async def verify_email(request: Request, token: str):
                     "show_country_data": True,
                     "show_time_data": True
                 }
-            }),
-            "location": pending_user.get("location"),
-            "date_of_birth": pending_user.get("date_of_birth"),
-            "timezone": pending_user.get("timezone"),
-            "gender": pending_user.get("gender"),
-            "pronouns": pending_user.get("pronouns")
+            })
         }
+        
+        # Add optional fields only if they exist and are not None
+        for field in ["username", "name", "avatar_url", "avatar_decoration", "location", 
+                     "date_of_birth", "timezone", "gender", "pronouns", "bio"]:
+            if field in pending_user and pending_user[field] is not None:
+                user_data[field] = pending_user[field]
         
         # Insert the new user
         await db.users.insert_one(user_data)
@@ -2283,21 +2280,29 @@ async def complete_onboarding(
             detail="Invalid timezone"
         )
     
-    # Update user information
-    update_data = {
-        "username": onboarding_data.username,
-        "name": onboarding_data.name,
-        "avatar_url": onboarding_data.avatar_url,
-        "location": onboarding_data.location,
-        "date_of_birth": onboarding_data.date_of_birth,
-        "timezone": onboarding_data.timezone,
-        "gender": onboarding_data.gender,
-        "pronouns": onboarding_data.pronouns,
-        "onboarding_completed": True
-    }
+    # Create update data dictionary - only include fields that are not None
+    update_data = {}
     
-    # Remove None values
-    update_data = {k: v for k, v in update_data.items() if v is not None}
+    # Only add fields that are not None
+    if onboarding_data.username is not None:
+        update_data["username"] = onboarding_data.username
+    if onboarding_data.name is not None:
+        update_data["name"] = onboarding_data.name
+    if onboarding_data.avatar_url is not None:
+        update_data["avatar_url"] = onboarding_data.avatar_url
+    if onboarding_data.location is not None:
+        update_data["location"] = onboarding_data.location
+    if onboarding_data.date_of_birth is not None:
+        update_data["date_of_birth"] = onboarding_data.date_of_birth
+    if onboarding_data.timezone is not None:
+        update_data["timezone"] = onboarding_data.timezone
+    if onboarding_data.gender is not None:
+        update_data["gender"] = onboarding_data.gender
+    if onboarding_data.pronouns is not None:
+        update_data["pronouns"] = onboarding_data.pronouns
+    
+    # Always set onboarding_completed to True
+    update_data["onboarding_completed"] = True
     
     await db.users.update_one(
         {"id": current_user["id"]},
@@ -2610,7 +2615,7 @@ async def update_profile_page(
             detail="Invalid timezone"
         )
     
-    # Prepare update data
+    # Prepare update data - use exclude_unset=True to only include fields that were set
     update_data = page_update.dict(exclude_unset=True)
     
     # If URL is being updated, check availability
@@ -2659,7 +2664,7 @@ async def update_profile_page(
         updated_page["_id"] = str(updated_page["_id"])
     
     return updated_page
-
+    
 @app.get("/analytics/{page_id}", response_class=ORJSONResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_page_analytics(
@@ -3716,23 +3721,33 @@ async def update_user_profile(
             detail="Invalid timezone"
         )
     
-    # Update user information
-    update_data = {
-        "username": username,
-        "name": name,
-        "avatar_url": avatar_url,
-        "avatar_decoration": avatar_decoration,
-        "location": location,
-        "date_of_birth": date_of_birth,
-        "timezone": timezone,
-        "gender": gender,
-        "pronouns": pronouns,
-        "bio": bio,
-        "onboarding_completed": True
-    }
+    # Update user information - only include fields that are not None
+    update_data = {}
     
-    # Remove None values
-    update_data = {k: v for k, v in update_data.items() if v is not None}
+    # Only add fields that have values
+    if username is not None:
+        update_data["username"] = username
+    if name is not None:
+        update_data["name"] = name
+    if avatar_url is not None:
+        update_data["avatar_url"] = avatar_url
+    if avatar_decoration is not None:
+        update_data["avatar_decoration"] = avatar_decoration
+    if location is not None:
+        update_data["location"] = location
+    if date_of_birth is not None:
+        update_data["date_of_birth"] = date_of_birth
+    if timezone is not None:
+        update_data["timezone"] = timezone
+    if gender is not None:
+        update_data["gender"] = gender
+    if pronouns is not None:
+        update_data["pronouns"] = pronouns
+    if bio is not None:
+        update_data["bio"] = bio
+    
+    # Always set onboarding_completed to True
+    update_data["onboarding_completed"] = True
     
     await db.users.update_one(
         {"id": current_user["id"]},
@@ -3845,7 +3860,7 @@ async def update_user_profile(
             "bio": updated_user.get("bio")
         }
     }
-
+    
 @app.delete("/pages/{page_id}")
 @limiter.limit(RateLimits.MODIFY_LIMIT)
 async def delete_profile_page(
@@ -4801,7 +4816,8 @@ async def startup_event():
     # Create database indexes
     logger.info("Creating database indexes...")
     await db.users.create_index("email", unique=True)
-    await db.users.create_index("username", unique=True)
+    # Make username index sparse to allow multiple null values
+    await db.users.create_index("username", unique=True, sparse=True)
     await db.pending_users.create_index("email", unique=True)
     await db.profile_pages.create_index("url", unique=True)
     await db.profile_pages.create_index("user_id")
