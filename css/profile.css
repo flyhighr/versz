@@ -1298,3 +1298,333 @@ input:checked + .slider:before {
         text-align: center;
     }
 }
+
+/* Danger Zone Styles */
+.danger-zone .section-header {
+    border-bottom-color: rgba(239, 71, 111, 0.3);
+}
+
+.danger-zone .section-header h2 {
+    color: var(--error-color);
+}
+
+.danger-zone-warning {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: rgba(239, 71, 111, 0.1);
+    border: 1px solid rgba(239, 71, 111, 0.3);
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+}
+
+.warning-icon {
+    font-size: 2rem;
+    color: var(--error-color);
+    flex-shrink: 0;
+}
+
+.warning-text h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--error-color);
+}
+
+.warning-text p {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--text-color);
+}
+
+.danger-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.danger-action {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    background-color: var(--lighter-bg);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.danger-action:hover {
+    border-color: var(--error-color);
+    box-shadow: 0 2px 8px rgba(239, 71, 111, 0.1);
+}
+
+.danger-action-info {
+    flex-grow: 1;
+    padding-right: 1rem;
+}
+
+.danger-action-info h4 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.danger-action-info p {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+}
+
+.btn-danger {
+    background-color: var(--error-color);
+    color: white;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--button-radius);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+    background-color: #d13c5e;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(239, 71, 111, 0.3);
+}
+
+.btn-danger:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.btn-danger-outline {
+    background-color: transparent;
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--button-radius);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-danger-outline:hover {
+    background-color: rgba(239, 71, 111, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(239, 71, 111, 0.1);
+}
+
+.btn-danger-outline:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* Modal Warning */
+.modal-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+    color: #e6a700;
+}
+
+.modal-warning.severe {
+    background-color: rgba(239, 71, 111, 0.1);
+    border-color: rgba(239, 71, 111, 0.3);
+    color: var(--error-color);
+}
+
+.modal-warning i {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.modal-warning p {
+    margin: 0;
+    font-size: 0.9375rem;
+}
+
+.clear-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.option-item {
+    background-color: var(--lighter-bg);
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.option-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.checkbox-container {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding-left: 2rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-container input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: var(--light-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.checkbox-container:hover input ~ .checkmark {
+    border-color: var(--primary-color);
+}
+
+.checkbox-container input:checked ~ .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-container .checkmark:after {
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.option-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.option-label span {
+    font-weight: 500;
+}
+
+.option-label small {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
+.verify-section {
+    margin-bottom: 1.5rem;
+}
+
+.verify-section label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.delete-consequences {
+    margin-bottom: 1.5rem;
+}
+
+.delete-consequences h4 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.delete-consequences ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.delete-consequences li {
+    margin-bottom: 0.5rem;
+    font-size: 0.9375rem;
+}
+
+.delete-consequences li:last-child {
+    margin-bottom: 0;
+}
+
+.delete-confirm-checkbox {
+    margin-bottom: 1.5rem;
+}
+
+.delete-confirm-checkbox .checkbox-container {
+    align-items: center;
+}
+
+.delete-confirm-checkbox .checkbox-container span:not(.checkmark) {
+    font-size: 0.9375rem;
+}
+
+@media (max-width: 768px) {
+    .danger-action {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .danger-action-info {
+        padding-right: 0;
+    }
+    
+    .danger-action .btn {
+        width: 100%;
+    }
+    
+    .danger-zone-warning {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .modal-warning {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .modal-warning i {
+        margin: 0 auto 0.5rem;
+    }
+}
