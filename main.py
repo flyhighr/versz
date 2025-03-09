@@ -141,9 +141,9 @@ class Settings:
             "link": "<link href='https://fonts.googleapis.com/css2?family=Hi+Melody&display=swap' rel='stylesheet'>"
         },
         {
-            "name": "Afacad Flux",
-            "value": "'Afacad Flux', sans-serif",
-            "link": "<link href='https://fonts.googleapis.com/css2?family=Afacad+Flux&display=swap' rel='stylesheet'>"
+            "name": "Schoolbell",
+            "value": "'Schoolbell', cursive",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Schoolbell&display=swap' rel='stylesheet'>"
         },
         {
             "name": "Doto",
