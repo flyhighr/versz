@@ -418,6 +418,182 @@
                             <button type="button" id="save-discord-btn" class="btn btn-primary">Save Changes</button>
                         </div>
                     </div>
+                    <div class="profile-section danger-zone">
+                        <div class="section-header">
+                            <h2>Danger Zone</h2>
+                        </div>
+                        <div class="profile-info-card">
+                            <div class="danger-zone-warning">
+                                <div class="warning-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="warning-text">
+                                    <h3>Proceed with caution</h3>
+                                    <p>Actions in this section are irreversible and may result in permanent data loss.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="danger-actions">
+                                <div class="danger-action">
+                                    <div class="danger-action-info">
+                                        <h4>Clear My Data</h4>
+                                        <p>Selectively clear your profile information, pages, templates, or analytics while keeping your account.</p>
+                                    </div>
+                                    <button type="button" id="clear-data-btn" class="btn btn-danger-outline">
+                                        <i class="fas fa-eraser"></i> Clear Data
+                                    </button>
+                                </div>
+                                
+                                <div class="danger-action">
+                                    <div class="danger-action-info">
+                                        <h4>Delete My Account</h4>
+                                        <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                                    </div>
+                                    <button type="button" id="delete-account-btn" class="btn btn-danger">
+                                        <i class="fas fa-trash-alt"></i> Delete Account
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Clear Data Modal -->
+                    <div class="modal" id="clear-data-modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2>Clear My Data</h2>
+                                <button class="modal-close">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="modal-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <p>Clearing data is irreversible. Select what you want to clear:</p>
+                                </div>
+                                
+                                <form id="clear-data-form">
+                                    <div class="clear-options">
+                                        <div class="option-item">
+                                            <label class="checkbox-container">
+                                                <input type="checkbox" id="clear-profile" name="clear_profile">
+                                                <span class="checkmark"></span>
+                                                <div class="option-label">
+                                                    <span>Clear Profile Information</span>
+                                                    <small>Removes your personal information such as name, avatar, location, etc.</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="option-item">
+                                            <label class="checkbox-container">
+                                                <input type="checkbox" id="clear-analytics" name="clear_analytics">
+                                                <span class="checkmark"></span>
+                                                <div class="option-label">
+                                                    <span>Clear Analytics Data</span>
+                                                    <small>Removes all analytics data and resets view counts.</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="option-item">
+                                            <label class="checkbox-container">
+                                                <input type="checkbox" id="clear-templates" name="clear_templates">
+                                                <span class="checkmark"></span>
+                                                <div class="option-label">
+                                                    <span>Clear Templates</span>
+                                                    <small>Removes all templates you've created.</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="option-item">
+                                            <label class="checkbox-container">
+                                                <input type="checkbox" id="clear-pages" name="clear_pages">
+                                                <span class="checkmark"></span>
+                                                <div class="option-label">
+                                                    <span>Clear Additional Pages</span>
+                                                    <small>Removes all pages except your primary one.</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="verify-section">
+                                        <label for="clear-data-password">Enter your password to confirm:</label>
+                                        <div class="input-icon-wrapper">
+                                            <i class="fas fa-lock"></i>
+                                            <input type="password" id="clear-data-password" name="password" required>
+                                            <button type="button" class="password-toggle">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="button" class="btn btn-outline" id="clear-data-cancel">Cancel</button>
+                                        <button type="submit" class="btn btn-danger" id="clear-data-confirm">Clear Selected Data</button>
+                                    </div>
+                                    
+                                    <div class="auth-message" id="clear-data-message"></div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Delete Account Modal -->
+                    <div class="modal" id="delete-account-modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2>Delete My Account</h2>
+                                <button class="modal-close">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="modal-warning severe">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <p>This action is <strong>permanent and irreversible</strong>. Your account and all associated data will be completely deleted.</p>
+                                </div>
+                                
+                                <div class="delete-consequences">
+                                    <h4>What will be deleted:</h4>
+                                    <ul>
+                                        <li>Your user account and profile</li>
+                                        <li>All your profile pages</li>
+                                        <li>All templates you've created</li>
+                                        <li>Analytics data and view statistics</li>
+                                        <li>Messages and drawings on your pages</li>
+                                        <li>All other data associated with your account</li>
+                                    </ul>
+                                </div>
+                                
+                                <form id="delete-account-form">
+                                    <div class="verify-section">
+                                        <label for="delete-account-password">Enter your password to confirm deletion:</label>
+                                        <div class="input-icon-wrapper">
+                                            <i class="fas fa-lock"></i>
+                                            <input type="password" id="delete-account-password" name="password" required>
+                                            <button type="button" class="password-toggle">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="delete-confirm-checkbox">
+                                        <label class="checkbox-container">
+                                            <input type="checkbox" id="delete-confirm" required>
+                                            <span class="checkmark"></span>
+                                            <span>I understand that this action cannot be undone and all my data will be permanently deleted</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="button" class="btn btn-outline" id="delete-account-cancel">Cancel</button>
+                                        <button type="submit" class="btn btn-danger" id="delete-account-confirm">Delete My Account</button>
+                                    </div>
+                                    
+                                    <div class="auth-message" id="delete-account-message"></div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="profile-sidebar">
