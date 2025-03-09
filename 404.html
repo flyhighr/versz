@@ -3634,12 +3634,16 @@ body {
         statusIndicator.style.border = '2px solid rgba(0, 0, 0, 0.1)';
         
         // Set status color based on Discord status
+        let isOffline = true;
         if (discord.status === 'online') {
             statusIndicator.style.backgroundColor = '#43b581'; // Online - green
+            isOffline = false;
         } else if (discord.status === 'idle') {
             statusIndicator.style.backgroundColor = '#faa61a'; // Idle - yellow
+            isOffline = false;
         } else if (discord.status === 'dnd') {
             statusIndicator.style.backgroundColor = '#f04747'; // Do Not Disturb - red
+            isOffline = false;
         } else {
             statusIndicator.style.backgroundColor = '#747f8d'; // Offline - gray
         }
@@ -3650,6 +3654,12 @@ body {
         const discordInfo = document.createElement('div');
         discordInfo.className = 'discord-info';
         discordInfo.style.flex = '1';
+        
+        // Create username container with inline status
+        const usernameContainer = document.createElement('div');
+        usernameContainer.style.display = 'flex';
+        usernameContainer.style.alignItems = 'center';
+        usernameContainer.style.gap = '6px';
         
         const discordUsername = document.createElement('div');
         discordUsername.className = 'discord-username';
@@ -3669,12 +3679,15 @@ body {
             discordUsername.appendChild(discordTag);
         }
         
-        discordInfo.appendChild(discordUsername);
+        usernameContainer.appendChild(discordUsername);
         
-        // Status text - now just "Offline" or similar without the dot
+        // Status text now appears to the right of the username
         const statusText = document.createElement('div');
-        statusText.style.fontSize = '14px';
+        statusText.style.fontSize = '13px';
         statusText.style.opacity = '0.8';
+        statusText.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+        statusText.style.padding = '2px 6px';
+        statusText.style.borderRadius = '4px';
         
         if (discord.status === 'online') {
             statusText.textContent = 'Online';
@@ -3686,7 +3699,8 @@ body {
             statusText.textContent = 'Offline';
         }
         
-        discordInfo.appendChild(statusText);
+        usernameContainer.appendChild(statusText);
+        discordInfo.appendChild(usernameContainer);
         
         // Activity display
         if (discord.activity) {
@@ -3702,8 +3716,8 @@ body {
             discordInfo.appendChild(activityLine);
         }
         
-        // Last seen line
-        if (discord.connected_at) {
+        // Last seen line - only show if user is offline
+        if (isOffline && discord.connected_at) {
             const lastSeenDate = new Date(discord.connected_at);
             const now = new Date();
             const diffMs = now - lastSeenDate;
