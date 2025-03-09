@@ -139,7 +139,17 @@ class Settings:
             "name": "Hi Melody",
             "value": "'Hi Melody', sans-serif",
             "link": "<link href='https://fonts.googleapis.com/css2?family=Hi+Melody&display=swap' rel='stylesheet'>"
-        }
+        },
+        {
+            "name": "Afacad Flux",
+            "value": "'Afacad Flux', sans-serif",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Afacad+Flux&display=swap' rel='stylesheet'>"
+        },
+        {
+            "name": "Doto",
+            "value": "'Doto', sans-serif",
+            "link": "<link href='https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap' rel='stylesheet'>"
+        },
     ]
     TIMEZONES = list(pytz.all_timezones)
 
