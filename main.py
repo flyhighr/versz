@@ -3269,6 +3269,268 @@ async def delete_drawing(
     
     return {"message": "Drawing deleted successfully"}
 
+@app.delete("/account")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def delete_account(
+    request: Request,
+    current_user: dict = Depends(get_current_verified_user),
+    password: str = Body(..., embed=True)
+):
+    """Delete the user's account and all associated data"""
+    
+    # Verify password before deletion
+    if not await verify_password(password, current_user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password"
+        )
+    
+    try:
+        # Start transaction to ensure all data is deleted atomically
+        async with await db_client.start_session() as session:
+            async with session.start_transaction():
+                user_id = current_user["id"]
+                email = current_user["email"]
+                username = current_user.get("username")
+                
+                # 1. Get all user's page URLs for cleanup
+                pages = []
+                async for page in db.profile_pages.find(
+                    {"user_id": user_id},
+                    projection={"url": 1, "page_id": 1}
+                ):
+                    pages.append(page)
+                
+                # 2. Delete all user's pages
+                if pages:
+                    page_ids = [page["page_id"] for page in pages]
+                    urls = [page["url"] for page in pages]
+                    
+                    # Delete pages
+                    await db.profile_pages.delete_many({"user_id": user_id})
+                    
+                    # Delete views for pages
+                    await db.views.delete_many({"url": {"$in": urls}})
+                    
+                    # Delete analytics for pages
+                    await db.analytics.delete_many({"page_id": {"$in": page_ids}})
+                    
+                    # Delete messages for pages
+                    await db.messages.delete_many({"page_id": {"$in": page_ids}})
+                    
+                    # Delete drawings for pages
+                    await db.drawings.delete_many({"page_id": {"$in": page_ids}})
+                    
+                    # Delete view records for pages
+                    await db.view_records.delete_many({"url": {"$in": urls}})
+                
+                # 3. Delete user's templates
+                await db.templates.delete_many({"created_by": user_id})
+                
+                # 4. Delete any pending verifications
+                await db.verification.delete_many({"email": email})
+                
+                # 5. Delete any password reset requests
+                await db.password_reset.delete_many({"email": email})
+                
+                # 6. Delete any page previews
+                await db.page_previews.delete_many({"user_id": user_id})
+                
+                # 7. Finally delete the user
+                await db.users.delete_one({"id": user_id})
+                
+                # 8. Clear cache entries
+                await user_cache.delete(f"user:{email}")
+                if username:
+                    await user_cache.delete(f"username:{username}")
+                
+                # Clear page cache entries
+                for page in pages:
+                    if f"views:{page['url']}" in views_cache:
+                        views_cache.pop(f"views:{page['url']}")
+                
+        return {"message": "Account and all associated data have been permanently deleted"}
+        
+    except Exception as e:
+        logger.error(f"Error deleting account for user {current_user['id']}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while deleting your account. Please try again."
+        )
+
+@app.post("/clear-my-data")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def clear_user_data(
+    request: Request,
+    current_user: dict = Depends(get_current_verified_user),
+    password: str = Body(..., embed=True),
+    clear_pages: bool = Body(False),
+    clear_templates: bool = Body(False),
+    clear_profile: bool = Body(False),
+    clear_analytics: bool = Body(False)
+):
+    """Clear specific user data without deleting the account"""
+    
+    # Verify password before proceeding
+    if not await verify_password(password, current_user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password"
+        )
+    
+    try:
+        user_id = current_user["id"]
+        email = current_user["email"]
+        username = current_user.get("username")
+        cleared_items = []
+        
+        # 1. Clear profile information if requested
+        if clear_profile:
+            # Prepare update with minimal required fields
+            profile_update = {
+                "name": None,
+                "avatar_url": None,
+                "avatar_decoration": None,
+                "location": None,
+                "date_of_birth": None,
+                "timezone": None,
+                "gender": None,
+                "pronouns": None,
+                "bio": None
+            }
+            
+            # Update user with cleared profile
+            await db.users.update_one(
+                {"id": user_id},
+                {"$set": profile_update}
+            )
+            
+            # Clear cache
+            await user_cache.delete(f"user:{email}")
+            if username:
+                await user_cache.delete(f"username:{username}")
+                
+            cleared_items.append("profile information")
+        
+        # 2. Clear analytics data if requested
+        if clear_analytics:
+            # Get all user's page IDs
+            page_ids = []
+            async for page in db.profile_pages.find(
+                {"user_id": user_id},
+                projection={"page_id": 1}
+            ):
+                page_ids.append(page["page_id"])
+            
+            if page_ids:
+                # Delete analytics for user's pages
+                await db.analytics.delete_many({"page_id": {"$in": page_ids}})
+                
+                # Reset view counts
+                async for page in db.profile_pages.find(
+                    {"user_id": user_id},
+                    projection={"url": 1}
+                ):
+                    await db.views.update_one(
+                        {"url": page["url"]},
+                        {"$set": {"views": 0}}
+                    )
+                    
+                    # Clear view cache
+                    if f"views:{page['url']}" in views_cache:
+                        views_cache.pop(f"views:{page['url']}")
+                
+                cleared_items.append("analytics data")
+        
+        # 3. Clear templates if requested
+        if clear_templates:
+            await db.templates.delete_many({"created_by": user_id})
+            cleared_items.append("templates")
+        
+        # 4. Clear pages if requested (but keep at least one)
+        if clear_pages:
+            # Count user's pages
+            page_count = await db.profile_pages.count_documents({"user_id": user_id})
+            
+            if page_count > 1:
+                # Keep the user's primary page (username page) or the oldest page
+                if username:
+                    # Find and keep the page with URL matching username
+                    primary_page = await db.profile_pages.find_one({"url": username, "user_id": user_id})
+                    if primary_page:
+                        # Delete all other pages
+                        await db.profile_pages.delete_many({
+                            "user_id": user_id,
+                            "url": {"$ne": username}
+                        })
+                        
+                        # Get the deleted page URLs
+                        async for page in db.profile_pages.find(
+                            {"user_id": user_id, "url": {"$ne": username}},
+                            projection={"url": 1, "page_id": 1}
+                        ):
+                            # Clean up associated data
+                            await db.views.delete_one({"url": page["url"]})
+                            await db.analytics.delete_many({"page_id": page["page_id"]})
+                            await db.messages.delete_many({"page_id": page["page_id"]})
+                            await db.drawings.delete_many({"page_id": page["page_id"]})
+                            
+                            # Clear cache
+                            if f"views:{page['url']}" in views_cache:
+                                views_cache.pop(f"views:{page['url']}")
+                else:
+                    # Keep only the oldest page
+                    oldest_page = await db.profile_pages.find_one(
+                        {"user_id": user_id},
+                        sort=[("created_at", 1)]
+                    )
+                    
+                    if oldest_page:
+                        # Delete all other pages
+                        await db.profile_pages.delete_many({
+                            "user_id": user_id,
+                            "page_id": {"$ne": oldest_page["page_id"]}
+                        })
+                        
+                        # Get the deleted page URLs
+                        async for page in db.profile_pages.find(
+                            {"user_id": user_id, "page_id": {"$ne": oldest_page["page_id"]}},
+                            projection={"url": 1, "page_id": 1}
+                        ):
+                            # Clean up associated data
+                            await db.views.delete_one({"url": page["url"]})
+                            await db.analytics.delete_many({"page_id": page["page_id"]})
+                            await db.messages.delete_many({"page_id": page["page_id"]})
+                            await db.drawings.delete_many({"page_id": page["page_id"]})
+                            
+                            # Clear cache
+                            if f"views:{page['url']}" in views_cache:
+                                views_cache.pop(f"views:{page['url']}")
+                
+                cleared_items.append("additional profile pages")
+            else:
+                # Cannot delete the only page
+                if clear_pages and len(cleared_items) == 0:
+                    return {
+                        "message": "Cannot clear your only profile page. You must keep at least one page.",
+                        "cleared_items": []
+                    }
+        
+        if not cleared_items:
+            return {"message": "No data was selected to be cleared", "cleared_items": []}
+            
+        return {
+            "message": "Selected data has been cleared successfully",
+            "cleared_items": cleared_items
+        }
+        
+    except Exception as e:
+        logger.error(f"Error clearing data for user {current_user['id']}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while clearing your data. Please try again."
+        )
+
 # Helper functions for Discord integration
 
 async def get_discord_tokens(code: str) -> Dict[str, Any]:
