@@ -1303,257 +1303,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Danger Zone functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        // Clear Data Modal
-        const clearDataBtn = document.getElementById('clear-data-btn');
-        const clearDataModal = document.getElementById('clear-data-modal');
-        const clearDataForm = document.getElementById('clear-data-form');
-        const clearDataCancel = document.getElementById('clear-data-cancel');
-        const clearDataMessage = document.getElementById('clear-data-message');
-        
-        if (clearDataBtn && clearDataModal) {
-            clearDataBtn.addEventListener('click', () => {
-                clearDataModal.classList.add('active');
-                clearDataMessage.textContent = '';
-                clearDataMessage.className = 'auth-message';
-                clearDataMessage.style.display = 'none';
-                clearDataForm.reset();
-            });
-            
-            // Close modal when clicking outside
-            clearDataModal.addEventListener('click', (e) => {
-                if (e.target === clearDataModal) {
-                    clearDataModal.classList.remove('active');
-                }
-            });
-            
-            const modalClose = clearDataModal.querySelector('.modal-close');
-            if (modalClose) {
-                modalClose.addEventListener('click', () => {
-                    clearDataModal.classList.remove('active');
-                });
-            }
-            
-            if (clearDataCancel) {
-                clearDataCancel.addEventListener('click', () => {
-                    clearDataModal.classList.remove('active');
-                });
-            }
-        }
-        
-        // Delete Account Modal
-        const deleteAccountBtn = document.getElementById('delete-account-btn');
-        const deleteAccountModal = document.getElementById('delete-account-modal');
-        const deleteAccountForm = document.getElementById('delete-account-form');
-        const deleteAccountCancel = document.getElementById('delete-account-cancel');
-        const deleteAccountMessage = document.getElementById('delete-account-message');
-        
-        if (deleteAccountBtn && deleteAccountModal) {
-            deleteAccountBtn.addEventListener('click', () => {
-                deleteAccountModal.classList.add('active');
-                deleteAccountMessage.textContent = '';
-                deleteAccountMessage.className = 'auth-message';
-                deleteAccountMessage.style.display = 'none';
-                deleteAccountForm.reset();
-            });
-            
-            // Close modal when clicking outside
-            deleteAccountModal.addEventListener('click', (e) => {
-                if (e.target === deleteAccountModal) {
-                    deleteAccountModal.classList.remove('active');
-                }
-            });
-            
-            const modalClose = deleteAccountModal.querySelector('.modal-close');
-            if (modalClose) {
-                modalClose.addEventListener('click', () => {
-                    deleteAccountModal.classList.remove('active');
-                });
-            }
-            
-            if (deleteAccountCancel) {
-                deleteAccountCancel.addEventListener('click', () => {
-                    deleteAccountModal.classList.remove('active');
-                });
-            }
-        }
-        
-        // Handle Clear Data form submission
-        if (clearDataForm) {
-            clearDataForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const clearProfile = document.getElementById('clear-profile').checked;
-                const clearAnalytics = document.getElementById('clear-analytics').checked;
-                const clearTemplates = document.getElementById('clear-templates').checked;
-                const clearPages = document.getElementById('clear-pages').checked;
-                const password = document.getElementById('clear-data-password').value;
-                
-                // Validate at least one option is selected
-                if (!clearProfile && !clearAnalytics && !clearTemplates && !clearPages) {
-                    clearDataMessage.textContent = 'Please select at least one data type to clear.';
-                    clearDataMessage.className = 'auth-message error';
-                    clearDataMessage.style.display = 'block';
-                    return;
-                }
-                
-                // Validate password is provided
-                if (!password) {
-                    clearDataMessage.textContent = 'Please enter your password to confirm.';
-                    clearDataMessage.className = 'auth-message error';
-                    clearDataMessage.style.display = 'block';
-                    return;
-                }
-                
-                // Show loading state
-                const submitBtn = clearDataForm.querySelector('button[type="submit"]');
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                submitBtn.disabled = true;
-                
-                clearDataMessage.textContent = 'Processing your request...';
-                clearDataMessage.className = 'auth-message info';
-                clearDataMessage.style.display = 'block';
-                
-                try {
-                    const token = localStorage.getItem('token');
-                    
-                    // Send request to clear data
-                    const response = await fetch(`${API_URL}/clear-my-data`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                            password: password,
-                            clear_profile: clearProfile,
-                            clear_analytics: clearAnalytics,
-                            clear_templates: clearTemplates,
-                            clear_pages: clearPages
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (!response.ok) {
-                        throw new Error(data.detail || 'Failed to clear data');
-                    }
-                    
-                    // Show success message
-                    clearDataMessage.textContent = 'Selected data has been cleared successfully. The page will reload in a moment.';
-                    clearDataMessage.className = 'auth-message success';
-                    clearDataMessage.style.display = 'block';
-                    
-                    // Show notification
-                    showNotification('Data cleared successfully', 'success');
-                    
-                    // Reload the page after a delay
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
-                    
-                } catch (error) {
-                    console.error('Error clearing data:', error);
-                    
-                    clearDataMessage.textContent = error.message || 'An error occurred. Please try again.';
-                    clearDataMessage.className = 'auth-message error';
-                    clearDataMessage.style.display = 'block';
-                    
-                    showNotification(error.message || 'Failed to clear data', 'error');
-                    
-                    // Reset button
-                    submitBtn.innerHTML = 'Clear Selected Data';
-                    submitBtn.disabled = false;
-                }
-            });
-        }
-        
-        // Handle Delete Account form submission
-        if (deleteAccountForm) {
-            deleteAccountForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const password = document.getElementById('delete-account-password').value;
-                const confirmCheckbox = document.getElementById('delete-confirm').checked;
-                
-                // Validate confirmation checkbox
-                if (!confirmCheckbox) {
-                    deleteAccountMessage.textContent = 'Please confirm that you understand this action is permanent.';
-                    deleteAccountMessage.className = 'auth-message error';
-                    deleteAccountMessage.style.display = 'block';
-                    return;
-                }
-                
-                // Validate password is provided
-                if (!password) {
-                    deleteAccountMessage.textContent = 'Please enter your password to confirm.';
-                    deleteAccountMessage.className = 'auth-message error';
-                    deleteAccountMessage.style.display = 'block';
-                    return;
-                }
-                
-                // Show loading state
-                const submitBtn = deleteAccountForm.querySelector('button[type="submit"]');
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-                submitBtn.disabled = true;
-                
-                deleteAccountMessage.textContent = 'Processing your request...';
-                deleteAccountMessage.className = 'auth-message info';
-                deleteAccountMessage.style.display = 'block';
-                
-                try {
-                    const token = localStorage.getItem('token');
-                    
-                    // Send request to delete account
-                    const response = await fetch(`${API_URL}/account`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                            password: password
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        const data = await response.json();
-                        throw new Error(data.detail || 'Failed to delete account');
-                    }
-                    
-                    // Show success message
-                    deleteAccountMessage.textContent = 'Your account has been successfully deleted. You will be redirected to the login page.';
-                    deleteAccountMessage.className = 'auth-message success';
-                    deleteAccountMessage.style.display = 'block';
-                    
-                    // Show notification
-                    showNotification('Account deleted successfully', 'success');
-                    
-                    // Clear local storage and redirect to login page after a delay
-                    setTimeout(() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        window.location.href = 'login.html';
-                    }, 3000);
-                    
-                } catch (error) {
-                    console.error('Error deleting account:', error);
-                    
-                    deleteAccountMessage.textContent = error.message || 'An error occurred. Please try again.';
-                    deleteAccountMessage.className = 'auth-message error';
-                    deleteAccountMessage.style.display = 'block';
-                    
-                    showNotification(error.message || 'Failed to delete account', 'error');
-                    
-                    // Reset button
-                    submitBtn.innerHTML = 'Delete My Account';
-                    submitBtn.disabled = false;
-                }
-            });
-        }
-    });
-
     // Discord Integration Functions
 
     function loadDiscordData(userData) {
@@ -1923,6 +1672,264 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
+    // Danger Zone functionality
+    // Clear Data Modal
+    const clearDataBtn = document.getElementById('clear-data-btn');
+    const clearDataModal = document.getElementById('clear-data-modal');
+    const clearDataForm = document.getElementById('clear-data-form');
+    const clearDataCancel = document.getElementById('clear-data-cancel');
+    const clearDataMessage = document.getElementById('clear-data-message');
+
+    if (clearDataBtn && clearDataModal) {
+        clearDataBtn.addEventListener('click', () => {
+            clearDataModal.classList.add('active');
+            if (clearDataMessage) {
+                clearDataMessage.textContent = '';
+                clearDataMessage.className = 'auth-message';
+                clearDataMessage.style.display = 'none';
+            }
+            if (clearDataForm) {
+                clearDataForm.reset();
+            }
+        });
+        
+        // Close modal when clicking outside
+        clearDataModal.addEventListener('click', (e) => {
+            if (e.target === clearDataModal) {
+                clearDataModal.classList.remove('active');
+            }
+        });
+        
+        const modalClose = clearDataModal.querySelector('.modal-close');
+        if (modalClose) {
+            modalClose.addEventListener('click', () => {
+                clearDataModal.classList.remove('active');
+            });
+        }
+        
+        if (clearDataCancel) {
+            clearDataCancel.addEventListener('click', () => {
+                clearDataModal.classList.remove('active');
+            });
+        }
+    }
+
+    // Delete Account Modal
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    const deleteAccountModal = document.getElementById('delete-account-modal');
+    const deleteAccountForm = document.getElementById('delete-account-form');
+    const deleteAccountCancel = document.getElementById('delete-account-cancel');
+    const deleteAccountMessage = document.getElementById('delete-account-message');
+
+    if (deleteAccountBtn && deleteAccountModal) {
+        deleteAccountBtn.addEventListener('click', () => {
+            deleteAccountModal.classList.add('active');
+            if (deleteAccountMessage) {
+                deleteAccountMessage.textContent = '';
+                deleteAccountMessage.className = 'auth-message';
+                deleteAccountMessage.style.display = 'none';
+            }
+            if (deleteAccountForm) {
+                deleteAccountForm.reset();
+            }
+        });
+        
+        // Close modal when clicking outside
+        deleteAccountModal.addEventListener('click', (e) => {
+            if (e.target === deleteAccountModal) {
+                deleteAccountModal.classList.remove('active');
+            }
+        });
+        
+        const modalClose = deleteAccountModal.querySelector('.modal-close');
+        if (modalClose) {
+            modalClose.addEventListener('click', () => {
+                deleteAccountModal.classList.remove('active');
+            });
+        }
+        
+        if (deleteAccountCancel) {
+            deleteAccountCancel.addEventListener('click', () => {
+                deleteAccountModal.classList.remove('active');
+            });
+        }
+    }
+
+    // Handle Clear Data form submission
+    if (clearDataForm) {
+        clearDataForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const clearProfile = document.getElementById('clear-profile').checked;
+            const clearAnalytics = document.getElementById('clear-analytics').checked;
+            const clearTemplates = document.getElementById('clear-templates').checked;
+            const clearPages = document.getElementById('clear-pages').checked;
+            const password = document.getElementById('clear-data-password').value;
+            
+            // Validate at least one option is selected
+            if (!clearProfile && !clearAnalytics && !clearTemplates && !clearPages) {
+                clearDataMessage.textContent = 'Please select at least one data type to clear.';
+                clearDataMessage.className = 'auth-message error';
+                clearDataMessage.style.display = 'block';
+                return;
+            }
+            
+            // Validate password is provided
+            if (!password) {
+                clearDataMessage.textContent = 'Please enter your password to confirm.';
+                clearDataMessage.className = 'auth-message error';
+                clearDataMessage.style.display = 'block';
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = clearDataForm.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            submitBtn.disabled = true;
+            
+            clearDataMessage.textContent = 'Processing your request...';
+            clearDataMessage.className = 'auth-message info';
+            clearDataMessage.style.display = 'block';
+            
+            try {
+                const token = localStorage.getItem('token');
+                
+                // Send request to clear data
+                const response = await fetch(`${API_URL}/clear-my-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        password: password,
+                        clear_profile: clearProfile,
+                        clear_analytics: clearAnalytics,
+                        clear_templates: clearTemplates,
+                        clear_pages: clearPages
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to clear data');
+                }
+                
+                // Show success message
+                clearDataMessage.textContent = 'Selected data has been cleared successfully. The page will reload in a moment.';
+                clearDataMessage.className = 'auth-message success';
+                clearDataMessage.style.display = 'block';
+                
+                // Show notification
+                showNotification('Data cleared successfully', 'success');
+                
+                // Reload the page after a delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error clearing data:', error);
+                
+                clearDataMessage.textContent = error.message || 'An error occurred. Please try again.';
+                clearDataMessage.className = 'auth-message error';
+                clearDataMessage.style.display = 'block';
+                
+                showNotification(error.message || 'Failed to clear data', 'error');
+                
+                // Reset button
+                submitBtn.innerHTML = 'Clear Selected Data';
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Handle Delete Account form submission
+    if (deleteAccountForm) {
+        deleteAccountForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('delete-account-password').value;
+            const confirmCheckbox = document.getElementById('delete-confirm').checked;
+            
+            // Validate confirmation checkbox
+            if (!confirmCheckbox) {
+                deleteAccountMessage.textContent = 'Please confirm that you understand this action is permanent.';
+                deleteAccountMessage.className = 'auth-message error';
+                deleteAccountMessage.style.display = 'block';
+                return;
+            }
+            
+            // Validate password is provided
+            if (!password) {
+                deleteAccountMessage.textContent = 'Please enter your password to confirm.';
+                deleteAccountMessage.className = 'auth-message error';
+                deleteAccountMessage.style.display = 'block';
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = deleteAccountForm.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            submitBtn.disabled = true;
+            
+            deleteAccountMessage.textContent = 'Processing your request...';
+            deleteAccountMessage.className = 'auth-message info';
+            deleteAccountMessage.style.display = 'block';
+            
+            try {
+                const token = localStorage.getItem('token');
+                
+                // Send request to delete account
+                const response = await fetch(`${API_URL}/account`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        password: password
+                    })
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.detail || 'Failed to delete account');
+                }
+                
+                // Show success message
+                deleteAccountMessage.textContent = 'Your account has been successfully deleted. You will be redirected to the login page.';
+                deleteAccountMessage.className = 'auth-message success';
+                deleteAccountMessage.style.display = 'block';
+                
+                // Show notification
+                showNotification('Account deleted successfully', 'success');
+                
+                // Clear local storage and redirect to login page after a delay
+                setTimeout(() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                
+                deleteAccountMessage.textContent = error.message || 'An error occurred. Please try again.';
+                deleteAccountMessage.className = 'auth-message error';
+                deleteAccountMessage.style.display = 'block';
+                
+                showNotification(error.message || 'Failed to delete account', 'error');
+                
+                // Reset button
+                submitBtn.innerHTML = 'Delete My Account';
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
     
     
     // Improved notification system
@@ -2000,3 +2007,4 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initProfilePage();
 });
+
