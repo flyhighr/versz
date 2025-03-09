@@ -3544,7 +3544,10 @@ body {
         // Create a new Discord section to insert into the bio
         const discordSection = document.createElement('div');
         discordSection.className = 'discord-section';
-        discordSection.style.marginTop = '15px';
+        discordSection.style.marginTop = '10px';
+        discordSection.style.padding = '8px 12px';
+        discordSection.style.borderRadius = '8px';
+        discordSection.style.backgroundColor = 'rgba(88, 101, 242, 0.1)'; // Light Discord blue background
         discordSection.style.display = 'flex';
         discordSection.style.alignItems = 'center';
         discordSection.style.gap = '10px';
@@ -3552,8 +3555,8 @@ body {
         // Create Discord avatar
         const discordAvatar = document.createElement('div');
         discordAvatar.className = 'discord-avatar';
-        discordAvatar.style.width = '40px';
-        discordAvatar.style.height = '40px';
+        discordAvatar.style.width = '32px';
+        discordAvatar.style.height = '32px';
         discordAvatar.style.borderRadius = '50%';
         discordAvatar.style.overflow = 'hidden';
         discordAvatar.style.flexShrink = '0';
@@ -3574,6 +3577,7 @@ body {
         // Create Discord info
         const discordInfo = document.createElement('div');
         discordInfo.className = 'discord-info';
+        discordInfo.style.flex = '1';
         
         const discordUsername = document.createElement('div');
         discordUsername.className = 'discord-username';
@@ -3581,6 +3585,7 @@ body {
         discordUsername.style.display = 'flex';
         discordUsername.style.alignItems = 'center';
         discordUsername.style.gap = '5px';
+        discordUsername.style.fontSize = '14px';
         
         const usernameText = document.createElement('span');
         usernameText.textContent = discord.username || 'Unknown';
@@ -3603,7 +3608,7 @@ body {
         discordStatus.style.display = 'flex';
         discordStatus.style.alignItems = 'center';
         discordStatus.style.gap = '5px';
-        discordStatus.style.fontSize = '14px';
+        discordStatus.style.fontSize = '12px';
         discordStatus.style.color = '#666';
         
         const statusIndicator = document.createElement('div');
@@ -3642,8 +3647,8 @@ body {
         // Add Discord icon
         const discordIcon = document.createElement('img');
         discordIcon.src = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
-        discordIcon.style.width = '20px';
-        discordIcon.style.height = '20px';
+        discordIcon.style.width = '16px';
+        discordIcon.style.height = '16px';
         discordIcon.style.marginLeft = 'auto';
         
         // Assemble the section
@@ -3674,56 +3679,9 @@ body {
             });
         }
         
-        // Insert into bio container
+        // Insert into bio container without adding a line
         const bioElement = document.getElementById('bio');
-        bioElement.appendChild(document.createElement('hr'));
         bioElement.appendChild(discordSection);
-    }
-
-    // Function to set background
-    function setBackground(background) {
-        if (!background) return;
-        
-        const bgContainer = document.getElementById('backgroundContainer');
-        bgContainer.innerHTML = '';
-        
-        if (background.type === 'solid') {
-            document.body.style.backgroundColor = background.value;
-            document.body.style.backgroundImage = 'none';
-        } else if (background.type === 'gradient') {
-            document.body.style.background = background.value;
-        } else if (background.type === 'image') {
-            const img = document.createElement('img');
-            img.src = background.value;
-            img.className = 'bg-image';
-            bgContainer.appendChild(img);
-            
-            if (background.opacity < 1) {
-                const overlay = document.createElement('div');
-                overlay.className = 'bg-overlay';
-                overlay.style.opacity = 1 - background.opacity;
-                bgContainer.appendChild(overlay);
-            }
-        } else if (background.type === 'video') {
-            const video = document.createElement('video');
-            video.src = background.value;
-            video.className = 'bg-video';
-            video.loop = true;
-            video.playsInline = true; // Important for iOS
-            
-            // Don't set autoplay or muted initially - we'll handle this after user interaction
-            bgContainer.appendChild(video);
-            
-            if (background.opacity < 1) {
-                const overlay = document.createElement('div');
-                overlay.className = 'bg-overlay';
-                overlay.style.opacity = 1 - background.opacity;
-                bgContainer.appendChild(overlay);
-            }
-            
-            // Flag that we have media that needs user interaction
-            pageHasMedia = true;
-        }
     }
 
     function setContainerStyle(layout) {
