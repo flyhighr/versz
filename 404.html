@@ -3578,15 +3578,35 @@ body {
         discordSection.style.gap = '12px';
         discordSection.style.width = '100%';
         discordSection.style.boxSizing = 'border-box';
+        discordSection.style.position = 'relative'; // For positioning the Discord logo
         
-        // Create Discord avatar
+        // Add Discord logo in the top-right corner
+        const discordLogo = document.createElement('div');
+        discordLogo.style.position = 'absolute';
+        discordLogo.style.top = '8px';
+        discordLogo.style.right = '10px';
+        discordLogo.style.width = '20px';
+        discordLogo.style.height = '20px';
+        
+        const logoImg = document.createElement('img');
+        logoImg.src = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
+        logoImg.style.width = '100%';
+        logoImg.style.height = '100%';
+        logoImg.style.objectFit = 'contain';
+        discordLogo.appendChild(logoImg);
+        discordSection.appendChild(discordLogo);
+        
+        // Create Discord avatar with status indicator
+        const avatarContainer = document.createElement('div');
+        avatarContainer.style.position = 'relative';
+        avatarContainer.style.flexShrink = '0';
+        
         const discordAvatar = document.createElement('div');
         discordAvatar.className = 'discord-avatar';
         discordAvatar.style.width = '40px';
         discordAvatar.style.height = '40px';
         discordAvatar.style.borderRadius = '50%';
         discordAvatar.style.overflow = 'hidden';
-        discordAvatar.style.flexShrink = '0';
         discordAvatar.style.border = '2px solid rgba(255, 255, 255, 0.2)';
         
         const avatarImg = document.createElement('img');
@@ -3601,6 +3621,30 @@ body {
         avatarImg.style.height = '100%';
         avatarImg.style.objectFit = 'cover';
         discordAvatar.appendChild(avatarImg);
+        avatarContainer.appendChild(discordAvatar);
+        
+        // Add status indicator on the avatar (bottom right corner)
+        const statusIndicator = document.createElement('div');
+        statusIndicator.style.position = 'absolute';
+        statusIndicator.style.bottom = '0';
+        statusIndicator.style.right = '0';
+        statusIndicator.style.width = '14px';
+        statusIndicator.style.height = '14px';
+        statusIndicator.style.borderRadius = '50%';
+        statusIndicator.style.border = '2px solid rgba(0, 0, 0, 0.1)';
+        
+        // Set status color based on Discord status
+        if (discord.status === 'online') {
+            statusIndicator.style.backgroundColor = '#43b581'; // Online - green
+        } else if (discord.status === 'idle') {
+            statusIndicator.style.backgroundColor = '#faa61a'; // Idle - yellow
+        } else if (discord.status === 'dnd') {
+            statusIndicator.style.backgroundColor = '#f04747'; // Do Not Disturb - red
+        } else {
+            statusIndicator.style.backgroundColor = '#747f8d'; // Offline - gray
+        }
+        
+        avatarContainer.appendChild(statusIndicator);
         
         // Create Discord info
         const discordInfo = document.createElement('div');
@@ -3616,39 +3660,49 @@ body {
         usernameText.textContent = discord.username || 'Unknown';
         discordUsername.appendChild(usernameText);
         
-        // Status text below username
-        const statusLine = document.createElement('div');
-        statusLine.style.fontSize = '14px';
-        statusLine.style.opacity = '0.8';
-        
-        // Create status indicator as a small dot
-        const statusIndicator = document.createElement('span');
-        statusIndicator.style.display = 'inline-block';
-        statusIndicator.style.width = '8px';
-        statusIndicator.style.height = '8px';
-        statusIndicator.style.borderRadius = '50%';
-        statusIndicator.style.marginRight = '5px';
-        
-        // Set status color and text
-        let statusText = '';
-        if (discord.status === 'online') {
-            statusIndicator.style.backgroundColor = '#43b581';
-            statusText = 'Online';
-        } else if (discord.status === 'idle') {
-            statusIndicator.style.backgroundColor = '#faa61a';
-            statusText = 'Idle';
-        } else if (discord.status === 'dnd') {
-            statusIndicator.style.backgroundColor = '#f04747';
-            statusText = 'Do Not Disturb';
-        } else {
-            statusIndicator.style.backgroundColor = '#747f8d';
-            statusText = 'Offline';
+        if (discord.discriminator) {
+            const discordTag = document.createElement('span');
+            discordTag.className = 'discord-tag';
+            discordTag.style.color = '#666';
+            discordTag.style.fontWeight = 'normal';
+            discordTag.textContent = `#${discord.discriminator}`;
+            discordUsername.appendChild(discordTag);
         }
         
-        statusLine.appendChild(statusIndicator);
-        statusLine.appendChild(document.createTextNode(statusText));
+        discordInfo.appendChild(discordUsername);
         
-        // Add a second line showing "Last seen" if we have connected_at data
+        // Status text - now just "Offline" or similar without the dot
+        const statusText = document.createElement('div');
+        statusText.style.fontSize = '14px';
+        statusText.style.opacity = '0.8';
+        
+        if (discord.status === 'online') {
+            statusText.textContent = 'Online';
+        } else if (discord.status === 'idle') {
+            statusText.textContent = 'Idle';
+        } else if (discord.status === 'dnd') {
+            statusText.textContent = 'Do Not Disturb';
+        } else {
+            statusText.textContent = 'Offline';
+        }
+        
+        discordInfo.appendChild(statusText);
+        
+        // Activity display
+        if (discord.activity) {
+            const activityLine = document.createElement('div');
+            activityLine.style.fontSize = '13px';
+            activityLine.style.opacity = '0.7';
+            activityLine.style.marginTop = '2px';
+            
+            // Create activity text with proper formatting
+            const activityPrefix = getActivityPrefix(discord.activity_type);
+            activityLine.textContent = `${activityPrefix} ${discord.activity}`;
+            
+            discordInfo.appendChild(activityLine);
+        }
+        
+        // Last seen line
         if (discord.connected_at) {
             const lastSeenDate = new Date(discord.connected_at);
             const now = new Date();
@@ -3672,15 +3726,11 @@ body {
             lastSeenLine.style.fontSize = '12px';
             lastSeenLine.style.opacity = '0.7';
             lastSeenLine.textContent = `last seen ${timeAgo}`;
-            statusLine.appendChild(document.createElement('br'));
-            statusLine.appendChild(lastSeenLine);
+            discordInfo.appendChild(lastSeenLine);
         }
         
-        discordInfo.appendChild(discordUsername);
-        discordInfo.appendChild(statusLine);
-        
         // Assemble the section
-        discordSection.appendChild(discordAvatar);
+        discordSection.appendChild(avatarContainer);
         discordSection.appendChild(discordInfo);
         
         // Apply styles from the parent function
@@ -3694,6 +3744,18 @@ body {
             }
         }
         
+        if (usernameStyle) {
+            const tagElements = discordSection.querySelectorAll('.discord-tag');
+            tagElements.forEach(element => {
+                if (usernameStyle.color) {
+                    element.style.color = usernameStyle.color;
+                }
+                if (usernameStyle.font && usernameStyle.font.value) {
+                    element.style.fontFamily = usernameStyle.font.value;
+                }
+            });
+        }
+        
         // Insert into bio container
         const bioElement = document.getElementById('bio');
         bioElement.appendChild(discordSection);
@@ -3702,6 +3764,19 @@ body {
         const originalContainer = document.getElementById('discordContainer');
         if (originalContainer) {
             originalContainer.style.display = 'none';
+        }
+        
+        // Helper function to get activity prefix based on type
+        function getActivityPrefix(activityType) {
+            switch (activityType) {
+                case 0: return 'Playing';
+                case 1: return 'Streaming';
+                case 2: return 'Listening to';
+                case 3: return 'Watching';
+                case 4: return 'Custom Status:';
+                case 5: return 'Competing in';
+                default: return '';
+            }
         }
     }
 
