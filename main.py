@@ -4816,8 +4816,27 @@ async def startup_event():
     # Create database indexes
     logger.info("Creating database indexes...")
     await db.users.create_index("email", unique=True)
-    # Make username index sparse to allow multiple null values
-    await db.users.create_index("username", unique=True, sparse=True)
+    
+    # Check if username index exists and drop it if needed
+    try:
+        # Get all indexes on the users collection
+        indexes = await db.users.index_information()
+        # If username_1 index exists, drop it
+        if "username_1" in indexes:
+            # Only drop and recreate if it's not already sparse
+            if not indexes["username_1"].get("sparse", False):
+                logger.info("Dropping existing username index to recreate it as sparse")
+                await db.users.drop_index("username_1")
+                # Create the new sparse index
+                await db.users.create_index("username", unique=True, sparse=True)
+        else:
+            # Create the index if it doesn't exist
+            await db.users.create_index("username", unique=True, sparse=True)
+    except Exception as e:
+        logger.error(f"Error managing username index: {str(e)}")
+        # Continue with startup even if index management fails
+    
+    # Rest of the indexes
     await db.pending_users.create_index("email", unique=True)
     await db.profile_pages.create_index("url", unique=True)
     await db.profile_pages.create_index("user_id")
@@ -4868,7 +4887,7 @@ async def startup_event():
     ping_thread.start()
     
     logger.info("Application startup complete")
-
+    
 @app.on_event("shutdown")
 async def shutdown_event():
     global db_client
