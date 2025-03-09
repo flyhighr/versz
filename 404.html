@@ -3560,239 +3560,247 @@ body {
     }
 
     function renderDiscordData(discord, layout) {
-        if (!discord) {
-            return;
+    if (!discord) {
+        return;
+    }
+    
+    console.log("Discord data received:", discord); // Debug log
+    
+    // Hide the original Discord container
+    const originalContainer = document.getElementById('discordContainer');
+    if (originalContainer) {
+        originalContainer.style.display = 'none';
+    }
+    
+    // Create a new Discord section to insert into the bio
+    const discordSection = document.createElement('div');
+    discordSection.className = 'discord-section';
+    discordSection.style.marginTop = '15px';
+    discordSection.style.marginBottom = '15px';
+    discordSection.style.padding = '10px 15px';
+    discordSection.style.borderRadius = '12px';
+    discordSection.style.backgroundColor = 'rgba(0, 0, 0, 0.1)'; // Semi-transparent background
+    discordSection.style.backdropFilter = 'blur(5px)';
+    discordSection.style.display = 'flex';
+    discordSection.style.alignItems = 'center';
+    discordSection.style.gap = '12px';
+    discordSection.style.width = '100%';
+    discordSection.style.boxSizing = 'border-box';
+    discordSection.style.position = 'relative'; // For positioning the Discord logo
+    
+    // Add Discord logo in the top-right corner
+    const discordLogo = document.createElement('div');
+    discordLogo.style.position = 'absolute';
+    discordLogo.style.top = '8px';
+    discordLogo.style.right = '10px';
+    discordLogo.style.width = '20px';
+    discordLogo.style.height = '20px';
+    
+    const logoImg = document.createElement('img');
+    logoImg.src = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
+    logoImg.style.width = '100%';
+    logoImg.style.height = '100%';
+    logoImg.style.objectFit = 'contain';
+    discordLogo.appendChild(logoImg);
+    discordSection.appendChild(discordLogo);
+    
+    // Create Discord avatar with status indicator
+    const avatarContainer = document.createElement('div');
+    avatarContainer.style.position = 'relative';
+    avatarContainer.style.flexShrink = '0';
+    
+    const discordAvatar = document.createElement('div');
+    discordAvatar.className = 'discord-avatar';
+    discordAvatar.style.width = '40px';
+    discordAvatar.style.height = '40px';
+    discordAvatar.style.borderRadius = '50%';
+    discordAvatar.style.overflow = 'hidden';
+    discordAvatar.style.border = '2px solid rgba(255, 255, 255, 0.2)';
+    
+    const avatarImg = document.createElement('img');
+    if (discord.avatar) {
+        avatarImg.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
+    } else {
+        // Default avatar based on discriminator
+        const discriminator = parseInt(discord.discriminator || '0') % 5;
+        avatarImg.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
+    }
+    avatarImg.style.width = '100%';
+    avatarImg.style.height = '100%';
+    avatarImg.style.objectFit = 'cover';
+    discordAvatar.appendChild(avatarImg);
+    avatarContainer.appendChild(discordAvatar);
+    
+    // Add status indicator on the avatar (bottom right corner)
+    const statusIndicator = document.createElement('div');
+    statusIndicator.style.position = 'absolute';
+    statusIndicator.style.bottom = '0';
+    statusIndicator.style.right = '0';
+    statusIndicator.style.width = '14px';
+    statusIndicator.style.height = '14px';
+    statusIndicator.style.borderRadius = '50%';
+    statusIndicator.style.border = '2px solid rgba(0, 0, 0, 0.1)';
+    
+    // Set status color based on Discord status
+    let isOffline = true;
+    if (discord.status === 'online') {
+        statusIndicator.style.backgroundColor = '#43b581'; // Online - green
+        isOffline = false;
+    } else if (discord.status === 'idle') {
+        statusIndicator.style.backgroundColor = '#faa61a'; // Idle - yellow
+        isOffline = false;
+    } else if (discord.status === 'dnd') {
+        statusIndicator.style.backgroundColor = '#f04747'; // Do Not Disturb - red
+        isOffline = false;
+    } else {
+        statusIndicator.style.backgroundColor = '#747f8d'; // Offline - gray
+    }
+    
+    avatarContainer.appendChild(statusIndicator);
+    
+    // Create Discord info
+    const discordInfo = document.createElement('div');
+    discordInfo.className = 'discord-info';
+    discordInfo.style.flex = '1';
+    
+    // Create username container with inline status
+    const usernameContainer = document.createElement('div');
+    usernameContainer.style.display = 'flex';
+    usernameContainer.style.alignItems = 'center';
+    usernameContainer.style.gap = '6px';
+    
+    const discordUsername = document.createElement('div');
+    discordUsername.className = 'discord-username';
+    discordUsername.style.fontWeight = 'bold';
+    discordUsername.style.fontSize = '16px';
+    
+    const usernameText = document.createElement('span');
+    usernameText.textContent = discord.username || 'Unknown';
+    discordUsername.appendChild(usernameText);
+    
+    if (discord.discriminator) {
+        const discordTag = document.createElement('span');
+        discordTag.className = 'discord-tag';
+        discordTag.style.color = '#666';
+        discordTag.style.fontWeight = 'normal';
+        discordTag.textContent = `#${discord.discriminator}`;
+        discordUsername.appendChild(discordTag);
+    }
+    
+    usernameContainer.appendChild(discordUsername);
+    
+    // Status text now appears to the right of the username
+    const statusText = document.createElement('div');
+    statusText.style.fontSize = '13px';
+    statusText.style.opacity = '0.8';
+    statusText.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+    statusText.style.padding = '2px 6px';
+    statusText.style.borderRadius = '4px';
+    
+    if (discord.status === 'online') {
+        statusText.textContent = 'Online';
+    } else if (discord.status === 'idle') {
+        statusText.textContent = 'Idle';
+    } else if (discord.status === 'dnd') {
+        statusText.textContent = 'Do Not Disturb';
+    } else {
+        statusText.textContent = 'Offline';
+    }
+    
+    usernameContainer.appendChild(statusText);
+    discordInfo.appendChild(usernameContainer);
+    
+    // Activity display - IMPROVED
+    if (discord.activity) {
+        console.log("Activity found:", discord.activity); // Debug log
+        
+        const activityLine = document.createElement('div');
+        activityLine.style.fontSize = '13px';
+        activityLine.style.opacity = '0.7';
+        activityLine.style.marginTop = '2px';
+        activityLine.style.fontWeight = '500';
+        activityLine.style.color = '#7289da'; // Discord blue color
+        
+        // Check if activity already has a prefix like "Playing", "Streaming", etc.
+        const activityPrefixes = ["Playing", "Streaming", "Listening to", "Watching", "Custom Status:", "Competing in"];
+        let hasPrefix = false;
+        
+        for (const prefix of activityPrefixes) {
+            if (discord.activity.startsWith(prefix)) {
+                hasPrefix = true;
+                break;
+            }
         }
         
-        // Create a new Discord section to insert into the bio
-        const discordSection = document.createElement('div');
-        discordSection.className = 'discord-section';
-        discordSection.style.marginTop = '15px';
-        discordSection.style.marginBottom = '15px';
-        discordSection.style.padding = '10px 15px';
-        discordSection.style.borderRadius = '12px';
-        discordSection.style.backgroundColor = 'rgba(0, 0, 0, 0.1)'; // Semi-transparent background
-        discordSection.style.backdropFilter = 'blur(5px)';
-        discordSection.style.display = 'flex';
-        discordSection.style.alignItems = 'center';
-        discordSection.style.gap = '12px';
-        discordSection.style.width = '100%';
-        discordSection.style.boxSizing = 'border-box';
-        discordSection.style.position = 'relative'; // For positioning the Discord logo
+        // If no prefix, add a default "Playing" prefix
+        activityLine.textContent = hasPrefix ? discord.activity : `Playing ${discord.activity}`;
         
-        // Add Discord logo in the top-right corner
-        const discordLogo = document.createElement('div');
-        discordLogo.style.position = 'absolute';
-        discordLogo.style.top = '8px';
-        discordLogo.style.right = '10px';
-        discordLogo.style.width = '20px';
-        discordLogo.style.height = '20px';
+        discordInfo.appendChild(activityLine);
+    }
+    
+    // Last seen line - only show if user is offline
+    if (isOffline && discord.connected_at) {
+        const lastSeenDate = new Date(discord.connected_at);
+        const now = new Date();
+        const diffMs = now - lastSeenDate;
         
-        const logoImg = document.createElement('img');
-        logoImg.src = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
-        logoImg.style.width = '100%';
-        logoImg.style.height = '100%';
-        logoImg.style.objectFit = 'contain';
-        discordLogo.appendChild(logoImg);
-        discordSection.appendChild(discordLogo);
+        // Format the time difference
+        let timeAgo = '';
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         
-        // Create Discord avatar with status indicator
-        const avatarContainer = document.createElement('div');
-        avatarContainer.style.position = 'relative';
-        avatarContainer.style.flexShrink = '0';
-        
-        const discordAvatar = document.createElement('div');
-        discordAvatar.className = 'discord-avatar';
-        discordAvatar.style.width = '40px';
-        discordAvatar.style.height = '40px';
-        discordAvatar.style.borderRadius = '50%';
-        discordAvatar.style.overflow = 'hidden';
-        discordAvatar.style.border = '2px solid rgba(255, 255, 255, 0.2)';
-        
-        const avatarImg = document.createElement('img');
-        if (discord.avatar) {
-            avatarImg.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
+        if (diffMins < 60) {
+            timeAgo = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+        } else if (diffHours < 24) {
+            timeAgo = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
         } else {
-            // Default avatar based on discriminator
-            const discriminator = parseInt(discord.discriminator || '0') % 5;
-            avatarImg.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
-        }
-        avatarImg.style.width = '100%';
-        avatarImg.style.height = '100%';
-        avatarImg.style.objectFit = 'cover';
-        discordAvatar.appendChild(avatarImg);
-        avatarContainer.appendChild(discordAvatar);
-        
-        // Add status indicator on the avatar (bottom right corner)
-        const statusIndicator = document.createElement('div');
-        statusIndicator.style.position = 'absolute';
-        statusIndicator.style.bottom = '0';
-        statusIndicator.style.right = '0';
-        statusIndicator.style.width = '14px';
-        statusIndicator.style.height = '14px';
-        statusIndicator.style.borderRadius = '50%';
-        statusIndicator.style.border = '2px solid rgba(0, 0, 0, 0.1)';
-        
-        // Set status color based on Discord status
-        let isOffline = true;
-        if (discord.status === 'online') {
-            statusIndicator.style.backgroundColor = '#43b581'; // Online - green
-            isOffline = false;
-        } else if (discord.status === 'idle') {
-            statusIndicator.style.backgroundColor = '#faa61a'; // Idle - yellow
-            isOffline = false;
-        } else if (discord.status === 'dnd') {
-            statusIndicator.style.backgroundColor = '#f04747'; // Do Not Disturb - red
-            isOffline = false;
-        } else {
-            statusIndicator.style.backgroundColor = '#747f8d'; // Offline - gray
+            timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
         }
         
-        avatarContainer.appendChild(statusIndicator);
-        
-        // Create Discord info
-        const discordInfo = document.createElement('div');
-        discordInfo.className = 'discord-info';
-        discordInfo.style.flex = '1';
-        
-        // Create username container with inline status
-        const usernameContainer = document.createElement('div');
-        usernameContainer.style.display = 'flex';
-        usernameContainer.style.alignItems = 'center';
-        usernameContainer.style.gap = '6px';
-        
-        const discordUsername = document.createElement('div');
-        discordUsername.className = 'discord-username';
-        discordUsername.style.fontWeight = 'bold';
-        discordUsername.style.fontSize = '16px';
-        
-        const usernameText = document.createElement('span');
-        usernameText.textContent = discord.username || 'Unknown';
-        discordUsername.appendChild(usernameText);
-        
-        if (discord.discriminator) {
-            const discordTag = document.createElement('span');
-            discordTag.className = 'discord-tag';
-            discordTag.style.color = '#666';
-            discordTag.style.fontWeight = 'normal';
-            discordTag.textContent = `#${discord.discriminator}`;
-            discordUsername.appendChild(discordTag);
+        const lastSeenLine = document.createElement('div');
+        lastSeenLine.style.fontSize = '12px';
+        lastSeenLine.style.opacity = '0.7';
+        lastSeenLine.textContent = `last seen ${timeAgo}`;
+        discordInfo.appendChild(lastSeenLine);
+    }
+    
+    // Assemble the section
+    discordSection.appendChild(avatarContainer);
+    discordSection.appendChild(discordInfo);
+    
+    // Apply styles from the parent function
+    if (nameStyle) {
+        const usernameElement = usernameText;
+        if (nameStyle.color) {
+            usernameElement.style.color = nameStyle.color;
         }
-        
-        usernameContainer.appendChild(discordUsername);
-        
-        // Status text now appears to the right of the username
-        const statusText = document.createElement('div');
-        statusText.style.fontSize = '13px';
-        statusText.style.opacity = '0.8';
-        statusText.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
-        statusText.style.padding = '2px 6px';
-        statusText.style.borderRadius = '4px';
-        
-        if (discord.status === 'online') {
-            statusText.textContent = 'Online';
-        } else if (discord.status === 'idle') {
-            statusText.textContent = 'Idle';
-        } else if (discord.status === 'dnd') {
-            statusText.textContent = 'Do Not Disturb';
-        } else {
-            statusText.textContent = 'Offline';
-        }
-        
-        usernameContainer.appendChild(statusText);
-        discordInfo.appendChild(usernameContainer);
-        
-        // Activity display
-        if (discord.activity) {
-            const activityLine = document.createElement('div');
-            activityLine.style.fontSize = '13px';
-            activityLine.style.opacity = '0.7';
-            activityLine.style.marginTop = '2px';
-            
-            // Create activity text with proper formatting
-            const activityPrefix = getActivityPrefix(discord.activity_type);
-            activityLine.textContent = `${activityPrefix} ${discord.activity}`;
-            
-            discordInfo.appendChild(activityLine);
-        }
-        
-        // Last seen line - only show if user is offline
-        if (isOffline && discord.connected_at) {
-            const lastSeenDate = new Date(discord.connected_at);
-            const now = new Date();
-            const diffMs = now - lastSeenDate;
-            
-            // Format the time difference
-            let timeAgo = '';
-            const diffMins = Math.floor(diffMs / (1000 * 60));
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            
-            if (diffMins < 60) {
-                timeAgo = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-            } else if (diffHours < 24) {
-                timeAgo = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-            } else {
-                timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-            }
-            
-            const lastSeenLine = document.createElement('div');
-            lastSeenLine.style.fontSize = '12px';
-            lastSeenLine.style.opacity = '0.7';
-            lastSeenLine.textContent = `last seen ${timeAgo}`;
-            discordInfo.appendChild(lastSeenLine);
-        }
-        
-        // Assemble the section
-        discordSection.appendChild(avatarContainer);
-        discordSection.appendChild(discordInfo);
-        
-        // Apply styles from the parent function
-        if (nameStyle) {
-            const usernameElement = usernameText;
-            if (nameStyle.color) {
-                usernameElement.style.color = nameStyle.color;
-            }
-            if (nameStyle.font && nameStyle.font.value) {
-                usernameElement.style.fontFamily = nameStyle.font.value;
-            }
-        }
-        
-        if (usernameStyle) {
-            const tagElements = discordSection.querySelectorAll('.discord-tag');
-            tagElements.forEach(element => {
-                if (usernameStyle.color) {
-                    element.style.color = usernameStyle.color;
-                }
-                if (usernameStyle.font && usernameStyle.font.value) {
-                    element.style.fontFamily = usernameStyle.font.value;
-                }
-            });
-        }
-        
-        // Insert into bio container
-        const bioElement = document.getElementById('bio');
-        bioElement.appendChild(discordSection);
-        
-        // Hide the original Discord container
-        const originalContainer = document.getElementById('discordContainer');
-        if (originalContainer) {
-            originalContainer.style.display = 'none';
-        }
-        
-        // Helper function to get activity prefix based on type
-        function getActivityPrefix(activityType) {
-            switch (activityType) {
-                case 0: return 'Playing';
-                case 1: return 'Streaming';
-                case 2: return 'Listening to';
-                case 3: return 'Watching';
-                case 4: return 'Custom Status:';
-                case 5: return 'Competing in';
-                default: return '';
-            }
+        if (nameStyle.font && nameStyle.font.value) {
+            usernameElement.style.fontFamily = nameStyle.font.value;
         }
     }
+    
+    if (usernameStyle) {
+        const tagElements = discordSection.querySelectorAll('.discord-tag');
+        tagElements.forEach(element => {
+            if (usernameStyle.color) {
+                element.style.color = usernameStyle.color;
+            }
+            if (usernameStyle.font && usernameStyle.font.value) {
+                element.style.fontFamily = usernameStyle.font.value;
+            }
+        });
+    }
+    
+    // Insert into bio container
+    const bioElement = document.getElementById('bio');
+    if (bioElement) {
+        bioElement.appendChild(discordSection);
+        console.log("Discord section added to bio with activity:", discord.activity);
+    } else {
+        console.error("Bio element not found!");
+    }
+}
 
     // Function to set background
     function setBackground(background) {
