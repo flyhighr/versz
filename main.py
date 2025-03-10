@@ -4521,6 +4521,78 @@ async def get_templates(
     
     return templates
 
+
+@app.get("/template-preview/{template_id}")
+@limiter.limit(RateLimits.READ_LIMIT)
+async def get_template_preview(request: Request, template_id: str):
+    """Get a full preview of a template rendered as a page"""
+    try:
+        # Get the template
+        template = await db.templates.find_one({"id": template_id})
+        if not template:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Template not found"
+            )
+        
+        # Get the template creator info
+        creator = await db.users.find_one(
+            {"id": template.get("created_by")},
+            projection={"username": 1, "name": 1, "avatar_url": 1}
+        )
+        
+        # Prepare page data from the template
+        page_config = template.get("page_config", {})
+        
+        # Create a mock page based on the template
+        mock_page = {
+            "page_id": f"preview_{template_id}",
+            "url": "template-preview",
+            "title": template.get("name", "Template Preview"),
+            "name": template.get("name", "Template Preview"),
+            "bio": template.get("description", "Template preview"),
+            "avatar_url": template.get("preview_image"),
+            "background": page_config.get("background"),
+            "layout": page_config.get("layout"),
+            "social_links": page_config.get("social_links", []),
+            "songs": page_config.get("songs", []),
+            "show_joined_date": page_config.get("show_joined_date", True),
+            "show_views": page_config.get("show_views", True),
+            "name_effect": page_config.get("name_effect"),
+            "bio_effect": page_config.get("bio_effect"),
+            "name_style": page_config.get("name_style"),
+            "username_style": page_config.get("username_style"),
+            "custom_css": page_config.get("custom_css"),
+            "custom_js": page_config.get("custom_js"),
+            "messages_config": page_config.get("messages_config", {"enabled": False}),
+            "drawings_config": page_config.get("drawings_config", {"enabled": False}),
+            "analytics_config": page_config.get("analytics_config", {"enabled": True})
+        }
+        
+        # Create a mock user based on the template creator
+        mock_user = {
+            "username": creator.get("username") if creator else "template",
+            "name": creator.get("name") if creator else "Template Creator",
+            "joined_at": template.get("created_at", datetime.utcnow()),
+        }
+        
+        # Return the complete preview data
+        return {
+            "page": mock_page,
+            "user": mock_user,
+            "is_template_preview": True,
+            "template_id": template_id,
+            "template_name": template.get("name", "Template"),
+            "views": template.get("use_count", 0)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating template preview: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate template preview"
+        )
+
 @app.get("/templates/{template_id}", response_model=TemplateResponse, response_class=ORJSONResponse)
 @limiter.limit(RateLimits.READ_LIMIT)
 async def get_template(request: Request, template_id: str):
