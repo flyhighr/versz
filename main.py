@@ -4642,6 +4642,85 @@ async def use_template(
         "url": url
     }
 
+@app.post("/apply-template/{page_id}")
+@limiter.limit(RateLimits.MODIFY_LIMIT)
+async def apply_template_to_page(
+    request: Request,
+    page_id: str,
+    data: dict = Body(...),
+    current_user: dict = Depends(get_current_verified_user)
+):
+    """Apply a template to an existing page"""
+    template_id = data.get("template_id")
+    if not template_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Template ID is required"
+        )
+    
+    # Check if the page exists and belongs to the user
+    existing_page = await db.profile_pages.find_one({
+        "page_id": page_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not existing_page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found or you don't have permission to update it"
+        )
+    
+    # Get template
+    template = await db.templates.find_one({"id": template_id})
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+    
+    # Get template page config
+    template_config = template.get("page_config", {})
+    
+    # Prepare update data - we'll keep original URL, title, and user_id
+    # but apply the template's styling and configuration
+    update_data = {}
+    
+    # Apply template fields but preserve essential page data
+    preserve_fields = ["url", "title", "user_id", "page_id", "created_at"]
+    
+    # Handle each field from the template
+    if isinstance(template_config, dict):
+        for key, value in template_config.items():
+            if key not in preserve_fields:
+                update_data[key] = value
+    
+    # Update the page with template data
+    await db.profile_pages.update_one(
+        {"page_id": page_id},
+        {"$set": {**update_data, "updated_at": datetime.utcnow(), "applied_template_id": template_id}}
+    )
+    
+    # Increment template use count
+    await db.templates.update_one(
+        {"id": template_id},
+        {"$inc": {"use_count": 1}}
+    )
+    
+    # Clear template cache
+    template_cache.pop(f"template:{template_id}", None)
+    
+    # Get updated page
+    updated_page = await db.profile_pages.find_one({"page_id": page_id})
+    
+    # Convert ObjectId to string
+    if "_id" in updated_page:
+        updated_page["_id"] = str(updated_page["_id"])
+    
+    return {
+        "message": "Template applied successfully",
+        "page": updated_page
+    }
+
 @app.get("/social-platforms")
 async def get_social_platforms():
     # List of supported social media platforms with their icons
