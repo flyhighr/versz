@@ -387,8 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.preview-btn').forEach(button => {
                 button.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const templateId = button.getAttribute('data-id');
-                    console.log("Opening preview for template ID:", templateId);
+                    const templateId = button.dataset.id;
                     openTemplatePreview(templateId);
                 });
             });
@@ -1029,8 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.querySelectorAll('.preview-btn').forEach(button => {
                         button.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            const templateId = button.getAttribute('data-id');
-                            console.log("Opening preview for template ID:", templateId);
+                            const templateId = button.dataset.id;
                             openTemplatePreview(templateId);
                         });
                     });
