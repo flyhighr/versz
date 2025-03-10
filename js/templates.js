@@ -138,6 +138,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
+    // NEW: Function to get user's pages for the apply template dropdown
+    const getUserPages = async () => {
+        try {
+            const response = await fetch(`${API_URL}/pages`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch user pages');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching user pages:', error);
+            showNotification('Failed to load your pages', 'error');
+            return [];
+        }
+    };
+    
+    // NEW: Function to apply template to an existing page
+    const applyTemplateToPage = async (templateId, pageId) => {
+        try {
+            const response = await fetch(`${API_URL}/apply-template/${pageId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    template_id: templateId
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to apply template to page');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error applying template:', error);
+            throw error;
+        }
+    };
+    
     // Load template categories
     const loadCategories = async () => {
         try {
@@ -461,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.open(`https://versz.fun/template?id=${templateId}`, '_blank');
     };
     
-    // Open template modal with details - FIXED: better loading and error handling
+    // UPDATED: Open template modal with details - now includes apply to existing page functionality
     const openTemplateModal = async (templateId) => {
         const modal = document.getElementById('template-preview-modal');
         
@@ -607,6 +654,35 @@ document.addEventListener('DOMContentLoaded', function() {
             previewBtn.addEventListener('click', () => {
                 openTemplatePreview(template.id);
             });
+            
+            // NEW: Fetch user's pages for the apply to existing page dropdown
+            const userPages = await getUserPages();
+            const existingPagesDropdown = document.getElementById('existing-pages-dropdown');
+            
+            if (existingPagesDropdown) {
+                existingPagesDropdown.innerHTML = '<option value="">Select an existing page</option>';
+                
+                if (userPages && userPages.length > 0) {
+                    userPages.forEach(page => {
+                        const option = document.createElement('option');
+                        option.value = page.page_id;
+                        option.textContent = `${page.title} (/${page.url})`;
+                        existingPagesDropdown.appendChild(option);
+                    });
+                    
+                    // Show the apply to existing page section
+                    const applyToExistingSection = document.getElementById('apply-to-existing-page');
+                    if (applyToExistingSection) {
+                        applyToExistingSection.style.display = 'block';
+                    }
+                } else {
+                    // Hide the apply to existing page section if no pages
+                    const applyToExistingSection = document.getElementById('apply-to-existing-page');
+                    if (applyToExistingSection) {
+                        applyToExistingSection.style.display = 'none';
+                    }
+                }
+            }
             
         } catch (error) {
             console.error('Error fetching template details:', error);
@@ -769,6 +845,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 const submitBtn = useTemplateForm.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Use This Template';
+            }
+        });
+    }
+    
+    // NEW: Handle apply to existing page button click
+    const applyToExistingBtn = document.getElementById('apply-to-existing-btn');
+    
+    if (applyToExistingBtn) {
+        applyToExistingBtn.addEventListener('click', async () => {
+            const templateId = document.getElementById('template-id').value;
+            const pageId = document.getElementById('existing-pages-dropdown').value;
+            
+            if (!pageId) {
+                showNotification('Please select a page', 'error');
+                return;
+            }
+            
+            // Show loading state
+            applyToExistingBtn.disabled = true;
+            applyToExistingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+            
+            try {
+                const result = await applyTemplateToPage(templateId, pageId);
+                
+                // Show success notification
+                showNotification('Template applied successfully!', 'success');
+                
+                // Close modal
+                document.getElementById('template-preview-modal').classList.remove('active');
+                
+                // Redirect to customize page
+                setTimeout(() => {
+                    window.location.href = `customize.html?page_id=${pageId}`;
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error applying template:', error);
+                showNotification(error.message || 'Failed to apply template to page', 'error');
+                
+                // Reset button
+                applyToExistingBtn.disabled = false;
+                applyToExistingBtn.innerHTML = 'Apply to This Page';
             }
         });
     }
