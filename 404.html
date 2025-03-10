@@ -2941,68 +2941,6 @@ body {
         const urlParams = new URLSearchParams(window.location.search);
         const templateId = urlParams.get('id');
         const previewId = urlParams.get('preview');
-        
-        // Handle template preview URLs
-        if (path === 'template' && templateId) {
-            try {
-                const url = `${API_URL}/templates/${templateId}`;
-                const response = await fetchWithTimeout(url);
-                
-                if (!response.ok) {
-                    if (response.status === 429) {
-                        showError(429, 'Rate limit exceeded');
-                        return;
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const template = await response.json();
-                
-                // Format data for template preview
-                const data = {
-                    page: {
-                        name: template.name,
-                        title: template.name,
-                        bio: template.description,
-                        social_links: template.page_config?.social_links || [],
-                        songs: template.page_config?.songs || [],
-                        background: template.page_config?.background,
-                        timezone: template.page_config?.timezone,
-                        name_effect: template.page_config?.name_effect,
-                        bio_effect: template.page_config?.bio_effect,
-                        name_style: template.page_config?.name_style,
-                        username_style: template.page_config?.username_style,
-                        custom_css: template.page_config?.custom_css,
-                        custom_js: template.page_config?.custom_js,
-                        layout: template.page_config?.layout,
-                        show_views: template.page_config?.show_views,
-                        show_joined_date: template.page_config?.show_joined_date,
-                        avatar_url: template.preview_image
-                    },
-                    user: {
-                        name: template.name,
-                        username: template.created_by_username || 'template',
-                        joined_at: template.created_at
-                    },
-                    is_template_preview: true,
-                    template_id: template.id,
-                    template_name: template.name
-                };
-                
-                await renderContent(data);
-                setupPreviewBanner(data);
-                return;
-            } catch (err) {
-                console.error('Loading template error:', err);
-                showError(404, 'Template not found or failed to load');
-                return;
-            }
-        }
-        
-        if (!path && !templateId && !previewId) {
-            showError(404, 'Page not found');
-            return;
-        }
     
         try {
             let cacheKey = path;
