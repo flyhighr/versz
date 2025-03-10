@@ -383,6 +383,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
+            document.querySelectorAll('.preview-btn').forEach(button => {
+                // Remove existing event listeners
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                
+                // Add new event listener
+                newButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const templateId = newButton.dataset.id;
+                    openTemplatePreview(templateId);
+                });
+            });
 
             // Add event listeners to use buttons
             document.querySelectorAll('.use-btn').forEach(button => {
