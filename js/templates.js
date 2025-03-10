@@ -383,15 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
-            // Add event listeners to preview buttons
-            document.querySelectorAll('.preview-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const templateId = button.dataset.id;
-                    openTemplatePreview(templateId);
-                });
-            });
-            
+
             // Add event listeners to use buttons
             document.querySelectorAll('.use-btn').forEach(button => {
                 button.addEventListener('click', (e) => {
@@ -648,13 +640,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set template ID for use form
             document.getElementById('template-id').value = template.id;
             
-            // Set up preview button
-            const previewBtn = document.getElementById('template-view-preview-btn');
-            previewBtn.onclick = null; // Remove any existing listeners
-            previewBtn.addEventListener('click', () => {
-                openTemplatePreview(template.id);
+            document.querySelectorAll('.preview-btn').forEach(button => {
+                // Remove existing event listeners
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                
+                // Add new event listener
+                newButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const templateId = newButton.dataset.id;
+                    openTemplatePreview(templateId);
+                });
             });
-            
             // NEW: Fetch user's pages for the apply to existing page dropdown
             const userPages = await getUserPages();
             const existingPagesDropdown = document.getElementById('existing-pages-dropdown');
@@ -1024,11 +1021,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     });
                     
-                    // Add event listeners to preview buttons
                     document.querySelectorAll('.preview-btn').forEach(button => {
-                        button.addEventListener('click', (e) => {
+                        // Remove existing event listeners
+                        const newButton = button.cloneNode(true);
+                        button.parentNode.replaceChild(newButton, button);
+                        
+                        // Add new event listener
+                        newButton.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            const templateId = button.dataset.id;
+                            const templateId = newButton.dataset.id;
                             openTemplatePreview(templateId);
                         });
                     });
