@@ -383,19 +383,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
+            // FIXED: Add event listeners to preview buttons
             document.querySelectorAll('.preview-btn').forEach(button => {
-                // Remove existing event listeners
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
-                
-                // Add new event listener
-                newButton.addEventListener('click', (e) => {
+                button.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    const templateId = newButton.dataset.id;
+                    e.preventDefault();
+                    const templateId = this.getAttribute('data-id');
                     openTemplatePreview(templateId);
                 });
             });
-
+            
             // Add event listeners to use buttons
             document.querySelectorAll('.use-btn').forEach(button => {
                 button.addEventListener('click', (e) => {
@@ -507,9 +504,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Open template preview in a new tab
+    // FIXED: Open template preview in a new tab
     const openTemplatePreview = (templateId) => {
-        window.open(`https://versz.fun/template?id=${templateId}`, '_blank');
+        // Generate a unique URL with timestamp to prevent caching issues
+        const previewUrl = `https://versz.fun/template?id=${templateId}&t=${Date.now()}`;
+        // Open in a new tab with a specific name to reuse the same tab for previews
+        window.open(previewUrl, 'template_preview');
     };
     
     // UPDATED: Open template modal with details - now includes apply to existing page functionality
@@ -652,18 +652,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set template ID for use form
             document.getElementById('template-id').value = template.id;
             
-            document.querySelectorAll('.preview-btn').forEach(button => {
-                // Remove existing event listeners
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
+            // FIXED: Set up preview button
+            const previewBtn = document.getElementById('template-view-preview-btn');
+            if (previewBtn) {
+                // Remove any existing event listeners
+                const newPreviewBtn = previewBtn.cloneNode(true);
+                previewBtn.parentNode.replaceChild(newPreviewBtn, previewBtn);
                 
                 // Add new event listener
-                newButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const templateId = newButton.dataset.id;
-                    openTemplatePreview(templateId);
+                newPreviewBtn.addEventListener('click', function() {
+                    openTemplatePreview(template.id);
                 });
-            });
+            }
+            
             // NEW: Fetch user's pages for the apply to existing page dropdown
             const userPages = await getUserPages();
             const existingPagesDropdown = document.getElementById('existing-pages-dropdown');
@@ -1033,15 +1034,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     });
                     
+                    // FIXED: Add event listeners to preview buttons
                     document.querySelectorAll('.preview-btn').forEach(button => {
-                        // Remove existing event listeners
-                        const newButton = button.cloneNode(true);
-                        button.parentNode.replaceChild(newButton, button);
-                        
-                        // Add new event listener
-                        newButton.addEventListener('click', (e) => {
+                        button.addEventListener('click', function(e) {
                             e.stopPropagation();
-                            const templateId = newButton.dataset.id;
+                            e.preventDefault();
+                            const templateId = this.getAttribute('data-id');
                             openTemplatePreview(templateId);
                         });
                     });
