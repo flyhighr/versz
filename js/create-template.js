@@ -370,30 +370,64 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Preview image
+        // Preview image - FIXED VERSION
         const templatePreview = document.getElementById('template-preview');
         const previewImage = document.getElementById('preview-image');
         const previewLoading = document.querySelector('.preview-loading');
-        
+
         if (templatePreview && previewImage) {
+            let previewTimer = null;
+            let lastCheckedUrl = '';
+            
             templatePreview.addEventListener('input', function() {
-                if (this.value) {
+                const url = this.value.trim();
+                
+                // Clear any existing timer
+                if (previewTimer) {
+                    clearTimeout(previewTimer);
+                }
+                
+                // Don't attempt to load an image until typing stops
+                previewTimer = setTimeout(() => {
+                    // Skip if URL is empty or the same as the last checked URL
+                    if (!url || url === lastCheckedUrl) {
+                        return;
+                    }
+                    
+                    lastCheckedUrl = url;
+                    
+                    // Show loading state
                     previewLoading.style.display = 'flex';
                     previewImage.style.opacity = '0';
                     
-                    previewImage.src = this.value;
-                    previewImage.onload = () => {
-                        previewLoading.style.display = 'none';
+                    // Create a new image to test loading without triggering multiple errors
+                    const testImage = new Image();
+                    
+                    testImage.onload = function() {
+                        // Image loaded successfully
+                        previewImage.src = url;
                         previewImage.style.opacity = '1';
+                        previewLoading.style.display = 'none';
                     };
-                    previewImage.onerror = () => {
+                    
+                    testImage.onerror = function() {
+                        // Image failed to load - show only ONE notification
                         previewImage.src = 'img/template-placeholder.jpg';
-                        previewLoading.style.display = 'none';
                         previewImage.style.opacity = '1';
+                        previewLoading.style.display = 'none';
                         showNotification('Invalid image URL', 'warning');
                     };
-                } else {
+                    
+                    // Start loading the image
+                    testImage.src = url;
+                }, 800); // Wait 800ms after typing stops
+                
+                // If the input is cleared, reset to placeholder
+                if (!url) {
+                    clearTimeout(previewTimer);
                     previewImage.src = 'img/template-placeholder.jpg';
+                    previewImage.style.opacity = '1';
+                    previewLoading.style.display = 'none';
                 }
             });
         }
