@@ -326,7 +326,7 @@ body {
     border-radius: 4px;
 }
 
-/* Profile content container */
+/* Profile content container - INVISIBLE */
 .profile-container, .discord-container, .message-container, .drawing-container {
     border: none;
     border-radius: 0;
@@ -334,9 +334,6 @@ body {
     margin-bottom: 20px;
     background-color: transparent;
     box-shadow: none;
-    max-width: 700px; /* Added max-width to prevent stretching on wide screens */
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .bio {
@@ -394,9 +391,6 @@ body {
 /* Songs section */
 .songs-section {
     margin-bottom: 20px;
-    max-width: 700px; /* Added max-width */
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .section-title {
@@ -441,7 +435,6 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    will-change: transform; /* Optimization for smoother animations */
 }
 
 .song-info {
@@ -795,7 +788,6 @@ body {
     height: 100%;
     z-index: -1;
     object-fit: cover;
-    will-change: transform; /* Performance optimization */
 }
 
 .bg-video {
@@ -806,7 +798,6 @@ body {
     height: 100%;
     object-fit: cover;
     z-index: -1;
-    will-change: transform; /* Performance optimization */
 }
 
 .bg-overlay {
@@ -819,7 +810,7 @@ body {
     z-index: -1;
 }
 
-/* Discord container styles */
+/* Discord container styles - INVISIBLE */
 .discord-container {
     margin-top: 20px;
     margin-bottom: 20px;
@@ -829,9 +820,6 @@ body {
     border: none;
     box-shadow: none;
     padding: 0;
-    max-width: 700px; /* Added max-width */
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .discord-header {
@@ -933,7 +921,7 @@ body {
     color: #999;
 }
 
-/* Message container styles */
+/* Message container styles - INVISIBLE */
 .message-header, .drawing-header {
     display: flex;
     align-items: center;
@@ -946,7 +934,7 @@ body {
     font-weight: 600;
 }
 
-/* Toggle buttons for forms */
+/* NEW: Toggle buttons for forms */
 .form-toggle {
     display: flex;
     align-items: center;
@@ -1137,7 +1125,7 @@ body {
     word-break: break-word;
 }
 
-/* Drawing canvas styles */
+/* Drawing canvas styles - INVISIBLE */
 .drawing-controls {
     display: flex;
     flex-wrap: wrap;
@@ -1242,7 +1230,6 @@ body {
     margin-bottom: 15px;
     cursor: crosshair;
     transition: border-color 0.3s ease;
-    transform: translateZ(0); /* Hardware acceleration */
 }
 
 #drawingCanvas:hover {
@@ -1279,7 +1266,6 @@ body {
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 8px;
     transition: all 0.3s ease;
-    will-change: transform; /* Performance optimization */
 }
 
 .drawing-img:hover {
@@ -1381,6 +1367,8 @@ body {
 @media (min-width: 768px) {
     body {
         padding: 40px;
+        max-width: 800px;
+        margin: 0 auto;
     }
 
     .avatar {
@@ -1550,6 +1538,8 @@ body {
     }
 }
 
+
+
 /* Versz logo container on the right */
 .versz-logo {
     position: fixed;
@@ -1618,43 +1608,6 @@ body {
     background-color: rgba(255, 255, 255, 0.8);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     padding: 20px;
-}
-
-/* Performance optimizations */
-img, video {
-    transform: translateZ(0); /* Hardware acceleration */
-}
-
-/* Fix for Chrome scrolling lag */
-body {
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-perspective: 1000;
-    perspective: 1000;
-}
-
-/* Discord section optimization */
-.discord-section {
-    transition: transform 0.2s ease;
-    transform: translateZ(0);
-    max-width: 100%;
-}
-
-/* Fix for wide screens */
-@media (min-width: 1200px) {
-    .profile-container, 
-    .discord-container, 
-    .message-container, 
-    .drawing-container,
-    .songs-section {
-        max-width: 700px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    
-    .song-item {
-        max-width: 700px;
-    }
 }
         
     </style>
