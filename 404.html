@@ -157,7 +157,7 @@ body {
     position: relative;
 }
 
-/* Updated avatar decoration styles */
+/* Updated avatar decoration styles with better handling for all shapes */
 .avatar-container {
     position: relative;
     margin-right: 15px;
@@ -188,11 +188,14 @@ body {
     height: 140px;
     pointer-events: none;
     z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .avatar-decoration img {
-    width: 100%;
-    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
 }
 
@@ -388,9 +391,10 @@ body {
     object-fit: contain;
 }
 
-/* Songs section */
+/* Songs section - Improved to prevent excessive stretching */
 .songs-section {
     margin-bottom: 20px;
+    max-width: 100%;
 }
 
 .section-title {
@@ -416,6 +420,7 @@ body {
     border-radius: 8px;
     background-color: transparent;
     transition: all 0.2s ease;
+    max-width: 100%;
 }
 
 .song-item:hover {
@@ -627,7 +632,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.2); /* Changed to a semi-transparent dark color */
+    background-color: rgba(255, 255, 255, 0.95);
     border-radius: 10px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     padding: 20px;
@@ -779,7 +784,7 @@ body {
     animation: pulse 2s infinite;
 }
 
-/* Background styles */
+/* Background styles - Optimized for performance */
 .bg-image {
     position: fixed;
     top: 0;
@@ -788,6 +793,7 @@ body {
     height: 100%;
     z-index: -1;
     object-fit: cover;
+    will-change: transform; /* Hardware acceleration */
 }
 
 .bg-video {
@@ -798,6 +804,7 @@ body {
     height: 100%;
     object-fit: cover;
     z-index: -1;
+    will-change: transform; /* Hardware acceleration */
 }
 
 .bg-overlay {
@@ -810,7 +817,7 @@ body {
     z-index: -1;
 }
 
-/* Discord container styles - INVISIBLE */
+/* Discord container styles - Improved for better containment */
 .discord-container {
     margin-top: 20px;
     margin-bottom: 20px;
@@ -820,6 +827,7 @@ body {
     border: none;
     box-shadow: none;
     padding: 0;
+    max-width: 600px; /* Prevent excessive stretching */
 }
 
 .discord-header {
@@ -865,6 +873,7 @@ body {
 
 .discord-info {
     flex: 1;
+    min-width: 0; /* Ensure text truncation works */
 }
 
 .discord-username {
@@ -873,6 +882,7 @@ body {
     display: flex;
     align-items: center;
     gap: 5px;
+    flex-wrap: wrap;
 }
 
 .discord-tag {
@@ -913,6 +923,9 @@ body {
     margin-top: 5px;
     font-size: 14px;
     color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .discord-connected {
@@ -921,7 +934,13 @@ body {
     color: #999;
 }
 
-/* Message container styles - INVISIBLE */
+/* Message container styles - Improved for better containment */
+.message-container, .drawing-container {
+    max-width: 800px; /* Prevent excessive stretching */
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .message-header, .drawing-header {
     display: flex;
     align-items: center;
@@ -934,7 +953,7 @@ body {
     font-weight: 600;
 }
 
-/* NEW: Toggle buttons for forms */
+/* Toggle buttons for forms */
 .form-toggle {
     display: flex;
     align-items: center;
@@ -1125,7 +1144,7 @@ body {
     word-break: break-word;
 }
 
-/* Drawing canvas styles - INVISIBLE */
+/* Drawing canvas styles - Improved for better containment */
 .drawing-controls {
     display: flex;
     flex-wrap: wrap;
@@ -1230,6 +1249,7 @@ body {
     margin-bottom: 15px;
     cursor: crosshair;
     transition: border-color 0.3s ease;
+    touch-action: none; /* Prevents scrolling while drawing on touch devices */
 }
 
 #drawingCanvas:hover {
@@ -1266,6 +1286,7 @@ body {
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 8px;
     transition: all 0.3s ease;
+    will-change: transform; /* Hardware acceleration */
 }
 
 .drawing-img:hover {
@@ -1367,7 +1388,7 @@ body {
 @media (min-width: 768px) {
     body {
         padding: 40px;
-        max-width: 800px;
+        max-width: 1000px; /* Increased from 800px for better large screen experience */
         margin: 0 auto;
     }
 
@@ -1424,7 +1445,8 @@ body {
     }
 
     .song-item {
-        padding: 15px 0;
+        padding: 15px;
+        max-width: 600px; /* Prevent excessive stretching */
     }
 
     .song-cover {
@@ -1475,29 +1497,12 @@ body {
     .discord-container {
         padding: 15px;
     }
-}
-
-@media (min-width: 768px) {
-    .avatar {
-        width: 140px;
-        height: 140px;
-    }
-
-    .avatar-decoration {
-        width: 180px;
-        height: 180px;
-        top: -20px;
-        left: -20px;
-    }
-
-    .profile-name {
-        font-size: 32px;
-        gap: 10px;
-    }
-
-    .tag {
-        width: 28px;
-        height: 28px;
+    
+    /* Improved song list container on desktop */
+    .songs-section {
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
     }
 }
 
@@ -1536,9 +1541,26 @@ body {
     .drawings-list {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
+    
+    /* Improved song display on small screens */
+    .song-item {
+        padding: 10px;
+    }
+    
+    .song-cover {
+        width: 50px;
+        height: 50px;
+        margin-right: 10px;
+    }
+    
+    .song-title {
+        font-size: 14px;
+    }
+    
+    .song-artist {
+        font-size: 12px;
+    }
 }
-
-
 
 /* Versz logo container on the right */
 .versz-logo {
@@ -1609,8 +1631,42 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     padding: 20px;
 }
+
+/* Optimize performance for animations and images */
+img, video {
+    transform: translateZ(0); /* Hardware acceleration */
+    backface-visibility: hidden; /* Prevents flickering */
+}
+
+.fade-in, .slide-down, .slide-up, .bounce, .pulse {
+    will-change: transform, opacity; /* Hardware acceleration for animations */
+}
+
+/* Fix for Discord section in bio */
+.discord-section {
+    max-width: 100%;
+    overflow: hidden;
+}
         
-    </style>
+/* Improved avatar decoration handling for all shapes */
+.avatar-decoration.square img {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+}
+
+.avatar-decoration.non-square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-decoration.non-square img {
+    max-width: 140px;
+    max-height: 140px;
+    object-fit: contain;
+}
+</style>
 </head>
 <body>
     <div id="loading" class="loading">
@@ -1877,10 +1933,11 @@ body {
     </div>
     
     <div class="versz-logo">
-    <a href="/" title="Create Your Own Page">
-        <img src="https://versz.fun/logo.svg" alt="Versz Logo">
-    </a>
-</div>
+        <a href="/" title="Create Your Own Page">
+            <img src="https://versz.fun/logo.svg" alt="Versz Logo">
+        </a>
+    </div>
+
 <script>
     const API_URL = 'https://api.versz.fun';
     const cache = new Map();
@@ -1919,9 +1976,14 @@ body {
         // Play/Pause button event
         npPlayPause.addEventListener('click', () => {
             if (audioPlayer.paused) {
-                audioPlayer.play();
-                npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/2404/2404479.png";
-                isPlaying = true;
+                audioPlayer.play()
+                    .then(() => {
+                        npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/2404/2404479.png";
+                        isPlaying = true;
+                    })
+                    .catch(error => {
+                        console.error('Error playing audio:', error);
+                    });
             } else {
                 audioPlayer.pause();
                 npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/3318/3318638.png";
@@ -1978,9 +2040,77 @@ body {
         });
     }
     
-    // Initialize form toggles
+    // Initialize form toggles with improved functionality
     function initFormToggles() {
-        console.log("Initializing form toggles - OLD VERSION - REPLACED BY DIRECT HANDLERS");
+        console.log("Initializing form toggles with improved functionality");
+        
+        // Message toggle - direct implementation
+        const messageToggle = document.getElementById('messageToggle');
+        const messageFormContainer = document.getElementById('messageFormContainer');
+        
+        if (messageToggle && messageFormContainer) {
+            messageToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                
+                if (this.classList.contains('active')) {
+                    messageFormContainer.style.display = 'block';
+                    messageFormContainer.classList.add('active');
+                    
+                    // Ensure textarea gets focus
+                    setTimeout(() => {
+                        document.getElementById('messageText').focus();
+                    }, 300);
+                } else {
+                    messageFormContainer.classList.remove('active');
+                    setTimeout(() => {
+                        messageFormContainer.style.display = 'none';
+                    }, 500); // Match transition duration
+                }
+            });
+        }
+        
+        // Drawing toggle - direct implementation
+        const drawingToggle = document.getElementById('drawingToggle');
+        const drawingCanvasContainer = document.getElementById('drawingCanvasContainer');
+        
+        if (drawingToggle && drawingCanvasContainer) {
+            drawingToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                
+                if (this.classList.contains('active')) {
+                    drawingCanvasContainer.style.display = 'block';
+                    drawingCanvasContainer.classList.add('active');
+                    
+                    // Resize canvas when shown to ensure proper dimensions
+                    setTimeout(() => {
+                        const canvas = document.getElementById('drawingCanvas');
+                        if (canvas) {
+                            const container = canvas.parentElement;
+                            const ctx = canvas.getContext('2d');
+                            const tempCanvas = document.createElement('canvas');
+                            const tempCtx = tempCanvas.getContext('2d');
+                            
+                            // Save current drawing
+                            tempCanvas.width = canvas.width;
+                            tempCanvas.height = canvas.height;
+                            tempCtx.drawImage(canvas, 0, 0);
+                            
+                            // Resize canvas
+                            canvas.width = container.clientWidth - 30;
+                            canvas.height = isMobile ? 250 : 350;
+                            
+                            // Restore drawing
+                            ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+                        }
+                    }, 300);
+                } else {
+                    drawingCanvasContainer.classList.remove('active');
+                    setTimeout(() => {
+                        drawingCanvasContainer.style.display = 'none';
+                    }, 500); // Match transition duration
+                }
+            });
+        }
     }
     
     // Initialize link popup
@@ -2053,6 +2183,7 @@ body {
         }
     }
 
+    // Improved tag creation with better handling for different icon types
     function createTagElement(tag) {
         // Create the tag container
         const tagElement = document.createElement('div');
@@ -2142,6 +2273,7 @@ body {
         return mediaExtensions.some(ext => url.toLowerCase().endsWith(ext));
     }
 
+    // Improved song loading with better error handling
     function loadAndPlaySong(song) {
         if (!song) return;
         
@@ -2195,6 +2327,10 @@ body {
         if (audioSource) {
             audio.src = audioSource;
             audio.load();
+            
+            // Show loading state
+            npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/3514/3514257.png"; // Loading icon
+            
             audio.play()
                 .then(() => {
                     npPlayPauseIcon.src = "https://cdn-icons-png.flaticon.com/512/2404/2404479.png";
@@ -2298,7 +2434,9 @@ body {
                 // Close the message form after successful submission
                 document.getElementById('messageToggle').classList.remove('active');
                 document.getElementById('messageFormContainer').classList.remove('active');
-                document.getElementById('messageFormContainer').style.display = 'none';
+                setTimeout(() => {
+                    document.getElementById('messageFormContainer').style.display = 'none';
+                }, 500);
                 
             } catch (error) {
                 console.error('Error sending message:', error);
@@ -2403,7 +2541,7 @@ body {
         }
     }
     
-    // Initialize drawing canvas
+    // Initialize drawing canvas with improved performance
     function initDrawingCanvas() {
         const canvas = document.getElementById('drawingCanvas');
         if (!canvas) return;
@@ -2419,15 +2557,32 @@ body {
         // Set canvas dimensions based on container size
         function resizeCanvas() {
             const container = canvas.parentElement;
-            canvas.width = container.clientWidth - 30; // Adjust for padding
-            canvas.height = 300;
+            const containerWidth = container.clientWidth - 30; // Adjust for padding
+            
+            // Save current drawing
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            // Set new dimensions
+            canvas.width = containerWidth;
+            canvas.height = isMobile ? 250 : 350;
+            
+            // Restore drawing, scaled to new dimensions
+            ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
         }
         
         // Initial resize
         resizeCanvas();
         
-        // Resize on window resize
-        window.addEventListener('resize', resizeCanvas);
+        // Resize on window resize with debounce
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resizeCanvas, 200);
+        });
         
         // Drawing functions
         function startDrawing(e) {
@@ -2491,8 +2646,8 @@ body {
         canvas.addEventListener('mouseout', stopDrawing);
         
         // Touch events for mobile
-        canvas.addEventListener('touchstart', startDrawing);
-        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
         canvas.addEventListener('touchend', stopDrawing);
         
         // Tool selection
@@ -2582,7 +2737,9 @@ body {
                 // Close the drawing form after successful submission
                 document.getElementById('drawingToggle').classList.remove('active');
                 document.getElementById('drawingCanvasContainer').classList.remove('active');
-                document.getElementById('drawingCanvasContainer').style.display = 'none';
+                setTimeout(() => {
+                    document.getElementById('drawingCanvasContainer').style.display = 'none';
+                }, 500);
                 
             } catch (error) {
                 console.error('Error submitting drawing:', error);
@@ -2591,7 +2748,7 @@ body {
         });
     }
     
-    // Load drawings for the page
+    // Load drawings for the page with improved performance
     async function loadDrawings(pageId) {
         if (!pageId) return;
         
@@ -2628,6 +2785,9 @@ body {
             // Sort drawings to show newest first
             drawings = drawings.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
+            // Use fragment for better performance
+            const fragment = document.createDocumentFragment();
+            
             // Render drawings
             drawings.forEach(drawing => {
                 const drawingItem = document.createElement('div');
@@ -2639,82 +2799,178 @@ body {
                     day: 'numeric'
                 });
                 
-                drawingItem.innerHTML = `
-                    <img src="${drawing.data_url}" alt="Drawing" class="drawing-img">
-                    <div class="drawing-info">
-                        <div class="drawing-creator">
-                            ${drawing.sender_name ? drawing.sender_name : 'Anonymous'}
-                        </div>
-                        <div class="drawing-timestamp">${formattedDate}</div>
-                    </div>
-                `;
+                // Create image element with lazy loading
+                const img = document.createElement('img');
+                img.className = 'drawing-img';
+                img.loading = 'lazy'; // Enable lazy loading
+                img.src = drawing.data_url;
+                img.alt = 'Drawing';
+                
+                const info = document.createElement('div');
+                info.className = 'drawing-info';
+                
+                const creator = document.createElement('div');
+                creator.className = 'drawing-creator';
+                creator.textContent = drawing.sender_name ? drawing.sender_name : 'Anonymous';
+                
+                const timestamp = document.createElement('div');
+                timestamp.className = 'drawing-timestamp';
+                timestamp.textContent = formattedDate;
+                
+                info.appendChild(creator);
+                info.appendChild(timestamp);
+                
+                drawingItem.appendChild(img);
+                drawingItem.appendChild(info);
                 
                 // Apply name style to creator name (primary text)
                 if (nameStyle) {
-                    const creatorElement = drawingItem.querySelector('.drawing-creator');
                     if (nameStyle.color) {
-                        creatorElement.style.color = nameStyle.color;
+                        creator.style.color = nameStyle.color;
                     }
                     if (nameStyle.font && nameStyle.font.value) {
-                        creatorElement.style.fontFamily = nameStyle.font.value;
+                        creator.style.fontFamily = nameStyle.font.value;
                     }
                 }
                 
                 // Apply username style to timestamp (secondary text)
                 if (usernameStyle) {
-                    const timestampElement = drawingItem.querySelector('.drawing-timestamp');
                     if (usernameStyle.color) {
-                        timestampElement.style.color = usernameStyle.color;
+                        timestamp.style.color = usernameStyle.color;
                     }
                     if (usernameStyle.font && usernameStyle.font.value) {
-                        timestampElement.style.fontFamily = usernameStyle.font.value;
+                        timestamp.style.fontFamily = usernameStyle.font.value;
                     }
                 }
                 
-                // Add click event to view drawing in full size
+                // Add click event to view drawing in full size with improved modal
                 drawingItem.addEventListener('click', () => {
-                    const img = new Image();
-                    img.src = drawing.data_url;
+                    const modal = document.createElement('div');
+                    modal.style.position = 'fixed';
+                    modal.style.top = '0';
+                    modal.style.left = '0';
+                    modal.style.width = '100%';
+                    modal.style.height = '100%';
+                    modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                    modal.style.display = 'flex';
+                    modal.style.alignItems = 'center';
+                    modal.style.justifyContent = 'center';
+                    modal.style.zIndex = '2000';
+                    modal.style.padding = '20px';
+                    modal.style.backdropFilter = 'blur(5px)';
+                    modal.style.webkitBackdropFilter = 'blur(5px)';
+                    modal.style.opacity = '0';
+                    modal.style.transition = 'opacity 0.3s ease';
                     
-                    const popup = document.createElement('div');
-                    popup.style.position = 'fixed';
-                    popup.style.top = '0';
-                    popup.style.left = '0';
-                    popup.style.width = '100%';
-                    popup.style.height = '100%';
-                    popup.style.backgroundColor = 'rgba(0,0,0,0.8)';
-                    popup.style.display = 'flex';
-                    popup.style.alignItems = 'center';
-                    popup.style.justifyContent = 'center';
-                    popup.style.zIndex = '1000';
-                    popup.style.padding = '20px';
-                    popup.style.animation = 'fadeIn 0.3s ease';
+                    const imgContainer = document.createElement('div');
+                    imgContainer.style.position = 'relative';
+                    imgContainer.style.maxWidth = '90%';
+                    imgContainer.style.maxHeight = '90%';
+                    imgContainer.style.transition = 'transform 0.3s ease';
+                    imgContainer.style.transform = 'scale(0.95)';
                     
-                    img.style.maxWidth = '90%';
-                    img.style.maxHeight = '90%';
-                    img.style.objectFit = 'contain';
-                    img.style.transition = 'transform 0.3s ease';
-                    img.style.transform = 'scale(0.95)';
+                    const fullImg = new Image();
+                    fullImg.src = drawing.data_url;
+                    fullImg.style.maxWidth = '100%';
+                    fullImg.style.maxHeight = '90vh';
+                    fullImg.style.objectFit = 'contain';
+                    fullImg.style.borderRadius = '8px';
+                    fullImg.style.boxShadow = '0 5px 25px rgba(0,0,0,0.3)';
                     
-                    // Add animation when image loads
-                    img.onload = () => {
-                        img.style.transform = 'scale(1)';
+                    // Add loading indicator
+                    const loadingSpinner = document.createElement('div');
+                    loadingSpinner.className = 'spinner';
+                    loadingSpinner.style.position = 'absolute';
+                    loadingSpinner.style.top = '50%';
+                    loadingSpinner.style.left = '50%';
+                    loadingSpinner.style.transform = 'translate(-50%, -50%)';
+                    
+                    imgContainer.appendChild(loadingSpinner);
+                    
+                    // Add close button
+                    const closeBtn = document.createElement('button');
+                    closeBtn.textContent = '×';
+                    closeBtn.style.position = 'absolute';
+                    closeBtn.style.top = '10px';
+                    closeBtn.style.right = '10px';
+                    closeBtn.style.background = 'rgba(0,0,0,0.5)';
+                    closeBtn.style.color = 'white';
+                    closeBtn.style.border = 'none';
+                    closeBtn.style.borderRadius = '50%';
+                    closeBtn.style.width = '30px';
+                    closeBtn.style.height = '30px';
+                    closeBtn.style.fontSize = '20px';
+                    closeBtn.style.cursor = 'pointer';
+                    closeBtn.style.display = 'flex';
+                    closeBtn.style.alignItems = 'center';
+                    closeBtn.style.justifyContent = 'center';
+                    closeBtn.style.zIndex = '10';
+                    closeBtn.style.transition = 'background 0.2s ease';
+                    
+                    closeBtn.addEventListener('mouseover', () => {
+                        closeBtn.style.background = 'rgba(255,0,0,0.7)';
+                    });
+                    
+                    closeBtn.addEventListener('mouseout', () => {
+                        closeBtn.style.background = 'rgba(0,0,0,0.5)';
+                    });
+                    
+                    closeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        imgContainer.style.transform = 'scale(0.95)';
+                        modal.style.opacity = '0';
+                        setTimeout(() => {
+                            document.body.removeChild(modal);
+                        }, 300);
+                    });
+                    
+                    // Add drawing info
+                    const info = document.createElement('div');
+                    info.style.position = 'absolute';
+                    info.style.bottom = '10px';
+                    info.style.left = '10px';
+                    info.style.background = 'rgba(0,0,0,0.7)';
+                    info.style.color = 'white';
+                    info.style.padding = '8px 15px';
+                    info.style.borderRadius = '20px';
+                    info.style.fontSize = '14px';
+                    info.textContent = `${drawing.sender_name ? drawing.sender_name : 'Anonymous'} • ${formattedDate}`;
+                    
+                    // Add image to container when loaded
+                    fullImg.onload = () => {
+                        imgContainer.removeChild(loadingSpinner);
+                        imgContainer.appendChild(fullImg);
+                        imgContainer.appendChild(closeBtn);
+                        imgContainer.appendChild(info);
+                        imgContainer.style.transform = 'scale(1)';
                     };
                     
-                    popup.appendChild(img);
-                    document.body.appendChild(popup);
+                    // Add container to modal
+                    modal.appendChild(imgContainer);
+                    document.body.appendChild(modal);
                     
-                    popup.addEventListener('click', () => {
-                        img.style.transform = 'scale(0.95)';
-                        popup.style.opacity = '0';
-                        setTimeout(() => {
-                            document.body.removeChild(popup);
-                        }, 300);
+                    // Show modal with animation
+                    setTimeout(() => {
+                        modal.style.opacity = '1';
+                    }, 10);
+                    
+                    // Close modal when clicking outside image
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            imgContainer.style.transform = 'scale(0.95)';
+                            modal.style.opacity = '0';
+                            setTimeout(() => {
+                                document.body.removeChild(modal);
+                            }, 300);
+                        }
                     });
                 });
                 
-                drawingsList.appendChild(drawingItem);
+                fragment.appendChild(drawingItem);
             });
+            
+            // Append all drawings at once for better performance
+            drawingsList.appendChild(fragment);
             
         } catch (error) {
             console.error('Error loading drawings:', error);
@@ -3127,13 +3383,28 @@ body {
             };
         }
         
-        // Set avatar decoration
+        // Set avatar decoration with improved handling for different shapes
         if (page.avatar_decoration) {
             const decorationElement = document.getElementById('avatarDecoration');
             decorationElement.style.display = 'block';
             const decorationImg = document.getElementById('avatarDecorationImg');
             decorationImg.src = page.avatar_decoration;
             decorationImg.alt = "Avatar Decoration";
+            
+            // Preload the image to check its dimensions
+            const img = new Image();
+            img.onload = function() {
+                const isSquare = Math.abs(this.width - this.height) < 10; // Allow small differences
+                
+                if (isSquare) {
+                    // For square decorations, use the original approach
+                    decorationElement.className = 'avatar-decoration square';
+                } else {
+                    // For non-square decorations, center it over the avatar
+                    decorationElement.className = 'avatar-decoration non-square';
+                }
+            };
+            img.src = page.avatar_decoration;
         } else {
             document.getElementById('avatarDecoration').style.display = 'none';
         }
@@ -3444,8 +3715,8 @@ body {
             }
         }
         
-        // Initialize form toggles - now handled by direct handlers below
-        // initFormToggles();
+        // Initialize form toggles
+        initFormToggles();
         
         // Hide loading screen
         if (loading) {
@@ -3458,11 +3729,14 @@ body {
         // Helper function to apply container style
         function applyContainerStyle(container, style) {
             if (!style || !style.enabled) {
+                container.classList.remove('container-enabled');
                 container.style.border = 'none';
                 container.style.backgroundColor = 'transparent';
                 container.style.boxShadow = 'none';
                 return;
             }
+            
+            container.classList.add('container-enabled');
             
             // Apply container background color or gradient
             if (style.background_color) {
@@ -3497,297 +3771,304 @@ body {
         }
     }
 
+    // Improved Discord rendering with better containment
     function renderDiscordData(discord, layout) {
-    if (!discord) {
-        return;
-    }
-    
-    console.log("Discord data received:", discord); // Debug log
-    
-    // Hide the original Discord container
-    const originalContainer = document.getElementById('discordContainer');
-    if (originalContainer) {
-        originalContainer.style.display = 'none';
-    }
-    
-    // Create a new Discord section to insert into the bio
-    const discordSection = document.createElement('div');
-    discordSection.className = 'discord-section';
-    discordSection.style.marginTop = '15px';
-    discordSection.style.marginBottom = '15px';
-    discordSection.style.padding = '10px 15px';
-    discordSection.style.borderRadius = '12px';
-    discordSection.style.backgroundColor = 'rgba(0, 0, 0, 0.1)'; // Semi-transparent background
-    discordSection.style.backdropFilter = 'blur(5px)';
-    discordSection.style.display = 'flex';
-    discordSection.style.alignItems = 'center';
-    discordSection.style.gap = '12px';
-    discordSection.style.width = '100%';
-    discordSection.style.boxSizing = 'border-box';
-    discordSection.style.position = 'relative'; // For positioning the Discord logo
-    
-    // Add Discord logo in the top-right corner
-    const discordLogo = document.createElement('div');
-    discordLogo.style.position = 'absolute';
-    discordLogo.style.top = '8px';
-    discordLogo.style.right = '10px';
-    discordLogo.style.width = '20px';
-    discordLogo.style.height = '20px';
-    
-    const logoImg = document.createElement('img');
-    logoImg.src = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
-    logoImg.style.width = '100%';
-    logoImg.style.height = '100%';
-    logoImg.style.objectFit = 'contain';
-    discordLogo.appendChild(logoImg);
-    discordSection.appendChild(discordLogo);
-    
-    // Create Discord avatar with status indicator
-    const avatarContainer = document.createElement('div');
-    avatarContainer.style.position = 'relative';
-    avatarContainer.style.flexShrink = '0';
-    
-    const discordAvatar = document.createElement('div');
-    discordAvatar.className = 'discord-avatar';
-    discordAvatar.style.width = '40px';
-    discordAvatar.style.height = '40px';
-    discordAvatar.style.borderRadius = '50%';
-    discordAvatar.style.overflow = 'hidden';
-    discordAvatar.style.border = '2px solid rgba(255, 255, 255, 0.2)';
-    
-    const avatarImg = document.createElement('img');
-    if (discord.avatar) {
-        avatarImg.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
-    } else {
-        // Default avatar based on discriminator
-        const discriminator = parseInt(discord.discriminator || '0') % 5;
-        avatarImg.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
-    }
-    avatarImg.style.width = '100%';
-    avatarImg.style.height = '100%';
-    avatarImg.style.objectFit = 'cover';
-    discordAvatar.appendChild(avatarImg);
-    avatarContainer.appendChild(discordAvatar);
-    
-    // Add status indicator on the avatar (bottom right corner)
-    const statusIndicator = document.createElement('div');
-    statusIndicator.style.position = 'absolute';
-    statusIndicator.style.bottom = '0';
-    statusIndicator.style.right = '0';
-    statusIndicator.style.width = '14px';
-    statusIndicator.style.height = '14px';
-    statusIndicator.style.borderRadius = '50%';
-    statusIndicator.style.border = '2px solid rgba(0, 0, 0, 0.1)';
-    
-    // Set status color based on Discord status
-    let isOffline = true;
-    if (discord.status === 'online') {
-        statusIndicator.style.backgroundColor = '#43b581'; // Online - green
-        isOffline = false;
-    } else if (discord.status === 'idle') {
-        statusIndicator.style.backgroundColor = '#faa61a'; // Idle - yellow
-        isOffline = false;
-    } else if (discord.status === 'dnd') {
-        statusIndicator.style.backgroundColor = '#f04747'; // Do Not Disturb - red
-        isOffline = false;
-    } else {
-        statusIndicator.style.backgroundColor = '#747f8d'; // Offline - gray
-    }
-    
-    avatarContainer.appendChild(statusIndicator);
-    
-    // Create Discord info
-    const discordInfo = document.createElement('div');
-    discordInfo.className = 'discord-info';
-    discordInfo.style.flex = '1';
-    
-    // Create username container with inline status
-    const usernameContainer = document.createElement('div');
-    usernameContainer.style.display = 'flex';
-    usernameContainer.style.alignItems = 'center';
-    usernameContainer.style.gap = '6px';
-    usernameContainer.style.flexWrap = 'wrap';
-    
-    const discordUsername = document.createElement('div');
-    discordUsername.className = 'discord-username';
-    discordUsername.style.fontWeight = 'bold';
-    discordUsername.style.fontSize = '16px';
-    
-    const usernameText = document.createElement('span');
-    usernameText.textContent = discord.username || 'Unknown';
-    discordUsername.appendChild(usernameText);
-    
-    if (discord.discriminator && discord.discriminator !== "0") {
-        const discordTag = document.createElement('span');
-        discordTag.className = 'discord-tag';
-        discordTag.style.color = '#666';
-        discordTag.style.fontWeight = 'normal';
-        discordTag.textContent = `#${discord.discriminator}`;
-        discordUsername.appendChild(discordTag);
-    }
-    
-    usernameContainer.appendChild(discordUsername);
-    
-    // Status text now appears to the right of the username
-    const statusText = document.createElement('div');
-    statusText.style.fontSize = '13px';
-    statusText.style.opacity = '0.8';
-    statusText.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
-    statusText.style.padding = '2px 6px';
-    statusText.style.borderRadius = '4px';
-    
-    if (discord.status === 'online') {
-        statusText.textContent = 'Online';
-    } else if (discord.status === 'idle') {
-        statusText.textContent = 'Idle';
-    } else if (discord.status === 'dnd') {
-        statusText.textContent = 'Do Not Disturb';
-    } else {
-        statusText.textContent = 'Offline';
-    }
-    
-    usernameContainer.appendChild(statusText);
-    discordInfo.appendChild(usernameContainer);
-    
-    // Parse activity and custom status from the combined field if it exists
-    if (discord.activity) {
-        console.log("Activity found:", discord.activity); // Debug log
-        
-        // Split the activity string if it contains the delimiter
-        const activityParts = discord.activity.split('|');
-        const richActivity = activityParts[0];
-        const customStatus = activityParts.length > 1 ? activityParts[1] : null;
-        
-        // Display rich activity if available
-        if (richActivity) {
-            const activityLine = document.createElement('div');
-            activityLine.style.fontSize = '13px';
-            activityLine.style.marginTop = '2px';
-            activityLine.style.display = 'flex';
-            activityLine.style.alignItems = 'center';
-            activityLine.style.gap = '5px';
-            
-            // Add activity icon based on the type
-            const activityIcon = document.createElement('span');
-            
-            // Choose emoji based on activity type
-            if (richActivity.startsWith('Playing')) {
-                activityIcon.textContent = '⚡︎'; // Game controller
-            } else if (richActivity.startsWith('Streaming')) {
-                activityIcon.textContent = '🅾'; // Camera
-            } else if (richActivity.startsWith('Listening to')) {
-                activityIcon.textContent = 'ִ☊'; // Music note
-            } else if (richActivity.startsWith('Watching')) {
-                activityIcon.textContent = '⎚'; // TV
-            } else if (richActivity.startsWith('Competing')) {
-                activityIcon.textContent = '✌︎︎'; // Trophy
-            } else {
-                activityIcon.textContent = '.ᐣ'; // Default activity icon
-            }
-            
-            activityIcon.style.fontSize = '15px';
-            activityLine.appendChild(activityIcon);
-            
-            // Add the activity text
-            const activitySpan = document.createElement('span');
-            activitySpan.textContent = richActivity;
-            activitySpan.style.wordBreak = 'break-word';
-            activityLine.appendChild(activitySpan);
-            
-            discordInfo.appendChild(activityLine);
+        if (!discord) {
+            return;
         }
         
-        // Display custom status if available
-        if (customStatus) {
-            const customStatusLine = document.createElement('div');
-            customStatusLine.style.fontSize = '13px';
-            customStatusLine.style.marginTop = '2px';
-            customStatusLine.style.display = 'flex';
-            customStatusLine.style.alignItems = 'center';
-            customStatusLine.style.gap = '5px';
-            
-            // Add emoji for custom status
-            const emojiSpan = document.createElement('span');
-            emojiSpan.textContent = ''; // Speech bubble for custom status
-            emojiSpan.style.fontSize = '15px';
-            
-            customStatusLine.appendChild(emojiSpan);
-            
-            // Add the custom status text
-            const statusSpan = document.createElement('span');
-            statusSpan.textContent = customStatus;
-            statusSpan.style.wordBreak = 'break-word';
-            customStatusLine.appendChild(statusSpan);
-            
-            discordInfo.appendChild(customStatusLine);
+        // Hide the original Discord container
+        const originalContainer = document.getElementById('discordContainer');
+        if (originalContainer) {
+            originalContainer.style.display = 'none';
         }
-    }
-    
-    // Last seen line - only show if user is offline
-    if (isOffline && discord.connected_at) {
-        const lastSeenDate = new Date(discord.connected_at);
-        const now = new Date();
-        const diffMs = now - lastSeenDate;
         
-        // Format the time difference
-        let timeAgo = '';
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        // Create a new Discord section to insert into the bio
+        const discordSection = document.createElement('div');
+        discordSection.className = 'discord-section';
+        discordSection.style.marginTop = '15px';
+        discordSection.style.marginBottom = '15px';
+        discordSection.style.padding = '10px 15px';
+        discordSection.style.borderRadius = '12px';
+        discordSection.style.backgroundColor = 'rgba(0, 0, 0, 0.1)'; // Semi-transparent background
+        discordSection.style.backdropFilter = 'blur(5px)';
+        discordSection.style.display = 'flex';
+        discordSection.style.alignItems = 'center';
+        discordSection.style.gap = '12px';
+        discordSection.style.width = '100%';
+        discordSection.style.maxWidth = '600px'; // Prevent excessive stretching
+        discordSection.style.boxSizing = 'border-box';
+        discordSection.style.position = 'relative'; // For positioning the Discord logo
         
-        if (diffMins < 60) {
-            timeAgo = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-        } else if (diffHours < 24) {
-            timeAgo = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+        // Add Discord logo in the top-right corner
+        const discordLogo = document.createElement('div');
+        discordLogo.style.position = 'absolute';
+        discordLogo.style.top = '8px';
+        discordLogo.style.right = '10px';
+        discordLogo.style.width = '20px';
+        discordLogo.style.height = '20px';
+        
+        const logoImg = document.createElement('img');
+        logoImg.src = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
+        logoImg.style.width = '100%';
+        logoImg.style.height = '100%';
+        logoImg.style.objectFit = 'contain';
+        discordLogo.appendChild(logoImg);
+        discordSection.appendChild(discordLogo);
+        
+        // Create Discord avatar with status indicator
+        const avatarContainer = document.createElement('div');
+        avatarContainer.style.position = 'relative';
+        avatarContainer.style.flexShrink = '0';
+        
+        const discordAvatar = document.createElement('div');
+        discordAvatar.className = 'discord-avatar';
+        discordAvatar.style.width = '40px';
+        discordAvatar.style.height = '40px';
+        discordAvatar.style.borderRadius = '50%';
+        discordAvatar.style.overflow = 'hidden';
+        discordAvatar.style.border = '2px solid rgba(255, 255, 255, 0.2)';
+        
+        const avatarImg = document.createElement('img');
+        if (discord.avatar) {
+            avatarImg.src = `https://cdn.discordapp.com/avatars/${discord.discord_id}/${discord.avatar}.png`;
         } else {
-            timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+            // Default avatar based on discriminator
+            const discriminator = parseInt(discord.discriminator || '0') % 5;
+            avatarImg.src = `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
+        }
+        avatarImg.style.width = '100%';
+        avatarImg.style.height = '100%';
+        avatarImg.style.objectFit = 'cover';
+        discordAvatar.appendChild(avatarImg);
+        avatarContainer.appendChild(discordAvatar);
+        
+        // Add status indicator on the avatar (bottom right corner)
+        const statusIndicator = document.createElement('div');
+        statusIndicator.style.position = 'absolute';
+        statusIndicator.style.bottom = '0';
+        statusIndicator.style.right = '0';
+        statusIndicator.style.width = '14px';
+        statusIndicator.style.height = '14px';
+        statusIndicator.style.borderRadius = '50%';
+        statusIndicator.style.border = '2px solid rgba(0, 0, 0, 0.1)';
+        
+        // Set status color based on Discord status
+        let isOffline = true;
+        if (discord.status === 'online') {
+            statusIndicator.style.backgroundColor = '#43b581'; // Online - green
+            isOffline = false;
+        } else if (discord.status === 'idle') {
+            statusIndicator.style.backgroundColor = '#faa61a'; // Idle - yellow
+            isOffline = false;
+        } else if (discord.status === 'dnd') {
+            statusIndicator.style.backgroundColor = '#f04747'; // Do Not Disturb - red
+            isOffline = false;
+        } else {
+            statusIndicator.style.backgroundColor = '#747f8d'; // Offline - gray
         }
         
-        const lastSeenLine = document.createElement('div');
-        lastSeenLine.style.fontSize = '12px';
-        lastSeenLine.style.opacity = '0.7';
-        lastSeenLine.textContent = `last seen ${timeAgo}`;
-        discordInfo.appendChild(lastSeenLine);
-    }
-    
-    // Assemble the section
-    discordSection.appendChild(avatarContainer);
-    discordSection.appendChild(discordInfo);
-    
-    // Apply styles from the parent function
-    if (nameStyle) {
-        const usernameElement = usernameText;
-        if (nameStyle.color) {
-            usernameElement.style.color = nameStyle.color;
+        avatarContainer.appendChild(statusIndicator);
+        
+        // Create Discord info
+        const discordInfo = document.createElement('div');
+        discordInfo.className = 'discord-info';
+        discordInfo.style.flex = '1';
+        discordInfo.style.minWidth = '0'; // Ensure text truncation works
+        
+        // Create username container with inline status
+        const usernameContainer = document.createElement('div');
+        usernameContainer.style.display = 'flex';
+        usernameContainer.style.alignItems = 'center';
+        usernameContainer.style.gap = '6px';
+        usernameContainer.style.flexWrap = 'wrap';
+        
+        const discordUsername = document.createElement('div');
+        discordUsername.className = 'discord-username';
+        discordUsername.style.fontWeight = 'bold';
+        discordUsername.style.fontSize = '16px';
+        discordUsername.style.whiteSpace = 'nowrap';
+        discordUsername.style.overflow = 'hidden';
+        discordUsername.style.textOverflow = 'ellipsis';
+        
+        const usernameText = document.createElement('span');
+        usernameText.textContent = discord.username || 'Unknown';
+        discordUsername.appendChild(usernameText);
+        
+        if (discord.discriminator && discord.discriminator !== "0") {
+            const discordTag = document.createElement('span');
+            discordTag.className = 'discord-tag';
+            discordTag.style.color = '#666';
+            discordTag.style.fontWeight = 'normal';
+            discordTag.textContent = `#${discord.discriminator}`;
+            discordUsername.appendChild(discordTag);
         }
-        if (nameStyle.font && nameStyle.font.value) {
-            usernameElement.style.fontFamily = nameStyle.font.value;
+        
+        usernameContainer.appendChild(discordUsername);
+        
+        // Status text now appears to the right of the username
+        const statusText = document.createElement('div');
+        statusText.style.fontSize = '13px';
+        statusText.style.opacity = '0.8';
+        statusText.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+        statusText.style.padding = '2px 6px';
+        statusText.style.borderRadius = '4px';
+        
+        if (discord.status === 'online') {
+            statusText.textContent = 'Online';
+        } else if (discord.status === 'idle') {
+            statusText.textContent = 'Idle';
+        } else if (discord.status === 'dnd') {
+            statusText.textContent = 'Do Not Disturb';
+        } else {
+            statusText.textContent = 'Offline';
+        }
+        
+        usernameContainer.appendChild(statusText);
+        discordInfo.appendChild(usernameContainer);
+        
+        // Parse activity and custom status from the combined field if it exists
+        if (discord.activity) {
+            // Split the activity string if it contains the delimiter
+            const activityParts = discord.activity.split('|');
+            const richActivity = activityParts[0];
+            const customStatus = activityParts.length > 1 ? activityParts[1] : null;
+            
+            // Display rich activity if available
+            if (richActivity) {
+                const activityLine = document.createElement('div');
+                activityLine.style.fontSize = '13px';
+                activityLine.style.marginTop = '2px';
+                activityLine.style.display = 'flex';
+                activityLine.style.alignItems = 'center';
+                activityLine.style.gap = '5px';
+                activityLine.style.whiteSpace = 'nowrap';
+                activityLine.style.overflow = 'hidden';
+                activityLine.style.textOverflow = 'ellipsis';
+                
+                // Add activity icon based on the type
+                const activityIcon = document.createElement('span');
+                
+                // Choose emoji based on activity type
+                if (richActivity.startsWith('Playing')) {
+                    activityIcon.textContent = '⚡︎'; // Game controller
+                } else if (richActivity.startsWith('Streaming')) {
+                    activityIcon.textContent = '🅾'; // Camera
+                } else if (richActivity.startsWith('Listening to')) {
+                    activityIcon.textContent = 'ִ☊'; // Music note
+                } else if (richActivity.startsWith('Watching')) {
+                    activityIcon.textContent = '⎚'; // TV
+                } else if (richActivity.startsWith('Competing')) {
+                    activityIcon.textContent = '✌︎︎'; // Trophy
+                } else {
+                    activityIcon.textContent = '.ᐣ'; // Default activity icon
+                }
+                
+                activityIcon.style.fontSize = '15px';
+                activityLine.appendChild(activityIcon);
+                
+                // Add the activity text
+                const activitySpan = document.createElement('span');
+                activitySpan.textContent = richActivity;
+                activitySpan.style.overflow = 'hidden';
+                activitySpan.style.textOverflow = 'ellipsis';
+                activityLine.appendChild(activitySpan);
+                
+                discordInfo.appendChild(activityLine);
+            }
+            
+            // Display custom status if available
+            if (customStatus) {
+                const customStatusLine = document.createElement('div');
+                customStatusLine.style.fontSize = '13px';
+                customStatusLine.style.marginTop = '2px';
+                customStatusLine.style.display = 'flex';
+                customStatusLine.style.alignItems = 'center';
+                customStatusLine.style.gap = '5px';
+                customStatusLine.style.whiteSpace = 'nowrap';
+                customStatusLine.style.overflow = 'hidden';
+                customStatusLine.style.textOverflow = 'ellipsis';
+                
+                // Add emoji for custom status
+                const emojiSpan = document.createElement('span');
+                emojiSpan.textContent = ''; // Speech bubble for custom status
+                emojiSpan.style.fontSize = '15px';
+                
+                customStatusLine.appendChild(emojiSpan);
+                
+                // Add the custom status text
+                const statusSpan = document.createElement('span');
+                statusSpan.textContent = customStatus;
+                statusSpan.style.overflow = 'hidden';
+                statusSpan.style.textOverflow = 'ellipsis';
+                customStatusLine.appendChild(statusSpan);
+                
+                discordInfo.appendChild(customStatusLine);
+            }
+        }
+        
+        // Last seen line - only show if user is offline
+        if (isOffline && discord.connected_at) {
+            const lastSeenDate = new Date(discord.connected_at);
+            const now = new Date();
+            const diffMs = now - lastSeenDate;
+            
+            // Format the time difference
+            let timeAgo = '';
+            const diffMins = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            if (diffMins < 60) {
+                timeAgo = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+            } else if (diffHours < 24) {
+                timeAgo = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+            } else {
+                timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+            }
+            
+            const lastSeenLine = document.createElement('div');
+            lastSeenLine.style.fontSize = '12px';
+            lastSeenLine.style.opacity = '0.7';
+            lastSeenLine.textContent = `last seen ${timeAgo}`;
+            discordInfo.appendChild(lastSeenLine);
+        }
+        
+        // Assemble the section
+        discordSection.appendChild(avatarContainer);
+        discordSection.appendChild(discordInfo);
+        
+        // Apply styles from the parent function
+        if (nameStyle) {
+            const usernameElement = usernameText;
+            if (nameStyle.color) {
+                usernameElement.style.color = nameStyle.color;
+            }
+            if (nameStyle.font && nameStyle.font.value) {
+                usernameElement.style.fontFamily = nameStyle.font.value;
+            }
+        }
+        
+        if (usernameStyle) {
+            const tagElements = discordSection.querySelectorAll('.discord-tag');
+            tagElements.forEach(element => {
+                if (usernameStyle.color) {
+                    element.style.color = usernameStyle.color;
+                }
+                if (usernameStyle.font && usernameStyle.font.value) {
+                    element.style.fontFamily = usernameStyle.font.value;
+                }
+            });
+        }
+        
+        // Insert into bio container
+        const bioElement = document.getElementById('bio');
+        if (bioElement) {
+            bioElement.appendChild(discordSection);
         }
     }
-    
-    if (usernameStyle) {
-        const tagElements = discordSection.querySelectorAll('.discord-tag');
-        tagElements.forEach(element => {
-            if (usernameStyle.color) {
-                element.style.color = usernameStyle.color;
-            }
-            if (usernameStyle.font && usernameStyle.font.value) {
-                element.style.fontFamily = usernameStyle.font.value;
-            }
-        });
-    }
-    
-    // Insert into bio container
-    const bioElement = document.getElementById('bio');
-    if (bioElement) {
-        bioElement.appendChild(discordSection);
-        console.log("Discord section added to bio with activity:", discord.activity);
-    } else {
-        console.error("Bio element not found!");
-    }
-}
 
-    // Function to set background
+    // Function to set background with optimized performance
     function setBackground(background) {
         if (!background) return;
         
@@ -3803,6 +4084,8 @@ body {
             const img = document.createElement('img');
             img.src = background.value;
             img.className = 'bg-image';
+            img.loading = 'eager'; // Prioritize loading
+            img.decoding = 'async'; // Use async decoding
             bgContainer.appendChild(img);
             
             if (background.opacity < 1) {
@@ -3817,8 +4100,10 @@ body {
             video.className = 'bg-video';
             video.loop = true;
             video.playsInline = true; // Important for iOS
+            video.muted = true; // Start muted to allow autoplay
+            video.setAttribute('playsinline', ''); // For iOS
             
-            // Don't set autoplay or muted initially - we'll handle this after user interaction
+            // Don't set autoplay initially - we'll handle this after user interaction
             bgContainer.appendChild(video);
             
             if (background.opacity < 1) {
@@ -3871,7 +4156,7 @@ body {
                 
                 // Apply shadow
                 if (layout.container_style.shadow) {
-                    container.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+                    container.style.boxShadow = '0 4px 10px rgba(0,0,0,0.1)';
                 } else {
                     container.style.boxShadow = 'none';
                 }
@@ -3973,6 +4258,7 @@ body {
             }
             
             imgElement.alt = link.display_name || link.platform;
+            imgElement.loading = 'lazy'; // Use lazy loading
             linkElement.appendChild(imgElement);
             
             linkElement.title = link.display_name || link.platform;
@@ -3980,7 +4266,7 @@ body {
         });
     }
 
-    // Function to render songs
+    // Function to render songs with improved containment
     function renderSongs(songs, layout) {
         const songsContainer = document.getElementById('songsContainer');
         const songsList = document.getElementById('songsList');
@@ -4029,6 +4315,11 @@ body {
         // Check if container style is enabled
         const containerEnabled = layout && layout.container_style && layout.container_style.enabled;
         
+        // Create a container for song items to limit width
+        const songsWrapper = document.createElement('div');
+        songsWrapper.style.maxWidth = '600px'; // Prevent excessive stretching
+        songsWrapper.style.margin = '0 auto'; // Center on desktop
+        
         songs.forEach((song, index) => {
             const songItem = document.createElement('div');
             songItem.className = 'song-item';
@@ -4065,6 +4356,7 @@ body {
             const coverImg = document.createElement('img');
             coverImg.src = song.cover_url || 'https://via.placeholder.com/60?text=Music';
             coverImg.alt = song.title;
+            coverImg.loading = 'lazy'; // Use lazy loading for performance
             coverImg.onerror = () => {
                 coverImg.src = 'https://via.placeholder.com/60?text=Music';
             };
@@ -4167,8 +4459,10 @@ body {
             songItem.appendChild(songInfo);
             songItem.appendChild(playButton);
             
-            songsList.appendChild(songItem);
+            songsWrapper.appendChild(songItem);
         });
+        
+        songsList.appendChild(songsWrapper);
     }
         
     // Function to render tags
@@ -4191,15 +4485,12 @@ body {
         document.getElementById('rateLimitMessage').style.display = code === 429 ? 'block' : 'none';
     }
 
-     document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
         // Initialize audio player
         initAudioPlayer();
         
         // Initialize link popup
         initLinkPopup();
-        
-        // Direct fix for message and drawing toggles
-        setupFormToggles();
         
         // Load content
         loadContent().then(() => {
@@ -4207,74 +4498,6 @@ body {
             setupMediaInteraction();
         });
     });
-
-    
-    // Direct fix for message and drawing toggles
-    function setupFormToggles() {
-        console.log("Setting up form toggles - NEW DIRECT VERSION");
-        
-        // Message toggle functionality
-        const messageToggle = document.getElementById('messageToggle');
-        const messageFormContainer = document.getElementById('messageFormContainer');
-        
-        if (messageToggle && messageFormContainer) {
-            console.log("Message toggle and container found");
-            
-            messageToggle.addEventListener('click', function() {
-                console.log("Message toggle clicked");
-                this.classList.toggle('active');
-                
-                // Direct toggle of visibility
-                if (messageFormContainer.style.display === 'none' || !messageFormContainer.classList.contains('active')) {
-                    messageFormContainer.style.display = 'block';
-                    messageFormContainer.classList.add('active');
-                    console.log("Message form shown");
-                } else {
-                    messageFormContainer.style.display = 'none';
-                    messageFormContainer.classList.remove('active');
-                    console.log("Message form hidden");
-                }
-            });
-        } else {
-            console.error("Message toggle or container not found");
-        }
-        
-        // Drawing toggle functionality
-        const drawingToggle = document.getElementById('drawingToggle');
-        const drawingCanvasContainer = document.getElementById('drawingCanvasContainer');
-        
-        if (drawingToggle && drawingCanvasContainer) {
-            console.log("Drawing toggle and container found");
-            
-            drawingToggle.addEventListener('click', function() {
-                console.log("Drawing toggle clicked");
-                this.classList.toggle('active');
-                
-                // Direct toggle of visibility
-                if (drawingCanvasContainer.style.display === 'none' || !drawingCanvasContainer.classList.contains('active')) {
-                    drawingCanvasContainer.style.display = 'block';
-                    drawingCanvasContainer.classList.add('active');
-                    console.log("Drawing canvas shown");
-                    
-                    // Resize canvas when shown
-                    setTimeout(() => {
-                        const canvas = document.getElementById('drawingCanvas');
-                        if (canvas) {
-                            const container = canvas.parentElement;
-                            canvas.width = container.clientWidth - 30;
-                            console.log("Canvas resized to:", canvas.width);
-                        }
-                    }, 10);
-                } else {
-                    drawingCanvasContainer.style.display = 'none';
-                    drawingCanvasContainer.classList.remove('active');
-                    console.log("Drawing canvas hidden");
-                }
-            });
-        } else {
-            console.error("Drawing toggle or container not found");
-        }
-    }
 </script>
 </body>
 </html>
